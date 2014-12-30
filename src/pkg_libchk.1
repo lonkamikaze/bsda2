@@ -1,0 +1,136 @@
+.\"
+.\" Copyright (c) 2007-2014
+.\" Dominic Fandrey <kamikaze@bsdforen.de>
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\" 1. Redistributions of source code must retain the above copyright
+.\"    notice, this list of conditions and the following disclaimer.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND
+.\" ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+.\" ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE
+.\" FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.\" DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+.\" OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+.\" HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+.\" LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+.\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+.\" SUCH DAMAGE.
+.\"
+.\"
+.Dd December 30, 2014
+.Dt PKG_LIBCHK 1
+.Os
+.Sh NAME
+.Nm pkg_libchk
+.Nd check packages for links against missing libraries
+.Sh SYNOPSIS
+.Nm
+.Op Fl acdhmnoqrv
+.Op Ar packages
+.Sh DESCRIPTION
+The
+.Nm
+script uses
+.Xr pkg-info 8 ,
+.Xr ldd 1
+and
+.Xr readelf 1
+to check whether a package is linked against missing libraries or libraries
+residing in %%PREFIX%%/lib/compat and its subfolders.
+.Sh OPTIONS
+The following options are available:
+.Bl -tag -width indent
+.It Fl a -all
+Check all packages. This is the default action in case no packages have been
+specified.
+.It Fl c -clean
+Create clean output without status messages.
+.It Fl d -dependencies
+Also operate on the dependencies of the provided
+.Ar packages .
+.It Fl h -help
+Displays the available options.
+.It Fl jN -jobsN
+Specify the amount of parallel jobs the script will attempt run. The default is
+number of detected cores plus one.
+.It Fl m -mean
+In this mode all the checks to detect false positives are turned off.
+.Pp
+It also causes indirect dependencies to be listed as missing dependencies.
+.It Fl n -no-compat
+This deactivates detecting compat libraries in %%PREFIX%%/lib/compat
+as missing libraries.
+.It Fl o -origin
+Instead of the package name the package origin is printed.
+.It Fl q -raw
+Only print the names of affected packages. Do not print any details. This
+option is meant for machine readability.
+.Pp
+This option cannot be combined with verbose output.
+.It Fl r -required-by
+Also check packages that depend on the provided
+.Ar packages .
+This is a good idea when checking for the effects of a library update.
+.It Fl v -verbose
+Be verbose about missing dependencies. Instead of rejecting indirect
+dependencies print them.
+.Pp
+This option cannot be combined with raw output.
+.It Ar packages
+Packages are package names or shell glob patterns matching these. Whatever
+works with
+.Xr pkg-info 8
+is an acceptable package.
+.El
+.Sh EXAMPLES
+To check all your packages run:
+.Bd -literal -offset indent
+pkg_libchk
+.Ed
+.Pp
+To create raw output for everything connected to gtk.
+.Bd -literal -offset indent
+pkg_libchk -q \\*gtk\\*
+.Ed
+.Pp
+After upgrading a library, in this case icu, you can check all depending
+packages:
+.Bd -literal -offset indent
+pkg_libchk -r icu
+.Ed
+.Sh EXIT CODES
+.Bl -tag -width indent
+.It 1
+The script has terminated because it received SIGINT or SIGTERM.
+.It 2
+An unknown parameter has been supplied.
+.It 3
+The incompatible parameters
+.Fl v
+and
+.Fl q
+have been supplied.
+.It 4
+The parameter
+.Fl j
+has been supplied without an acceptable number.
+.El
+.Sh COMPATIBILITY
+The script has been tested on FreeBSD 10.1-STABLE
+.Sh SEE ALSO
+.Xr bsdadminscripts 1 ,
+.Xr pkg-info 8 ,
+.Xr ldd 1 ,
+.Xr readelf 1 ,
+.Xr hier 7
+.Sh HISTORY
+The
+.Nm
+script first appeared in the bsdadminscripts-4.0 collection. It was rewritten
+for the bsdadminscripts2 collection.
+.Sh AUTHOR
+Dominic Fandrey <kamikaze@bsdforen.de>
