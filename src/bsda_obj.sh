@@ -2254,6 +2254,9 @@ bsda:obj:fork() {
 #	The list of objects to call
 #
 bsda:obj:exit() {
+	# Wait for children to terminate first to ensure they do not use
+	# resources that are about to be freed.
+	wait
 	local nl obj
 	nl='
 '
