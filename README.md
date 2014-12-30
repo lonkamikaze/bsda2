@@ -8,6 +8,9 @@ BSD Administration Scripts II
   /______//______//______//__//__/  ________\
 
 
+I started this long overdue overhaul of the BSD Administration Scripts
+at the 31C3 (Hamburg, 2014).
+
 Right now this collection only provides a recode of pkg_libchk,
 
 pkg_libchk
@@ -21,6 +24,18 @@ What sets its apart from other such tools or pkg-check, is that it makes
 a decent job of avoiding false positives.
 
 The recode is also 6 times faster than the old script.
+
+bsda:obj
+--------
+
+The bsda:obj framework dates back to the hacker conference GPN8 
+(Karlsruhe, 2009). It provides OO foo for shell scripts, like classes with
+introspection, return by reference, serialisation or lazy garbage collection.
+
+Along with it comes a bunch of libraries targeted at common tasks like
+rich status line display, formatting and inter process communication.
+
+It was presented at EuroBSDCon 2010.
 
 Install
 -------
