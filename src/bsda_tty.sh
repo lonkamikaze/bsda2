@@ -1034,7 +1034,7 @@ bsda:tty:Terminal.stdout() {
 	if [ $# -gt 0 ]; then
 		output="$@"
 	else
-		output="$(/usr/bin/cat)"
+		output="$(/bin/cat)"
 	fi
 	# Make sure the output ends with a newline.
 	output="${output%$IFS}$IFS"
