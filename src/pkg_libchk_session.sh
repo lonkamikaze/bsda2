@@ -27,6 +27,8 @@ readonly pkg_libchk_session=1
 . ${bsda_dir:-.}/bsda_tty.sh
 . ${bsda_dir:-.}/bsda_messaging.sh
 
+readonly pkg_libchk_version=1.99
+
 #
 # A simple object to pass job results through the FIFO.
 #
@@ -216,7 +218,7 @@ pkg:libchk:Session.params() {
 # Print usage message.
 #
 pkg:libchk:Session.help() {
-	$($this.getTerm).stdout "$name v$version
+	$($this.getTerm).stdout "pkg_libchk v$pkg_libchk_version
 usage:	$name [-a] [-c] [-d] [-h] [-jN] [-m] [-n] [-o] [-q] [-r] [-v] [packages]"
 	exit 0
 }
