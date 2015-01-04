@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2009, 2010, 2014
+# Copyright (c) 2009, 2010, 2014, 2015
 # Dominic Fandrey <kamikaze@bsdforen.de>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -369,7 +369,7 @@ bsda:tty:Library.format() {
 	fi
 
 	# Return the result.
-	output="$(/usr/bin/printf "$printf" "$@" | /usr/bin/sed -E "s,^(.{$columns}),\1,")"
+	output="$(/usr/bin/printf "$printf" "$@" | /usr/bin/awk "\$0=substr(\$0, 1, $columns)")"
 	$caller.setvar "$outvar" "$output"
 }
 
@@ -538,8 +538,8 @@ bsda:tty:Terminal.getDisplayBuffer() {
 	if [ $((count)) -gt 0 ]; then
 		buffer="$(
 			$this.getBuffer \
-				| /usr/bin/sed -nE -e "s/(.{$maxco}).*/\\1/" -e p -e "$count{i\\${IFS}.${IFS}q${IFS}}"
-		)"
+			| /usr/bin/awk "
+				NR<=$count&&\$0=substr(\$0 \" \", 1, $maxco)")"
 	else
 		buffer=
 	fi
@@ -990,7 +990,7 @@ bsda:tty:Terminal.line() {
 		# Crop the line to display.
 		maxco=$(/usr/bin/tput co 2> /dev/tty || echo 80)
 		/usr/bin/tput xn || maxco=$((maxco - 1))
-		line="$(echo "$2" | /usr/bin/sed -E -e "s/(.{$maxco}).*/\\1/" -e q)"
+		line="$(echo "$2" | /usr/bin/awk "\$0=substr(\$0 \" \", 1, $maxco);{exit}")"
 
 		# Jump to the right line.
 		/usr/bin/tput cr $(test $pos -gt 0 && /usr/bin/jot -b do $pos) ce
