@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2014
+# Copyright (c) 2014, 2015
 # Dominic Fandrey <kamikaze@bsdforen.de>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -369,7 +369,7 @@ pkg:libchk:Session.run() {
 		$($this.getListener).receiveLine result lines
 		if [ $lines -gt 0 ]; then
 			$this.print sline "$result"
-			$term.line $sline " "
+			$term.line $sline
 			jobs=$((jobs - lines))
 			count=$((count + lines))
 			$term.line 0 "$(printf "$fmt" $jobs)"
