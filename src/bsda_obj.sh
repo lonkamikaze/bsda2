@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2009, 2010, 2014
+# Copyright (c) 2009, 2010, 2014, 2015
 # Dominic Fandrey <kamikaze@bsdforen.de>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -904,7 +904,7 @@ readonly bsda_obj_interpreter="$(/bin/ps -wwo args= -p $$ | /usr/bin/sed -e "s, 
 # The UID to use for creating new objects. When forking a session use the
 # bsda:obj:fork() function to update this value in the forked process.
 #
-# bsda_obj_uid
+#bsda_obj_uid
 
 #
 # This is used as a buffer during deep serialisation.
