@@ -230,35 +230,56 @@ usage:	$name [-a] [-c] [-d] [-h] [-jN] [-m] [-n] [-o] [-q] [-r] [-v] [packages]"
 # The list of requested packages is created by the Session.param() method.
 #
 pkg:libchk:Session.packages() {
-	local IFS pkgs dep req ret
+	local IFS all pkgs dep req ret
 	IFS='
 '
 	$this.getPackages pkgs
 	test -z "$pkgs" && pkgs=-qa
+
+	# Remember if all packages are requested
+	all=
+	if [ "$pkgs" == "-qa" ]; then
+		all=1
+	fi
 	
+	# Get requested packages
 	if pkgs="$(/usr/sbin/pkg info -E $pkgs 2>&1)"; then :; else
 		ret=$?
 		$($this.getTerm).stderr "$pkgs"
 		exit $ret
 	fi
+	pkgs="$(echo "$pkgs" | /usr/bin/awk '!a[$0]++')"
+	# Get dependencies if requested
 	if [ -n "$($this.getDependencies)" ]; then
 		dep="$(/usr/sbin/pkg info -qd $pkgs)"
 		pkgs="$pkgs${dep:+$IFS}$dep"
+		pkgs="$(echo "$pkgs" | /usr/bin/awk '!a[$0]++')"
 	fi
+	# Get required by packages if requested
 	if [ -n "$($this.getRequiredBy)" ]; then
 		req="$(/usr/sbin/pkg info -qr $pkgs)"
 		pkgs="$pkgs${req:+$IFS}$req"
+		pkgs="$(echo "$pkgs" | /usr/bin/awk '!a[$0]++')"
 	fi
+
+	# Origins are equally valid unique identifiers, so they can be
+	# used internally as well, so we do not have to convert for
+	# display.
+	if [ -n "$($this.getOrigin)" ]; then
+		pkgs="$(/usr/sbin/pkg info -qo $pkgs)"
+	fi
+
 	setvar ${this}packages "$pkgs"
 
 	if [ -n "$($this.getVerbose)" ]; then
-		if [ -n "$($this.getOrigin)" ]; then
-			pkgs="$(/usr/sbin/pkg info -qo $pkgs)"
+		if [ -n "$all" ]; then
+			$($this.getTerm).stderr "Checking all packages ..."
+		else
+			$($this.getTerm).stderr "Checking packages:" \
+			                        "------------------" \
+			                        "$pkgs" \
+			                        "------------------"
 		fi
-		$($this.getTerm).stdout "Checking packages:" \
-		                        "------------------" \
-		                        "$pkgs" \
-		                        "------------------"
 	fi
 }
 
@@ -286,11 +307,6 @@ pkg:libchk:Session.print() {
 
 	test -z "$misses" && return
 	$res.getPkg pkg
-
-	# Honour package origin output flag
-	if [ -n "$($this.getOrigin)" ]; then
-		pkg="$(/usr/sbin/pkg info -qo "$pkg")"
-	fi
 
 	# Honour raw output flag
 	if [ -n "$($this.getRaw)" ]; then
