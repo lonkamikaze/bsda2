@@ -250,6 +250,16 @@ pkg:libchk:Session.packages() {
 		pkgs="$pkgs${req:+$IFS}$req"
 	fi
 	setvar ${this}packages "$pkgs"
+
+	if [ -n "$($this.getVerbose)" ]; then
+		if [ -n "$($this.getOrigin)" ]; then
+			pkgs="$(/usr/sbin/pkg info -qo $pkgs)"
+		fi
+		$($this.getTerm).stdout "Checking packages:" \
+		                        "------------------" \
+		                        "$pkgs" \
+		                        "------------------"
+	fi
 }
 
 #
