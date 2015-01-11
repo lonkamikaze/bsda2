@@ -31,6 +31,6 @@ bsda_dir="${0%${0##*/}}";bsda_dir="${bsda_dir%/}"
 #hack
 readonly bsda_dir
 
-. ${bsda_dir:-.}/${prefix}_session.sh
+. ${bsda_dir:-.}/${prefix}.sh
 ${namespace}:Session session "$@"
 
