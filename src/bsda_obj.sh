@@ -88,6 +88,7 @@ readonly bsda_obj=1
 # bsda:obj:callerSetvar()
 # bsda:obj:fork()
 # bsda:obj:exit()
+# bsda:obj:getPipe()
 #
 
 #
@@ -610,7 +611,7 @@ readonly bsda_obj=1
 #
 #	$configuration.serialiseDeep > ~/.myconfig
 #
-# @param 1
+# @param &1
 #	If given it is used as the variable name to store the serialised string
 #	in, otherwise the serialised string is output to stdout.
 #
@@ -928,6 +929,11 @@ readonly bsda_obj_interpreter="$(/bin/ps -wwo args= -p $$ | /usr/bin/sed -e "s, 
 # to allow objects the destruction of acquired resources.
 #
 #bsda_obj_freeOnExit
+
+#
+# A unique output pipe number, use through bsda:obj:getPipe().
+#
+bsda_obj_pipe=10
 
 #
 # Creates a new class, i.e. a constructor, destructor, resetter, getters,
@@ -2272,6 +2278,26 @@ bsda:obj:exit() {
 			bsda_obj_freeOnExit="$head${head:+${tail:+$nl}}$tail"
 		fi
 	done
+}
+
+#
+# Returns an output pipe number for use.
+#
+# Numbers start with 10, numbers below 10 a free game at the user's own
+# risk.
+#
+# @param bsda_obj_pipe
+#	The global pipe counter
+# @param &1
+#	A reference to the variable that should contain the pipe number
+#
+bsda:obj:getPipe() {
+	if [ -n "$1" ]; then
+		setvar $1 $((bsda_obj_pipe))
+	else
+		echo $((bsda_obj_pipe))
+	fi
+	bsda_obj_pipe=$((bsda_obj_pipe + 1))
 }
 
 #
