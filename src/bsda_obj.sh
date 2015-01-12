@@ -288,8 +288,8 @@ bsda:obj:createClass() {
 
 	# Create reference prefix. The Process id is added to the prefix when
 	# an object is created.
-	namespacePrefix="${bsda_obj_frameworkPrefix}$(echo "$bsda_obj_namespace" | tr ':' '_')_"
-	classPrefix="${namespacePrefix}$(echo "$class" | tr ':' '_')_"
+	namespacePrefix="${bsda_obj_frameworkPrefix}$(echo "$bsda_obj_namespace" | /usr/bin/tr ':' '_')_"
+	classPrefix="${namespacePrefix}$(echo "$class" | /usr/bin/tr ':' '_')_"
 
 	# Set the instance match pattern.
 	setvar ${classPrefix}instancePatterns "${classPrefix}[0-9a-f]+_[0-9]+_[0-9]+_[0-9]+_"
@@ -298,7 +298,7 @@ bsda:obj:createClass() {
 	for method in $getters; do
 		getter="${method##*:}"
 		attribute="$getter"
-		getter="get$(echo "${getter%%${getter#?}}" | tr '[:lower:]' '[:upper:]')${getter#?}"
+		getter="get$(echo "${getter%%${getter#?}}" | /usr/bin/tr '[:lower:]' '[:upper:]')${getter#?}"
 
 		eval "
 			$class.$getter() {
@@ -323,7 +323,7 @@ bsda:obj:createClass() {
 	for method in $setters; do
 		setter="${method##*:}"
 		attribute="$setter"
-		setter="set$(echo "${setter%%${setter#?}}" | tr '[:lower:]' '[:upper:]')${setter#?}"
+		setter="set$(echo "${setter%%${setter#?}}" | /usr/bin/tr '[:lower:]' '[:upper:]')${setter#?}"
 
 		eval "
 			$class.$setter() {
@@ -906,8 +906,8 @@ bsda:obj:createInterface() {
 
 	# Create an interface prefix, this is required to access the instance
 	# matching patterns.
-	namespacePrefix="${bsda_obj_frameworkPrefix}$(echo "$bsda_obj_namespace" | tr ':' '_')_"
-	interfacePrefix="${namespacePrefix}$(echo "$interface" | tr ':' '_')_"
+	namespacePrefix="${bsda_obj_frameworkPrefix}$(echo "$bsda_obj_namespace" | /usr/bin/tr ':' '_')_"
+	interfacePrefix="${namespacePrefix}$(echo "$interface" | /usr/bin/tr ':' '_')_"
 
 	# Set the instance match pattern.
 	setvar ${interfacePrefix}instancePatterns "${interfacePrefix}[0-9a-f]+_[0-9]+_[0-9]+_[0-9]+_"
