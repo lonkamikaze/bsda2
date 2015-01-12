@@ -36,13 +36,13 @@ TABLE OF CONTENTS
 -----------------
 
 1. DEFINING CLASSES
-1.1. Basic Class Creation
-1.2. Inheritance
-1.3. Access Scope
-1.4. Interfaces
+   1. Basic Class Creation
+   2. Inheritance
+   3. Access Scope
+   4. Interfaces
 2. IMPLEMENTING METHODS
-2.1. Regular Methods
-2.2. Special Methods
+   1. Regular Methods
+   2. Special Methods
 3. CONSTRUCTOR
 4. RESET
 5. DESTRUCTOR
@@ -53,21 +53,21 @@ TABLE OF CONTENTS
 9.1. Object Type Checks
 9.2. Primitive Type Checks
 10. SERIALIZE
-10.1. Serialising
-10.2. Deserialising
-10.3. Filtering
+    1. Serialising
+    2. Deserialising
+    3. Filtering
 11. FORKING PROCESSES
 12. GARBAGE COLLECTION
 13. REFLECTION & REFACTORING
-13.1. Attributes
-13.2. Methods
-13.3. Parent Classes and Interfaces
+    1. Attributes
+    2. Methods
+    3. Parent Classes and Interfaces
 14. COMPATIBILITY
-14.1. POSIX
-14.2. bash - local
-14.3. bash - setvar
-14.4. bash - Command Substitution Variable Scope
-14.5. bash - alias
+    1. POSIX
+    2. bash - local
+    3. bash - setvar
+    4. bash - Command Substitution Variable Scope
+    5. bash - alias
 
 
 ## 1. DEFINING CLASSES
