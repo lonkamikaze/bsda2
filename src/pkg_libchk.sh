@@ -137,8 +137,8 @@ pkg:libchk:Session.params() {
 	nl='
 '
 
-	for option in "$@"; {
-		case "$option" in
+	while [ $# -gt 0 ]; do
+		case "$1" in
 		-a | --all)
 			setvar ${this}packages -qa
 		;;
@@ -152,10 +152,14 @@ pkg:libchk:Session.params() {
 		-h | --help)
 			$this.help
 		;;
-		-j* | --jobs*)
+		-j* | --jobs)
 			local jobs
-			jobs="${option#-j}"
+			jobs="${1#-j}"
 			jobs="${jobs#--jobs}"
+			if [ -z "$jobs" ]; then
+				jobs="$2"
+				shift
+			fi
 			if ! [ "$jobs" -eq "$jobs" ] 2> /dev/null; then
 				$($this.getTerm).stderr \
 					"The -j option must be followed by a number."
@@ -171,8 +175,7 @@ pkg:libchk:Session.params() {
 		-m | --mean)
 			setvar ${this}mean 1
 		;;
-		-n | --no-compat)
-			setvar ${this}compat
+		-n | --no-compat) setvar ${this}compat
 		;;
 		-o | --origin)
 			setvar ${this}origin 1
@@ -198,20 +201,24 @@ pkg:libchk:Session.params() {
 		;;
 		-? | --*)
 			$($this.getTerm).stderr \
-				"Unknown parameter \"$option\"."
+				"Unknown parameter \"$1\"."
 			exit 2
 		;;
 		-*)
-			$this.params "${option%${option#-?}}"
-			$this.params "-${option#-?}"
+			local arg
+			arg="$1"
+			shift
+			set -- "${arg%${arg#-?}}" "-${arg#-?}" "$@"
+			continue
 		;;
 		*)
 			local pkgs
 			$this.getPackages pkgs
-			setvar ${this}packages "$pkgs${pkgs:+$nl}$option"
+			setvar ${this}packages "$pkgs${pkgs:+$nl}$1"
 		;;
 		esac
-	}
+		shift
+	done
 }
 
 #
@@ -296,7 +303,9 @@ pkg:libchk:Session.print() {
 	bsda:obj:deserialise res "$2"
 	$caller.setvar "$1" "$($res.getSline)"
 
+	$res.getPkg pkg
 	$res.getMisses misses
+	$res.delete
 	$this.getVerbose verbose
 	$this.getMean mean
 
@@ -306,7 +315,6 @@ pkg:libchk:Session.print() {
 	fi
 
 	test -z "$misses" && return
-	$res.getPkg pkg
 
 	# Honour raw output flag
 	if [ -n "$($this.getRaw)" ]; then
@@ -340,6 +348,7 @@ pkg:libchk:Session.print() {
 #
 pkg:libchk:Session.run() {
 	local IFS pkg pkgs result lines maxjobs jobs term fmt count num
+	local sleep
 
 	# Initialise dispatcher
 	IFS='
@@ -353,6 +362,7 @@ pkg:libchk:Session.run() {
 	count=0 # Completed jobs
 	jobs=0  # Number of running jobs
 	sline=1 # The next status line to use
+	sleep=0.0078125
 
 	#
 	# Dispatch jobs
@@ -371,7 +381,7 @@ pkg:libchk:Session.run() {
 				break # Do not waste time sleeping when
 				      # a job slot is available
 			fi
-			/bin/sleep 0.1
+			/bin/sleep "$sleep"
 		done
 		# Select next package to process
 		pkg="${pkgs%%$IFS*}"
@@ -401,7 +411,7 @@ pkg:libchk:Session.run() {
 			$term.line 0 "$(printf "$fmt" $jobs)"
 			continue
 		fi
-		/bin/sleep 0.1
+		/bin/sleep "$sleep"
 	done
 }
 
