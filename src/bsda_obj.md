@@ -186,14 +186,11 @@ You might want to limit access to certain methods, for this you can
 add the scope operators private, protected and public. If no scope
 operator is given, public is assumed.
 
-public:
-	This scope allows access from anywhere.
-protected:
-	The protected scope allows classes that are derived from the
-	current class, parents of the corrunt class or reside within
-	the same namespace access.
-private:
-	Only instances of the same class have access.
+- public: This scope allows access from anywhere
+- protected: The protected scope allows classes that are derived from the
+  current class, parents of the corrunt class or reside within
+  the same namespace access
+- private: Only instances of the same class have access
 
 Namespaces are colon (the character ":") seperated. E.g. the class
 bsda:pkg:Index has the namespace "bsd:pkg".
