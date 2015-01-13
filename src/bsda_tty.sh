@@ -443,7 +443,6 @@ bsda:obj:createClass bsda:tty:Terminal extends:bsda:tty:Library \
 #
 bsda:tty:Terminal.init() {
 	if [ -e /dev/tty ]; then
-		#/usr/bin/tput vi > /dev/tty
 		$this.setActive 1
 		$this.setCount 0
 		$this.setVisible 1
@@ -462,7 +461,6 @@ bsda:tty:Terminal.clean() {
 	$this.getActive active
 	if [ -n "$active" ]; then
 		$this.hide
-		#/usr/bin/tput ve > /dev/tty
 	fi
 
 	$this.flush
@@ -484,9 +482,9 @@ bsda:tty:Terminal.draw() {
 '
 
 	$this.getDisplayBuffer buffer count
-	/usr/bin/tput cr AL $count
+	/usr/bin/tput vi cr AL $count
 	echo -n "$buffer"
-	/usr/bin/tput cr $(test $count -gt 1 && /usr/bin/jot -b up $((count - 1)))
+	/usr/bin/tput cr $(test $count -gt 1 && /usr/bin/jot -b up $((count - 1))) ve
 }
 
 #
@@ -993,11 +991,11 @@ bsda:tty:Terminal.line() {
 		line="$(echo "$2" | /usr/bin/awk "\$0=substr(\$0 \" \", 1, $maxco);{exit}")"
 
 		# Jump to the right line.
-		/usr/bin/tput cr $(test $pos -gt 0 && /usr/bin/jot -b do $pos) ce
+		/usr/bin/tput vi cr $(test $pos -gt 0 && /usr/bin/jot -b do $pos) ce
 		# Draw it.
 		echo -n "$line"
 		# Return the cursor to its origin.
-		/usr/bin/tput cr $(test $pos -gt 0 && /usr/bin/jot -b up $pos)
+		/usr/bin/tput cr $(test $pos -gt 0 && /usr/bin/jot -b up $pos) ve
 	fi > /dev/tty
 
 	# Store the new line in the status line buffer.
