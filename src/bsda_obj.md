@@ -858,9 +858,8 @@ might have to keep in mind when implementing classes with this framework.
 The relatively strict POSIX conformance of dash is the reason that this
 framework is not compatible to it. The specific reason why this framework
 does not work with dash is the use of colon ':' and period '.' characters
-in function and method names. POSIX only requires a shell to support
+in function and method names. [POSIX][] only requires a shell to support
 function names consisting of the character group [_[:alnum:]].
-http://www.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_09_05
 
 However it also states that a shell may allow other characters. The
 resulting paradox is that supporting colons and periods in function names
@@ -868,9 +867,8 @@ is POSIX conformant, whereas using them isn't.
 
 One might argue that POSIX conformance should be the top priority to a
 general purpose framework such as this one. An example for an object
-oriented shell framework doing just that is Shoop, which originates from
+oriented shell framework doing just that is [Shoop][], which originates from
 the Debian project.
-http://shoop.cvs.sourceforge.net/viewvc/shoop/shoop/docs/README?view=markup
 
 Shoop is a good example why POSIX support is only of secondary concern for
 the bsda:obj development. Using Shoop neither feels like writing shell code
@@ -890,6 +888,9 @@ Even dash with its strict POSIX conformance knows the local builtin.
 Considering that, one might argue it should add colon and period support for
 function names as well, because the . and : builtin functions imply that
 . and : are valid function names.
+
+[POSIX]: http://www.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_09_05
+[Shoop]: http://shoop.cvs.sourceforge.net/viewvc/shoop/shoop/docs/README?view=markup
 
 ### 15.2. bash - local
 
