@@ -62,9 +62,7 @@ pkg:libchk:JobResult.init() {
 #
 bsda:obj:createClass pkg:libchk:Session \
 	r:private:term         "The bsda:tty:Terminal instances for output" \
-	r:private:fifo         "The file name for the FIFO" \
-	r:private:listener     "The bsda:messaging:FifoListener instance" \
-	r:private:sender       "The bsda:messaging:FifoSender instance" \
+	r:private:messenger    "The bsda:messaging:FifoMessenger instance" \
 	r:private:packages     "The list of packages to process" \
 	r:private:clean        "Clean output (no status) flag" \
 	r:private:dependencies "Work on dependencies flag" \
@@ -95,7 +93,6 @@ pkg:libchk:Session.init() {
 	bsda:tty:Terminal ${this}term
 
 	# Set defaults
-	setvar ${this}fifo "$(/usr/bin/mktemp -ut libchk)"
 	setvar ${this}jobs $(($(/sbin/sysctl -n hw.ncpu 2> /dev/null || echo 1) + 1))
 	setvar ${this}compat 1
 
@@ -106,8 +103,7 @@ pkg:libchk:Session.init() {
 	$($this.getTerm).use $(($($this.getJobs) + 1))
 
 	# Create the fifo
-	bsda:messaging:FifoListener ${this}listener $($this.getFifo)
-	bsda:messaging:FifoSender   ${this}sender   $($this.getFifo)
+	bsda:messaging:FifoMessenger ${this}messenger
 
 	# Generate a list of packages
 	$this.packages
@@ -120,8 +116,7 @@ pkg:libchk:Session.init() {
 # The destructor, clean up acquired resources.
 #
 pkg:libchk:Session.clean() {
-	$($this.getListener).delete
-	$($this.getSender).delete
+	$($this.getMessenger).delete
 	$($this.getTerm).delete
 }
 
@@ -347,8 +342,7 @@ pkg:libchk:Session.print() {
 # Fork off missing library checks and collect results.
 #
 pkg:libchk:Session.run() {
-	local IFS pkg pkgs result lines maxjobs jobs term fmt count num
-	local sleep
+	local IFS pkg pkgs result maxjobs jobs term fmt count num
 
 	# Initialise dispatcher
 	IFS='
@@ -362,7 +356,6 @@ pkg:libchk:Session.run() {
 	count=0 # Completed jobs
 	jobs=0  # Number of running jobs
 	sline=1 # The next status line to use
-	sleep=0.0078125
 
 	#
 	# Dispatch jobs
@@ -371,18 +364,14 @@ pkg:libchk:Session.run() {
 	$term.line 0 "$(printf "$fmt" $count)"
 	while [ -n "$pkgs" ]; do
 		# Wait for jobs to complete
-		while [ $jobs -ge $maxjobs ]; do
-			$($this.getListener).receiveLine result lines
-			if [ $lines -gt 0 ]; then
-				jobs=$((jobs - lines))
-				$this.print sline "$result"
-				count=$((count + lines))
-				$term.line 0 "$(printf "$fmt" $count)"
-				break # Do not waste time sleeping when
-				      # a job slot is available
-			fi
-			/bin/sleep "$sleep"
-		done
+		if [ $jobs -ge $maxjobs ]; then
+			# Blocking read
+			$($this.getMessenger).receiveLine result
+			jobs=$((jobs - 1))
+			$this.print sline "$result"
+			count=$((count + 1))
+			$term.line 0 "$(printf "$fmt" $count)"
+		fi
 		# Select next package to process
 		pkg="${pkgs%%$IFS*}"
 		pkgs="${pkgs#$pkg}"
@@ -402,16 +391,13 @@ pkg:libchk:Session.run() {
 	#
 	fmt="Waiting for %${#maxjobs}d job(s)"
 	while [ $jobs -gt 0 ]; do
-		$($this.getListener).receiveLine result lines
-		if [ $lines -gt 0 ]; then
-			$this.print sline "$result"
-			$term.line $sline
-			jobs=$((jobs - lines))
-			count=$((count + lines))
-			$term.line 0 "$(printf "$fmt" $jobs)"
-			continue
-		fi
-		/bin/sleep "$sleep"
+		# Blocking read
+		$($this.getMessenger).receiveLine result
+		$this.print sline "$result"
+		$term.line $sline
+		jobs=$((jobs - 1))
+		count=$((count + 1))
+		$term.line 0 "$(printf "$fmt" $jobs)"
 	done
 }
 
@@ -465,6 +451,6 @@ pkg:libchk:Session.job() {
 	}
 	# Create a JobResult, serialise it and send it back to the dispatcher
 	pkg:libchk:JobResult res "$1" "$messages" "$2"
-	$($this.getSender).send "$($res.serialise)"
+	$($this.getMessenger).send "$($res.serialise)"
 }
 
