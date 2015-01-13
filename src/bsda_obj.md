@@ -22,8 +22,8 @@ paper][2010EuroBSDCon].
 Then the whole endeavour came to rest as I was busy [building race
 cars][HSK], which mostly resulted in [C code][HSKSF].
 
-Finally, during the [31C3][] I rewrote pkg_libchk on a whim revived bsda:obj
-along with it.
+Finally, during the [31C3][] I rewrote pkg_libchk on a whim and revived
+bsda:obj along with it.
 
 [GPN8]: https://entropia.de/GPN8
 [2010EuroBSDCon]: http://2010.eurobsdcon.org/presentations-schedule/paper-detail-view/?tx_ptconfmgm_controller_detail_paper[uid]=17&tx_ptconfmgm_controller_detail_paper[pid]=299
@@ -50,19 +50,20 @@ TABLE OF CONTENTS
 7. GET
 8. SET
 9. TYPE CHECKS
-9.1. Object Type Checks
-9.2. Primitive Type Checks
+    1. Object Type Checks
+    2. Primitive Type Checks
 10. SERIALIZE
     1. Serialising
     2. Deserialising
     3. Filtering
-11. FORKING PROCESSES
-12. GARBAGE COLLECTION
-13. REFLECTION & REFACTORING
+11. REFLECTION & REFACTORING
     1. Attributes
     2. Methods
     3. Parent Classes and Interfaces
-14. COMPATIBILITY
+12. FORKING PROCESSES
+13. GARBAGE COLLECTION
+14. FILE DESCRIPTORS
+15. COMPATIBILITY
     1. POSIX
     2. bash - local
     3. bash - setvar
@@ -74,8 +75,8 @@ TABLE OF CONTENTS
 
 This section describes the creation of classes.
 
-NOTE:	The details of creating classes are listed in front of the
-	bsda:obj:createClass() function.
+* NOTE: The details of creating classes are listed in front of the
+  bsda:obj:createClass() function.
 
 Creating a class consists of two steps, the first step is to call
 the bsda:obj:createClass() function, the second one is to implement the
@@ -126,7 +127,7 @@ assign values:
 		[ ... assign values, maybe even check types ... ]
 	}
 
-NOTE:	The init method can have an arbitrary name.
+* NOTE: The init method can have an arbitrary name.
 
 Note that the attributes were now created with "r:", this means they only
 have get methods, no set methods. All the values are now assigned during
@@ -155,11 +156,11 @@ The init method is explicitely stated in the class declaration just for the
 sake of readability, though not a requirement for overloading inherited
 methods, this is considered good style.
 
-NOTE: If the init method does not return 0 the object is instantly
-	destroyed and the return value is forwarded to the caller.
-	The caller then has a reference to a no longer existing object
-	and does not know about it, unless the return value of the
-	constructor is checked.
+* NOTE: If the init method does not return 0 the object is instantly
+  destroyed and the return value is forwarded to the caller.
+  The caller then has a reference to a no longer existing object
+  and does not know about it, unless the return value of the
+  constructor is checked.
 
 Multiple inheritance is possible, but should be used with great care,
 because there are several limits. If several extended classes provide
@@ -205,8 +206,8 @@ prefixes that declare methods can have a scope operator.
 		w:private:familyName \
 		w:private:firstName
 
-NOTE:	The constructor is always public. Declaring a scope for an init method
-	only affects direct calls of the method.
+* NOTE: The constructor is always public. Declaring a scope for an init method
+  only affects direct calls of the method.
 
 Now the getters and setters for both familyName and firstName are private.
 It is possible to widen the scope of a method by redeclaring it.
@@ -218,8 +219,8 @@ It is possible to widen the scope of a method by redeclaring it.
 		w:private:firstName \
 		x:public:getFirstName
 
-NOTE:	When methods are inherited the widest declared scope always wins, no
-	matter from which class it originates.
+* NOTE: When methods are inherited the widest declared scope always wins, no
+  matter from which class it originates.
 
 ### 1.4. Interfaces
 
@@ -235,10 +236,10 @@ bsda:obj:createInterface() method allows the creation of interfaces:
 	bsda:obj:createInterface Listener \
 		x:notify
 
-NOTE:	Methods defined by an interface are always public, so there is not
-	scope operator.
+* NOTE: Methods defined by an interface are always public, so there is not
+  scope operator.
 
-NOTE:	Interfaces cannot be used to define attributes.
+* NOTE: Interfaces cannot be used to define attributes.
 
 Every class conforming to the interface has to implement the methods defined
 by the interface:
@@ -413,15 +414,19 @@ The following example shows how to use a method belonging to the object:
 
 	$foobar.copy foobarCopy
 
-@param 1
-	The name of the variable to store the reference to the new object in.
-@param @
-	The remaining parameters are forwarded to an init method,
-	if one was specified.
-@return
-	Returns 0 for success and higher values for failure. If the
-	init method has a fail case, this should be checked, because
-	the object is not created in case of a failure.
+Arguments:
+
+| Argument | Description
+|----------|------------------------------------------------------------
+| &1       | The variable to store the reference to the new object in
+|  @       | The remaining arguments are forwarded to the init method
+
+Return values:
+
+| Value    | Description
+|----------|------------------------------------------------------------
+| 0        | Object was successfully constructed
+| *        | Object construction failed, most likely in the init method
 
 
 
@@ -433,7 +438,7 @@ bsda:obj:createClass() function below.
 The resetter first calls the cleanup method with all parameters, if one
 has been defined. Afterwards it simply removes all attributes from memory.
 
-NOTE:	The destruction of attributes is avoided when the cleanup method fails.
+* NOTE: The destruction of attributes is avoided when the cleanup method fails.
 
 The resetter does not call the init method afterwards, because it would
 not be possible to provide different parameters to the init and cleanup
@@ -443,9 +448,18 @@ The following example shows how to reset an object referenced by "foobar".
 
 	$foobar.reset
 
-@param @
-	The parameters are forwareded to a cleanup() method if one was
-	specified.
+Arguments:
+
+| Argument | Description
+|----------|------------------------------------------------------------
+|  @       | The arguments are forwarded to the cleanup method
+
+Return values:
+
+| Value    | Description
+|----------|------------------------------------------------------------
+| 0        | If there is no cleanup method
+| *        | The return value depends on the cleanup method
 
 
 
@@ -458,17 +472,26 @@ The destructor calls a cleanup method with all parameters, if
 one was specified. Afterwards it simply removes all method wrappers and
 attributes from memory.
 
-NOTE:	The destruction of attributes and method wrappers is avoided when
-	the cleanup method fails.
+* NOTE: The destruction of attributes and method wrappers is avoided when
+  the cleanup method fails.
 
 The following example illustrates the use of the destructor on an object
 that is referenced by the variable "foobar".
 
 	$foobar.delete
 
-@param @
-	The parameters are forwareded to a cleanup() method if one was
-	specified.
+Arguments:
+
+| Argument | Description
+|----------|------------------------------------------------------------
+|  @       | The arguments are forwarded to the cleanup method
+
+Return values:
+
+| Value    | Description
+|----------|------------------------------------------------------------
+| 0        | If there is no cleanup method
+| *        | The return value depends on the cleanup method
 
 
 
@@ -501,9 +524,11 @@ referenced by "foobar" and store it in the variable "value".
 
 	$foobar.getValue value
 
-@param 1
-	The optional name of the variable to store the attribute value in.
-	If ommitted the value is output to stdout.
+Arguments:
+
+| Argument | Description
+|----------|------------------------------------------------------------
+| &1       | The variable to store the value in
 
 
 
@@ -519,8 +544,11 @@ the object referenced by "foobar".
 
 	$foobar.setValue 5
 
-@param 1
-	The value to write to an attribute.
+Arguments:
+
+| Argument | Description
+|----------|------------------------------------------------------------
+|  1       | The value to write to an attribute.
 
 
 
@@ -545,18 +573,22 @@ of the class "foo:bar".
 		...
 	fi
 
-@param 1
-	Any string that might be a reference.
+Arguments:
+
+| Argument | Description
+|----------|------------------------------------------------------------
+|  1       | Any string that might be a reference.
 
 ### 9.2. Primitive Type Checks
 
 The following primitive type checking functions are available and documented
-below:
-	bsda:obj:isObject()
-	bsda:obj:isInt()
-	bsda:obj:isUInt()
-	bsda:obj:isFloat()
-	bsda:obj:isSimpleFloat()
+in the code:
+
+- bsda:obj:isObject()
+- bsda:obj:isInt()
+- bsda:obj:isUInt()
+- bsda:obj:isFloat()
+- bsda:obj:isSimpleFloat()
 
 
 
@@ -568,7 +600,7 @@ representations. Serialized objects can be stored in a file and reloaded
 at a later time. They can be passed on to other processess, through a file
 or a pipe. They can even be transmitted over a network through nc(1).
 
-NOTE:	Static attributes are not subject to serialisation.
+* NOTE: Static attributes are not subject to serialisation.
 
 ### 10.1. Serialising
 
@@ -589,9 +621,11 @@ It is used in exactly the same way as the serialise method.
 
 	$configuration.serialiseDeep > ~/.myconfig
 
-@param &1
-	If given it is used as the variable name to store the serialised string
-	in, otherwise the serialised string is output to stdout.
+Arguments:
+
+| Argument | Description
+|----------|------------------------------------------------------------
+| &1       | The variable to store the serialised string in
 
 ### 10.2. Deserialising
 
@@ -607,12 +641,12 @@ Serialized data is executable shell code that can be fed to eval, however
 the bsda:obj:deserialise() function should always be used to ensure that
 deserialisation happens in a controlled environment.
 
-@param &1
-	The name of the variable to store the deserialised object reference
-	in. If empty the reference will be output to stdout.
-@param 2
-	If given this is the string to be deserialised, otherwise it will be
-	expected on stdin.
+Arguments:
+
+| Argument | Description
+|----------|------------------------------------------------------------
+| &1       | The variable to store the deserialised object reference in
+|  2       | The string to be deserialised, can be provided on stdin
 
 ### 10.3. Filtering
 
@@ -622,57 +656,14 @@ only the last occurance of each object.
 
 	bsda:obj:serialisedUniq serialised "$serialised"
 
-@param &1
-	The name of the variable to store the resulting string in.
-	If empty the string is output to stdout.
-@param 2
-	If given this is the serialised data, otherwise it will be
-	expected on stdin.
+| Argument | Description
+|----------|------------------------------------------------------------
+| &1       | The variable to store the resulting string in
+|  2       | The serialised data, can be provided on stdin
 
 
 
-## 11. FORKING PROCESSES
-
-One of the intended uses of serialising is that a process forks and both
-processes are able to pass new or updated objects to each others and thus
-keep each other up to date.
-
-When a process is forked, both processes retain the same state, which can
-lead to multiple processes generating objects with identical IDs.
-
-Additionall garbage collection needs to be reinitialised in the forked
-process to ensure all acquired resources are freed when the process
-terminates.
-
-The function bsda:obj:fork() can be used to circumvent this problem by
-regenerating bsda_obj_uid, resetting bsda_obj_freeOnExit and setting
-up traps for SIGINT, SIGTERM and the EXIT handler.
-
-The following example illustrates its use.
-
-	(
-		bsda:obj:fork
-		# Do something ...
-	) &
-
-
-
-## 12. GARBAGE COLLECTION
-
-In order to prevent resource leaks bsda:obj performs some lazy garbage
-collection.
-
-A list of objects with a cleanup() method is maintained in
-bsda_obj_freeOnExit. These objects are explicitly deleted if the shell
-exits due to the exit command or the signals SIGINT or SIGTERM.
-
-This gives objects the opportunity to free non-memory resources. Note that
-these actions are only performed within the process that originally created
-an object. This ensures that such resources are not freed multiple times.
-
-
-
-## 13. REFLECTION & REFACTORING
+## 11. REFLECTION & REFACTORING
 
 The bsda:obj framework offers full reflection. Refactoring is not supported,
 but possible to a limited degree.
@@ -681,7 +672,7 @@ Internally the reflection support is required for realizing inheritance.
 A new class tells all its parents "I'm one of yours" and takes all the
 methods and attributes for itself.
 
-### 13.1. Attributes
+### 11.1. Attributes
 
 Each class offers the static method getAttributes():
 
@@ -700,7 +691,7 @@ determined from):
 		bsda:obj:getVar $object$attribute
 	done
 
-### 13.2. Methods
+### 11.2. Methods
 
 Each class also offers the static method getMethods():
 
@@ -732,7 +723,7 @@ class and this special variables:
 	this=$tmpThis
 	class=$tmpClass
 
-### 13.3. Parent Classes and Interfaces
+### 11.3. Parent Classes and Interfaces
 
 Each class knows its parents and interfaces and reveals them through the
 static getParents() and getInterfaces() methods:
@@ -761,7 +752,91 @@ checks. This can be abused to deactivate theses checks for a certain class:
 
 
 
-## 14. COMPATIBILITY
+## 12. FORKING PROCESSES
+
+One of the intended uses of serialising is that a process forks and both
+processes are able to pass new or updated objects to each others and thus
+keep each other up to date.
+
+When a process is forked, both processes retain the same state, which can
+lead to multiple processes generating objects with identical IDs.
+
+Additionall garbage collection needs to be reinitialised in the forked
+process to ensure all acquired resources are freed when the process
+terminates.
+
+The function bsda:obj:fork() can be used to circumvent this problem by
+regenerating bsda_obj_uid, resetting bsda_obj_freeOnExit and setting
+up traps for SIGINT, SIGTERM and the EXIT handler.
+
+The following example illustrates its use.
+
+	(
+		bsda:obj:fork
+		# Do something ...
+	) &
+
+
+
+## 13. GARBAGE COLLECTION
+
+In order to prevent resource leaks bsda:obj performs some lazy garbage
+collection.
+
+A list of objects with a cleanup method is maintained in
+bsda_obj_freeOnExit. These objects are explicitly deleted if the shell
+exits due to the exit command or the signals SIGINT or SIGTERM.
+
+This gives objects the opportunity to free non-memory resources. Note that
+these actions are only performed within the process that originally created
+an object. This ensures that such resources are not freed multiple times.
+
+
+
+## 14. FILE DESCRIPTORS
+
+The FreeBSD sh only allows file descriptor numbers up to 9. The numbers
+1 and 2 are used for stdout and stderr, that means only 7 descriptors are
+available overall.
+
+File descriptors are useful for interacting with files and named pipes
+without closing the pipe between reads/writes.
+
+In order to manage them effectively the bsda:obj:getDesc() function provides
+a descriptor number and bsda:obj:releaseDesc() allows returning one into
+the pool of available numbers.
+
+	local fd
+	bsda:obj:getDesc fd || return 1
+	# Open file descriptor
+	eval "exec $fd> \"\$outfile\""
+	[ ... ]
+	# Close file descriptor
+	eval "exec $fd>&-"
+	bsda:obj:releaseDesc $fd
+
+Arguments to bsda:obj:getDesc():
+
+| Argument | Description
+|----------|------------------------------------------------------------
+| &1       | The variable to store the file descriptor number in
+
+Return values of bsda:obj:getDesc():
+
+| Value    | Description
+|----------|------------------------------------------------------------
+| 0        | The function succeeded in returning a file descriptor
+| 1        | No more file descriptors were available
+
+Arguments to bsda:obj:releaseDesc():
+
+| Argument | Description
+|----------|------------------------------------------------------------
+| &1       | The file descriptor to release
+
+
+
+## 15. COMPATIBILITY
 
 This framework was written for the bourne shell clone, provided with the
 FreeBSD operating system (a descendant of the Almquist shell). To open it
@@ -781,7 +856,7 @@ Compatibilty hacks can be found at the very end of the file. This chapter
 describes some of the differences between FreeBSD sh and bash that one
 might have to keep in mind when implementing classes with this framework.
 
-### 14.1. POSIX
+### 15.1. POSIX
 
 The relatively strict POSIX conformance of dash is the reason that this
 framework is not compatible to it. The specific reason why this framework
@@ -819,19 +894,19 @@ Considering that, one might argue it should add colon and period support for
 function names as well, because the . and : builtin functions imply that
 . and : are valid function names.
 
-### 14.2. bash - local
+### 15.2. bash - local
 
 The local command of bash destroys the original variable values when
 declaring a variable local. Most notably that broke scope checks.
 A simple workaround was to move the local decleration behind the scope
 checks in the code.
 
-### 14.3. bash - setvar
+### 15.3. bash - setvar
 
-The bash doesn't have a setvar command. A hack was introduced to circumvent
+The bash does not have a setvar command. A hack was introduced to circumvent
 this.
 
-### 14.4. bash - Command Substitution Variable Scope
+### 15.4. bash - Command Substitution Variable Scope
 
 Variable changes inside command substition are lost outside the scope of the
 substition, when using bash. The FreeBSD sh performs command substitution in
@@ -844,7 +919,7 @@ when executed with bash:
 	test=a
 	echo $test$(test=b)$test
 
-### 14.5. bash - alias
+### 15.5. bash - alias
 
 The alias command in bash, used for inheritance in the framework, only works
 in interactive mode. Hence all uses of alias had to be substituted with
