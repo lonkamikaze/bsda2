@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2009, 2010, 2014
+# Copyright (c) 2009, 2010, 2014, 2015
 # Dominic Fandrey <kamikaze@bsdforen.de>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,16 +33,17 @@ readonly bsda_messaging=1
 
 #
 # The following is a list of all classes and interfaces:
-#	bsda:messaging:Listener		Listener interface
-#	bsda:messaging:Sender		Sender interface
-#	bsda:messaging:Messenger	Messenger interface
-#	bsda:messaging:Lock		Read/Write file system locking class
-#	bsda:messaging:BusListener	Listener operating on a regular file
-#	bsda:messaging:BusSender	Sender operating on a regular file
-#	bsda:messaging:BusMessenger	Messenger operating on a regular file
-#	bsda:messaging:PtpMessenger	Messenger for 1-1 process communication
-#	bsda:messaging:FifoListener	Listener for a FIFO
-#	bsda:messaging:FifoSender	Sender for a FIFO
+#
+# | Class/Interface              | Description
+# |------------------------------|-----------------------------------------
+# | bsda:messaging:Listener      | Listener interface
+# | bsda:messaging:Sender        | Sender interface
+# | bsda:messaging:Messenger     | Messenger interface
+# | bsda:messaging:Lock          | Read/Write file system locking class
+# | bsda:messaging:BusListener   | Listener operating on a regular file
+# | bsda:messaging:BusSender     | Sender operating on a regular file
+# | bsda:messaging:BusMessenger  | Messenger operating on a regular file
+# | bsda:messaging:FifoMessenger | Named pipe based based FIFO
 #
 
 #
@@ -50,36 +51,32 @@ readonly bsda_messaging=1
 #
 # The following tables should help decide, which messenger type to use.
 #
-# Legend
-#	Type	Communication Type
-#	Block.	Read access blocks the process until a message is received
-#	Buff.	Buffering
-#	WL	Writing Locks
-#	RL	Reading Locks
+# Legend:
 #
-# Types
-#	bus	Every participant can send and receive, every message is
-#		available to every participant.
-#	ptp	Point To Point communication, there are only two communication
-#		partners, messages are only received by the partner
-#	queue	Messages are kept in a queue, the first listener to read
-#		gets the message. Queues may not be read buffered.
+# | Type   | Communication Type
+# |--------|--------------------------------------------------------------
+# | Block. | Access blocks the process until the message is sent/received
+# | Buff.  | Buffering
+# | WL     | Writing Locks
+# | RL     | Reading Locks
+#
+# Types:
+#
+# | Type | Description
+# |------|---------------------------------------------------------
+# | bus  | All messages are public to all bus participants
+# | pipe | Named pipe, created with mkfifo(1), based communication
 #		
 #
-# Listeners
-#	Name			Type	Block.	Buff.	WL	RL
-#	BusListener		bus	no	--	--	-w
-#	FifoListener		ptp	no	r-	--	rw
-#
-# Senders
-#	Name			Type	Block.	Buff.	WL	RL
-#	BusSender		bus	-	--	rw	--
-#	FifoSender		ptp	-	--	rw	--
-#
-# Messengers
-#	Name			Type	Block.	Buff.	WL	RL
-#	BusMessenger		bus	no	--	rw	-w
-#	PtpMessenger		ptp	no	r-	r-	r-
+# | Name          | Type | Block. | Buff. | WL | RL
+# |---------------|------|--------|-------|----|----
+# | _Listeners_   |      |        |       |    |
+# | BusListener   | bus  | --     | --    | -- | -w
+# | _Senders_     |      |        |       |    |
+# | BusSender     | bus  | --     | --    | rw | --
+# | _Messengers_  |      |        |       |    |
+# | BusMessenger  | bus  | --     | --    | rw | -w
+# | FifoMessenger | pipe | rw     | -w    | -- | --
 #
 
 
@@ -432,7 +429,7 @@ bsda:messaging:BusListener.receiveLine() {
 
 
 #
-# A raw sender class, .
+# A bus sender class.
 #
 bsda:obj:createClass bsda:messaging:BusSender \
 	implements:bsda:messaging:Sender \
@@ -478,7 +475,6 @@ bsda:messaging:BusSender.clean() {
 #
 bsda:messaging:BusSender.send() {
 	local queue result lock
-
 	$this.getLock lock
 	$this.getQueue queue
 
@@ -494,7 +490,7 @@ bsda:messaging:BusSender.send() {
 
 
 #
-# A synchronus, file system based message queue access class. This can be used
+# A synchronous, file system based message queue access class. This can be used
 # for many to many communication. It is still safe to use this after a fork.
 # However the messenger object should not be synchronized between forked
 # processes to preserve internal states.
@@ -555,340 +551,105 @@ bsda:messaging:BusMessenger.send() {
 	
 }
 
+
 #
-# A pair messenger allows 1-1 communication between a parent and child process.
+# Creates a named pipe based messenger class.
 #
-# It is much faster than the BusMessenger, which has the benefit of
-# allowing n-n communication.
+# When multiple processes read from the FIFO, the recipient is randomly
+# determined by the kernel.
 #
-# The PtpMessenger instance should be created prior to a fork and only used
-# by the main process and a single forked process. It cannot be used for
-# communication between several forked processes.
+# This messenger is suitable for polling free communication through the
+# receiveLine() method, due to its blocking nature.
 #
-# Using this messenger requires appropriate use of the bsda:obj:fork()
-# function.
-#
-bsda:obj:createClass bsda:messaging:PtpMessenger \
+bsda:obj:createClass bsda:messaging:FifoMessenger \
 	implements:bsda:messaging:Messenger \
-	r:private:pid \
-		"The PID of the original process" \
-	r:private:fifo \
-		"The message FIFO file name." \
-	w:private:buffer \
-		"The message read buffer." \
-	w:private:bufferLines \
-		"The message read buffer length in lines." \
-	i:private:init \
-		"The constructor." \
-	c:private:clean \
-		"The destructor." \
+	r:private:desc  "The I/O file descriptor number" \
+	i:private:init  "Sets up the named pipe" \
+	c:private:clean "Releases the file descriptor"
 
 #
-# The constructor checks whether the message FIFO is available.
+# Creates a FIFO messenger based on a named pipe.
 #
-# It creates two files acting as non-blocking FIFOs for each process.
+# The file system node is immediately deleted after a file descriptor
+# has been opened.
 #
-# @param 1
-#	The file name prefix for the message FIFO.
-# @return
-#	0 if everything goes fine
-#	1 if creating a locking object fails
-#
-bsda:messaging:PtpMessenger.init() {
-	/usr/bin/lockf -ks "$1.master.fifo" /bin/chmod 0600 "$1.master.fifo" || return 1
-	if ! /usr/bin/lockf -ks "$1.fork.fifo" /bin/chmod 0600 "$1.fork.fifo"; then
-		/bin/rm "$1.master.fifo"
-		return 1
-	fi
-	setvar ${this}fifo "$1"
-	setvar ${this}pid "$bsda_obj_pid"
-}
-
-#
-# The destructor deletes the FIFOs if requested.
-#
-# @param 1
-#	If set the FIFOs are deleted.
-#
-bsda:messaging:PtpMessenger.clean() {
-	local fifo
-	$this.getFifo fifo
-
-	test -n "$1" && /bin/rm "$fifo.master.fifo" "$fifo.fork.fifo"
-	return 0
-}
-
-#
-# Sends a message.
-#
-# @param 1
-#	The message to send.
-#
-bsda:messaging:PtpMessenger.send() {
-	local IFS fifo pid
-	# Make sure $bsda_obj_interpreter is split into several fields.
-	IFS=' 	
-'
-
-	$this.getFifo fifo
-	$this.getPid pid
-
-	# Check whether this is the master process or the fork.
-	if [ $pid = $bsda_obj_pid ]; then
-		# This is the master, send to the fork.
-		fifo="$fifo.fork.fifo"
-	else
-		# This is the fork, send to the master.
-		fifo="$fifo.master.fifo"
-	fi
-
-	echo "$1" | /usr/bin/lockf -ks "$fifo" $bsda_obj_interpreter -c "/bin/cat >> '$fifo'"
-}
-
-#
-# Returns all unread lines from the message FIFO.
-#
-# @param 1
-#	The name of the variable to store the received lines in.
-# @param 2
-#	The variable to store number of lines received in.
-#
-bsda:messaging:PtpMessenger.receive() {
-	local IFS fifo pid output count buffer bufferLines
-
-	$this.getFifo fifo
-	$this.getPid pid
-
-	# Check whether this is the master process or the fork.
-	if [ $pid = $bsda_obj_pid ]; then
-		# This is the master, read from the master FIFO.
-		fifo="$fifo.master.fifo"
-	else
-		# This is the fork, read from the fork FIFO.
-		fifo="$fifo.fork.fifo"
-	fi
-
-	# Make sure $bsda_obj_interpreter is split into several fields.
-	IFS=' 	
-'
- 
-	# Read and flush the FIFO
-	output="$(/usr/bin/lockf -ks "$fifo" $bsda_obj_interpreter -c "
-			/usr/bin/awk '1 END {print NR}' '$fifo'
-			echo -n > '$fifo'
-		"
-	)"
-
-	# Set IFS to line break.
-	IFS='
-'
-	# Return the results.
-	$this.getBuffer buffer
-	$this.getBufferLines bufferLines
-	count="${output##*$IFS}"
-	output="${output%$count}"
-	output="${output%$IFS}"
-	$caller.setvar "$1" "$buffer${buffer:+${output:+$IFS}}$output"
-	$caller.setvar "$2" $((bufferLines + count))
-	unset ${this}buffer ${this}bufferLines
-}
-
-#
-# Returns the first line from the message FIFO.
-#
-# @param 1
-#	The name of the variable to store the received line in.
-# @param 2
-#	The variable to store number of lines received in.
-#
-bsda:messaging:PtpMessenger.receiveLine() {
-	local IFS count buffer output
-
-	IFS='
-'
-
-	# Update the read buffer if necessary.
-	$this.getBufferLines count
-	if [ $((count)) -eq 0 ]; then
-		$this.receive ${this}buffer ${this}bufferLines
-	fi
-
-	# Get the output line from the buffer.
-	$this.getBuffer buffer
-	$this.getBufferLines count
-	output="${buffer%%$IFS*}"
-
-	# Return the output line.
-	$caller.setvar "$1" "$output"
-	$caller.setvar "$2" $((count >= 1))
-
-	# Update the buffer.
-	if [ "$buffer" == "${buffer#*$IFS}" ]; then
-		buffer=
-	fi
-	$this.setBuffer "${buffer#*$IFS}"
-	$this.setBufferLines $((count - (count >= 1) ))
-}
-
-#
-# Instances of this class allow reading data from a FIFO.
-#
-# Only a single process should read from a FIFO.
-#
-bsda:obj:createClass bsda:messaging:FifoListener \
-	implements:bsda:messaging:Listener \
-	r:private:fifo \
-		"The fifo file." \
-	w:private:buffer \
-		"The message read buffer." \
-	w:private:bufferLines \
-		"The message read buffer length in lines." \
-	i:private:init \
-		"The constructor creates the FIFO." \
-	c:private:clean \
-		"The destructor." \
-
-#
-# The constructor checks whether the FIFO can be locked.
-#
-# @param 1
-#	The file name of the FIFO.
-# @return 0
-#	Locking the FIFO succeeded.
-# @return 1
-#	Locking the FIFO did not succeed.
-#
-bsda:messaging:FifoListener.init() {
-	/usr/bin/lockf -ks "$1.fifo" /bin/chmod 0600 "$1.fifo" || return 1
-	setvar ${this}fifo "$1.fifo"
-}
-
-#
-# The destructor deletes the FIFO if requested.
-#
-bsda:messaging:FifoListener.clean() {
-	local fifo
-	$this.getFifo fifo
-
+bsda:messaging:FifoMessenger.init() {
+	local fifo desc
+	# Create a named pipe
+	fifo="$(/usr/bin/mktemp -ut $this)" || return
+	/usr/bin/mkfifo "$fifo" || return
+	# Open a file descriptor
+	bsda:obj:getDesc desc || return
+	eval "exec $desc<> \"\$fifo\""
+	setvar ${this}desc "$desc"
+	# Remove file system node for the named pipe
 	/bin/rm "$fifo"
-	return 0
 }
 
 #
-# Returns all unread lines from the FIFO.
+# Closes the file descriptor.
+#
+bsda:messaging:FifoMessenger.clean() {
+	local desc
+	$this.getDesc desc
+	if [ -n "$desc" ]; then
+		# Close the file descriptor
+		eval "exec $desc<&-"
+		eval "exec $desc>&-"
+		bsda:obj:releaseDesc $desc
+	fi
+}
+
+#
+# This sends data.
+#
+# It blocks if the pipe buffer is full.
 #
 # @param 1
-#	The name of the variable to store the received lines in.
-# @param 2
-#	The variable to store number of lines received in.
+#	The message to send
 #
-bsda:messaging:FifoListener.receive() {
-	local IFS fifo output count buffer bufferLines
+bsda:messaging:FifoMessenger.send() {
+	eval "echo \"\$1\" >&$($this.getDesc)"
+}
 
-	$this.getFifo fifo
-
-	# Make sure $bsda_obj_interpreter is split into several fields.
-	IFS=' 	
-'
- 
-	# Read and flush the FIFO
-	output="$(/usr/bin/lockf -ks "$fifo" $bsda_obj_interpreter -c "
-			/usr/bin/awk '1 END {print NR}' '$fifo'
-			echo -n > '$fifo'
-		"
-	)"
-
-	# Set IFS to line break.
+#
+# Gets a line from the FIFO.
+#
+# This blocks until a line is available.
+#
+# @param &1
+#	Returns the received line
+#
+bsda:messaging:FifoMessenger.receiveLine() {
+	local IFS line
 	IFS='
 '
-	# Return the results.
-	$this.getBuffer buffer
-	$this.getBufferLines count
-	$this.getBufferLines bufferLines
-	count="${output##*$IFS}"
-	output="${output%$count}"
-	output="${output%$IFS}"
-	$caller.setvar "$1" "$buffer${buffer:+${output:+$IFS}}$output"
-	$caller.setvar "$2" $((bufferLines + count))
-	unset ${this}buffer ${this}bufferLines
+	eval "read line <&$($this.getDesc)"
+	$caller.setvar $1 "$line"
 }
 
 #
-# Returns the first line from the message FIFO.
+# Get all currently available data from the FIFO.
 #
-# @param 1
-#	The name of the variable to store the received line in.
-# @param 2
-#	The variable to store number of lines received in.
+# Non-blocking.
 #
-bsda:messaging:FifoListener.receiveLine() {
-	local IFS count buffer output
-
+# @param &1
+#	Returns the received lines
+# @param &2
+#	Returns the number of lines
+#
+bsda:messaging:FifoMessenger.receive() {
+	local IFS desc line lines count
 	IFS='
 '
-
-	# Update the read buffer if necessary.
-	$this.getBufferLines count
-	if [ $((count)) -eq 0 ]; then
-		$this.receive ${this}buffer ${this}bufferLines
-	fi
-
-	# Get the output line from the buffer.
-	$this.getBuffer buffer
-	$this.getBufferLines count
-	output="${buffer%%$IFS*}"
-
-	# Return the output line.
-	$caller.setvar "$1" "$output"
-	$caller.setvar "$2" $((count >= 1))
-
-	# Update the buffer.
-	if [ "$buffer" == "${buffer#*$IFS}" ]; then
-		buffer=
-	fi
-	$this.setBuffer "${buffer#*$IFS}"
-	$this.setBufferLines $((count - (count >= 1) ))
-}
-
-#
-# Instances of this class allow storing data in a FIFO.
-#
-# FIFOs are useful for n to 1 single direction communication (many senders, one
-# receiver).
-#
-bsda:obj:createClass bsda:messaging:FifoSender \
-	implements:bsda:messaging:Sender \
-	r:private:fifo \
-		"The fifo file." \
-	i:private:init \
-		"The constructor creates the FIFO."
-
-#
-# The constructor checks whether the FIFO can be locked.
-#
-# @param 1
-#	The file name of the FIFO.
-# @return 0
-#	Locking the FIFO succeeded.
-# @return 1
-#	Locking the FIFO did not succeed.
-#
-bsda:messaging:FifoSender.init() {
-	bsda:messaging:FifoListener.init "$@"
-}
-
-#
-# Sends a message.
-#
-# @param 1
-#	The message to send.
-#
-bsda:messaging:FifoSender.send() {
-	local IFS fifo
-	# Make sure $bsda_obj_interpreter is split into several fields.
-	IFS=' 	
-'
-	$this.getFifo fifo
-	echo "$1" | /usr/bin/lockf -ks "$fifo" $bsda_obj_interpreter -c "/bin/cat >> '$fifo'"
+	$this.getDesc desc
+	lines=
+	count=0
+	while eval "read -t0 line <&$desc"; do
+		lines="$lines$line$IFS"
+		count=$((count + 1))
+	done
+	$caller.setvar $1 "$lines"
+	$caller.setvar $2 "$count"
 }
 
