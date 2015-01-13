@@ -30,6 +30,7 @@
 .Sh SYNOPSIS
 .Nm
 .Op Fl acdhmnoqrv
+.Op Fl j Ar n
 .Op Ar packages
 .Sh DESCRIPTION
 The
@@ -54,7 +55,7 @@ Also operate on the dependencies of the provided
 .Ar packages .
 .It Fl h -help
 Displays the available options.
-.It Fl jN -jobsN
+.It Fl j Ar n Fl -jobs Ar n
 Specify the amount of parallel jobs the script will attempt run. The default is
 number of detected cores plus one.
 .It Fl m -mean
