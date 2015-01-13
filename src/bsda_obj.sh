@@ -92,9 +92,9 @@ readonly bsda_obj_interpreter="$(/bin/ps -wwo args= -p $$ | /usr/bin/sed -e "s, 
 #bsda_obj_freeOnExit
 
 #
-# A unique output pipe number, use through bsda:obj:getPipe().
+# A list of available file descriptors for bsda:obj:getDesc().
 #
-bsda_obj_pipe=10
+bsda_obj_desc=3,4,5,6,7,8,9,
 
 #
 # Creates a new class, i.e. a constructor, destructor, resetter, getters,
@@ -1442,23 +1442,43 @@ bsda:obj:exit() {
 }
 
 #
-# Returns an output pipe number for use.
+# Returns an exclusive file descriptor number for use.
 #
-# Numbers start with 10, numbers below 10 a free game at the user's own
-# risk.
+# Note that FreeBSD sh only supports up to 9 file descriptors, so only the 7
+# descriptors [3; 9] are available.
 #
-# @param bsda_obj_pipe
-#	The global pipe counter
+# @param bsda_obj_desc
+#	The list of available file descriptors
 # @param &1
-#	A reference to the variable that should contain the pipe number
+#	A reference to the variable that should contain the descriptor number
+# @retval 0
+#	The descriptor was returned successfully
+# @retval 1
+#	No more descriptors were available
 #
-bsda:obj:getPipe() {
-	if [ -n "$1" ]; then
-		setvar $1 $((bsda_obj_pipe))
-	else
-		echo $((bsda_obj_pipe))
+bsda:obj:getDesc() {
+	if [ -z "$bsda_obj_desc" ]; then
+		return 1
 	fi
-	bsda_obj_pipe=$((bsda_obj_pipe + 1))
+	# Return first available file descriptor
+	setvar $1 ${bsda_obj_desc%%,*}
+	# Remove descriptor from the store of available pipes
+	bsda_obj_desc=${bsda_obj_desc#*,}
+}
+
+#
+# Releases an exclusive file descriptor.
+#
+# Returns a file descriptor back into the pool of usable descriptors.
+#
+# @param bsda_obj_desc
+#	The list of available file descriptors
+# @param 1
+#	The file descriptor to release
+#
+bsda:obj:releaseDesc() {
+	test -z "$1" && return
+	bsda_obj_desc="$bsda_obj_desc$1,"
 }
 
 #
