@@ -1390,6 +1390,14 @@ bsda:obj:callerSetvar() {
 }
 
 #
+# Install traps for garbage collection upon termination of the process.
+#
+bsda:obj:trap() {
+	trap bsda:obj:exit EXIT
+	trap "bsda:obj:exit;exit" INT TERM
+}
+
+#
 # This function can be used to update bsda_obj_uid in forked processes.
 #
 # This is necessary when both processes exchange objects (commonly in
@@ -1406,11 +1414,31 @@ bsda:obj:callerSetvar() {
 bsda:obj:fork() {
 	# Reset resource collection
 	bsda_obj_freeOnExit=
-	trap bsda:obj:exit EXIT
-	trap "bsda:obj:exit;exit" INT TERM
+	bsda:obj:trap
 
 	# Update UID
 	bsda_obj_uid="$(/bin/uuidgen | /usr/bin/tr '-' '_')"
+}
+
+#
+# This function can be used to detach the script from its execution context.
+#
+# I.e. it forks and the forked process inherits the responsibilities of
+# the main process, while the main process dies.
+#
+# @warning
+#	Detaching the script means loosing the guarantee that resources
+#	are freed in order upon termination. It becomes the programmers
+#	responsibility to make sure that processes die in the right order.
+# @param @
+#	The command to detach, treat this like an argument to eval
+# @return
+#	This function does not return
+#
+bsda:obj:detach() {
+	eval "bsda:obj:trap;" "$@" &
+	trap - EXIT
+	exit 0
 }
 
 #

@@ -61,6 +61,8 @@ TABLE OF CONTENTS
     2. Methods
     3. Parent Classes and Interfaces
 12. FORKING PROCESSES
+    1. Creating Child Processes
+    2. Detaching from the Execution Context
 13. GARBAGE COLLECTION
 14. FILE DESCRIPTORS
 15. COMPATIBILITY
@@ -762,6 +764,8 @@ Additionall garbage collection needs to be reinitialised in the forked
 process to ensure all acquired resources are freed when the process
 terminates.
 
+### 12.1. Creating Child Processes
+
 The function bsda:obj:fork() can be used to circumvent this problem by
 regenerating bsda_obj_uid, resetting bsda_obj_freeOnExit and setting
 up traps for SIGINT, SIGTERM and the EXIT handler.
@@ -772,6 +776,22 @@ The following example illustrates its use.
 		bsda:obj:fork
 		# Do something ...
 	) &
+
+The bsda:obj:fork() call must not be omitted or non-memory resources may
+be freed while still in use.
+
+### 12.2. Detaching from the Execution Context
+
+Detaching into the background by forking off a process and exiting would
+invoke garbage collection and cause the process to hang until all child
+processes are dead.
+
+To circumvent this the bsda:obj:detach() function can be used. It calls
+a given command in a forked process. The responsibility to free resources
+upon termination is passed on to the forked process, while the original
+process terminates, omitting garbage collection:
+
+	bsda:obj:detach $this.daemon
 
 
 
