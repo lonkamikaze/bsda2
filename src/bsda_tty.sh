@@ -21,8 +21,8 @@
 #
 
 # Include once.
-test -n "$bsda_tty" && return 0
-readonly bsda_tty=1
+test -n "$_bsda_tty_" && return 0
+readonly _bsda_tty_=1
 
 # Include framework for object oriented shell scripting.
 . ${bsda_dir:-.}/bsda_obj.sh

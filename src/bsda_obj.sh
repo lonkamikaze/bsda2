@@ -21,9 +21,9 @@
 #
 
 # Include once.
-test -n "$bsda_obj" && return 0
+test -n "$_bsda_obj_" && return 0
+readonly _bsda_obj_=1
 set -f
-readonly bsda_obj=1
 
 #
 # This file contains helper functions for creating object oriented

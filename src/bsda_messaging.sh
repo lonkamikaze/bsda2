@@ -21,8 +21,8 @@
 #
 
 # Include once.
-test -n "$bsda_messaging" && return 0
-readonly bsda_messaging=1
+test -n "$_bsda_messaging_" && return 0
+readonly _bsda_messaging_=1
 
 # Include framework for object oriented shell scripting.
 . ${bsda_dir:-.}/bsda_obj.sh

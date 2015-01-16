@@ -21,8 +21,8 @@
 #
 
 # Include once.
-test -n "$pkg_libchk_session" && return 0
-readonly pkg_libchk_session=1
+test -n "$_pkg_libchk_" && return 0
+readonly _pkg_libchk_=1
 
 . ${bsda_dir:-.}/bsda_tty.sh
 . ${bsda_dir:-.}/bsda_messaging.sh
