@@ -9,6 +9,18 @@
 BSDA:OBJ - Real World OO for Shell-Scripting
 ============================================
 
+The bsda:obj framework offers you some common OO-foo for shell scripting
+like classes, interfaces, encapsulation, polymorphism with and without
+inheritance, method overloading, introspection, serialisation, automatic
+creation of getters and setters and garbage collection upon process
+termination.
+
+Bsda:obj provides a higher level of abstraction and code reuse without
+sacrificing the flexibility and versatility of shell scripting.
+
+HISTORY
+-------
+
 This framework was originally developed for the now obsolete pkg_upgrade
 from the first gen BSD Adminstration Scripts. Back in the day the shell
 based portmaster had pretty much replaced the perl based portupgrade as
@@ -30,6 +42,7 @@ bsda:obj along with it.
 [HSK]: http://highspeed-karlsruhe.de/
 [HSKSF]: http://hsk.sf.net/
 [31C3]: https://events.ccc.de/congress/2014/
+
 
 
 TABLE OF CONTENTS
@@ -71,6 +84,7 @@ TABLE OF CONTENTS
     3. bash - setvar
     4. bash - Command Substitution Variable Scope
     5. bash - alias
+
 
 
 ## 1. DEFINING CLASSES
