@@ -679,7 +679,7 @@ bsda:obj:createClass() {
 				# Echo each attribute.
 				for attribute in \$(echo '$attributes'); do
 					eval \"echo \\\"\\\${\$this\$attribute}\\\"\"
-				done | /usr/bin/egrep -o '$bsda_obj_frameworkPrefix[_[:alnum:]]+_[0-9a-f]+_[0-9]+_[0-9]+_[0-9]+_' | /usr/bin/grep -vFx \"\$bsda_obj_serialiseBlacklist\" | /usr/bin/sort -u
+				done | /usr/bin/egrep -o '$bsda_obj_frameworkPrefix[_[:alnum:]]+_([0-9a-f]+_){5}[0-9]+_' | /usr/bin/grep -vFx \"\$bsda_obj_serialiseBlacklist\" | /usr/bin/sort -u
 			)\"
 
 			# Serialize all required objects.
@@ -1098,7 +1098,8 @@ bsda:obj:serialisedUniq() {
 #	0 for objects, 1 for everything else.
 #
 bsda:obj:isObject() {
-	echo "$1" | /usr/bin/egrep -qxe "$bsda_obj_frameworkPrefix[_[:alnum:]]+_[0-9a-f]+_[0-9]+_[0-9]+_[0-9]+_"
+	echo "$1" | /usr/bin/egrep -qxe "$bsda_obj_frameworkPrefix[_[:alnum:]]+_([0-9a-f]+_){5}[0-9]+_"
+
 }
 
 #
