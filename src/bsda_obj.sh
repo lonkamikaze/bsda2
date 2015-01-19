@@ -553,7 +553,7 @@ bsda:obj:createClass() {
 			fi
 
 			${clean:+
-				bsda_obj_freeOnExit=\"\${bsda_obj_freeOnExit:+\${bsda_obj_freeOnExit\}$IFS\}\$this\"
+				bsda_obj_freeOnExit=\"\$bsda_obj_freeOnExit\$this$IFS\"
 			}
 
 			# If this object construction is part of a copy() call,
@@ -592,14 +592,10 @@ bsda:obj:createClass() {
 			${clean:+
 				$clean \"\$@\" || return
 				# Unregister cleanup function from EXIT trap
-				local nl head tail
+				local nl
 				nl='
 '
-				tail=\"\${bsda_obj_freeOnExit#*\$this\}\"
-				tail=\"\${tail#\$nl\}\"
-				head=\"\${bsda_obj_freeOnExit%\$this*\}\"
-				head=\"\${head%\$nl\}\"
-				bsda_obj_freeOnExit=\"\$head\${head:+\${tail:+\$nl\}\}\$tail\"
+				bsda_obj_freeOnExit=\"\${bsda_obj_freeOnExit%%\$this*\}\${bsda_obj_freeOnExit#*\$this\$nl\}\"
 			}
 
 			# Delete methods and attributes.
@@ -1461,11 +1457,9 @@ bsda:obj:exit() {
 		if ! $obj.delete; then
 			echo "bsda:obj:exit: WARNING: Delete of $obj failed!" 1>&2
 			local head tail
-			tail="${bsda_obj_freeOnExit#*$obj}"
-			tail="${tail#$nl}"
-			head="${bsda_obj_freeOnExit%$this*}"
-			head="${head%$nl}"
-			bsda_obj_freeOnExit="$head${head:+${tail:+$nl}}$tail"
+			head="${bsda_obj_freeOnExit%%$obj*}"
+			tail="${bsda_obj_freeOnExit#*$obj$nl}"
+			bsda_obj_freeOnExit="$head$tail"
 		fi
 	done
 }
