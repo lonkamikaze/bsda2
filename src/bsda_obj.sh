@@ -229,7 +229,7 @@ bsda:obj:createClass() {
 '
 
 	# There are some default methods.
-	methods="reset${IFS}delete${IFS}copy${IFS}serialise${IFS}serialiseDeep"
+	methods="reset${IFS}delete${IFS}copy${IFS}serialise${IFS}serialiseDeep${IFS}"
 	attributes=
 	getters=
 	setters=
@@ -244,7 +244,7 @@ bsda:obj:createClass() {
 	for arg in "$@"; do
 		case "$arg" in
 			x:*)
-				methods="$methods${methods:+$IFS}${arg#x:}"
+				methods="$methods${arg#x:}$IFS"
 			;;
 			-:*)
 				attributes="$attributes${attributes:+$IFS}${arg#-:}"
@@ -263,7 +263,7 @@ bsda:obj:createClass() {
 					echo "bsda:obj:createClasss: ERROR: More than one init method was supplied!" 1>&2
 					return 1
 				fi
-				methods="$methods${methods:+$IFS}${arg#i:}"
+				methods="$methods${arg#i:}$IFS"
 				init="$class.${arg##*:}"
 			;;
 			c:*)
@@ -271,7 +271,7 @@ bsda:obj:createClass() {
 					echo "bsda:obj:createClasss: ERROR: More than one cleanup method was supplied!" 1>&2
 					return 2
 				fi
-				methods="$methods${methods:+$IFS}${arg#c:}"
+				methods="$methods${arg#c:}$IFS"
 				clean="$class.${arg##*:}"
 			;;
 			extends:*)
@@ -316,7 +316,7 @@ bsda:obj:createClass() {
 			getter="${method%:*}:$getter"
 		fi
 		# Add the getter to the list of methods.
-		methods="$methods${methods:+$IFS}${getter}"
+		methods="$methods$getter$IFS"
 	done
 
 	# Create setters.
@@ -337,7 +337,7 @@ bsda:obj:createClass() {
 			setter="${method%:*}:$setter"
 		fi
 		# Add the setter to the list of methods.
-		methods="$methods${methods:+$IFS}$setter"
+		methods="$methods$setter$IFS"
 	done
 
 	# Add implicit public scope to methods.
@@ -348,11 +348,11 @@ bsda:obj:createClass() {
 		case "${method%:*}" in
 			$method)
 				# There is no scope operator, add public.
-				methods="${methods:+$methods$IFS}public:$method"
+				methods="${methods}public:$method$IFS"
 			;;
 			public | protected | private)
 				# The accepted scope operators.
-				methods="${methods:+$methods$IFS}$method"
+				methods="$methods$method$IFS"
 			;;
 			*)
 				# Everything else is not accepted.
@@ -417,10 +417,10 @@ bsda:obj:createClass() {
 		done
 
 		# Update the list of methods.
-		methods="$inheritedMethods${inheritedMethods:+${methods:+$IFS}}$methods"
+		methods="$inheritedMethods${inheritedMethods:+$IFS}$methods"
 
 		# Update the instance match patterns of parents.
-		for parent in $parent${parents:+$IFS$parents}; do
+		for parent in $parent$IFS$parents; do
 			$parent.getPrefix parent
 			eval "${parent}instancePatterns=\"\${${parent}instancePatterns}|\${${classPrefix}instancePatterns}\""
 		done
@@ -448,7 +448,7 @@ bsda:obj:createClass() {
 		inheritedMethods="$($interface.getMethods | /usr/bin/grep -vFx "$methods")"
 
 		# Update the list of methods.
-		methods="$inheritedMethods${inheritedMethods:+${methods:+$IFS}}$methods"
+		methods="$inheritedMethods${inheritedMethods:+$IFS}$methods"
 
 		# Update the instance match patterns of parents.
 		for parent in $interface${parents:+$IFS$parents}; do
@@ -469,7 +469,7 @@ bsda:obj:createClass() {
 		if [ "$previousMethod" != "${method##*:}" ]; then
 			# If all scopes of this method have been found,
 			# store it in the final list.
-			methods="${methods:+$methods${previousMethod:+$IFS}}${previousMethod:+$scope:$previousMethod}"
+			methods="$methods${previousMethod:+$scope:$previousMethod$IFS}"
 			scope="${method%:*}"
 		else
 			# Widen the scope if needed.
@@ -488,7 +488,7 @@ bsda:obj:createClass() {
 		previousMethod="${method##*:}"
 	done
 	# Add the last method (this never happens in the loop).
-	methods="${methods:+$methods${previousMethod:+$IFS$scope:$previousMethod}}"
+	methods="$methods${previousMethod:+$scope:$previousMethod$IFS}"
 
 	#
 	# Store access scope checks for each scope in the class context.
@@ -889,7 +889,7 @@ bsda:obj:createInterface() {
 	for arg in "$@"; do
 		case "$arg" in
 			x:*)
-				methods="$methods${methods:+$IFS}public:${arg#x:}"
+				methods="${methods}public:${arg#x:}$IFS"
 			;;
 			extends:*)
 				extends="$extends${extends:+$IFS}${arg#extends:}"
@@ -926,7 +926,7 @@ bsda:obj:createInterface() {
 		inheritedMethods="$($parent.getMethods | /usr/bin/grep -vFx "$methods")"
 
 		# Update the list of methods.
-		methods="$inheritedMethods${inheritedMethods:+${methods:+$IFS}}$methods"
+		methods="$inheritedMethods${inheritedMethods:+$IFS}$methods"
 
 		# Update the instance match patterns of parents.
 		for parent in $parent${parents:+$IFS$parents}; do
