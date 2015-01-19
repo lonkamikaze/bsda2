@@ -91,7 +91,8 @@ TABLE OF CONTENTS
 
 This section describes the creation of classes.
 
-* NOTE: The details of creating classes are listed in front of the
+* **NOTE**
+  The details of creating classes are listed in front of the
   bsda:obj:createClass() function.
 
 Creating a class consists of two steps, the first step is to call
@@ -143,7 +144,8 @@ assign values:
 		[ ... assign values, maybe even check types ... ]
 	}
 
-* NOTE: The init method can have an arbitrary name.
+* **NOTE**
+  The init method can have an arbitrary name.
 
 Note that the attributes were now created with "r:", this means they only
 have get methods, no set methods. All the values are now assigned during
@@ -172,7 +174,8 @@ The init method is explicitely stated in the class declaration just for the
 sake of readability, though not a requirement for overloading inherited
 methods, this is considered good style.
 
-* NOTE: If the init method does not return 0 the object is instantly
+* **NOTE**
+  If the init method does not return 0 the object is instantly
   destroyed and the return value is forwarded to the caller.
   The caller then has a reference to a no longer existing object
   and does not know about it, unless the return value of the
@@ -219,7 +222,8 @@ prefixes that declare methods can have a scope operator.
 		w:private:familyName \
 		w:private:firstName
 
-* NOTE: The constructor is always public. Declaring a scope for an init method
+* **NOTE**
+  The constructor is always public. Declaring a scope for an init method
   only affects direct calls of the method.
 
 Now the getters and setters for both familyName and firstName are private.
@@ -232,7 +236,8 @@ It is possible to widen the scope of a method by redeclaring it.
 		w:private:firstName \
 		x:public:getFirstName
 
-* NOTE: When methods are inherited the widest declared scope always wins, no
+* **NOTE**
+  When methods are inherited the widest declared scope always wins, no
   matter from which class it originates.
 
 ### 1.4. Interfaces
@@ -249,10 +254,11 @@ bsda:obj:createInterface() method allows the creation of interfaces:
 	bsda:obj:createInterface Listener \
 		x:notify
 
-* NOTE: Methods defined by an interface are always public, so there is not
+* **NOTE**
+  Methods defined by an interface are always public, so there is no
   scope operator.
 
-* NOTE: Interfaces cannot be used to define attributes.
+* **NOTE** Interfaces cannot be used to define attributes.
 
 Every class conforming to the interface has to implement the methods defined
 by the interface:
@@ -285,22 +291,26 @@ creates a wrapper for that forwards the object reference to them.
 ### 2.1. Regular Methods
 
 The following special variables are available:
-	this	A reference to the current object
-	class	The name of the class this object is an instance of
-	caller	Provides access to methods to manipulate the caller context,
-		which is the recommended way of returning data to the caller
+
+| Variable  | Description
+|-----------|--------------------------------------------------------------
+| this      | A reference to the current object
+| class     | The name of the class this object is an instance of
+| caller    | Provides access to methods to manipulate the caller context
 
 The following methods are offered by the caller:
-	setvar	Sets a variable in the caller context.
-	getObject
-		Returns a reference to the calling object.
-	getClass
-		Returns the name of the calling class.
+
+| Method    | Description
+|-----------|--------------------------------------------------------------
+| setvar    | Sets a variable in the caller context
+| getObject | Returns a reference to the calling object
+| getClass  | Returns the name of the calling class
 
 The following variable names may not be used in a method:
-	_return
-	_var
-	_setvars
+
+- _return
+- _var
+- _setvars
 
 A method must always be named "<class>.<method>". So a valid implementation
 for a method named "bar" and a class named "foo" would look like this:
@@ -451,7 +461,8 @@ bsda:obj:createClass() function below.
 The resetter first calls the cleanup method with all parameters, if one
 has been defined. Afterwards it simply removes all attributes from memory.
 
-* NOTE: The destruction of attributes is avoided when the cleanup method fails.
+* **NOTE**
+  The destruction of attributes is avoided when the cleanup method fails.
 
 The resetter does not call the init method afterwards, because it would
 not be possible to provide different parameters to the init and cleanup
@@ -485,7 +496,8 @@ The destructor calls a cleanup method with all parameters, if
 one was specified. Afterwards it simply removes all method wrappers and
 attributes from memory.
 
-* NOTE: The destruction of attributes and method wrappers is avoided when
+* **NOTE**
+  The destruction of attributes and method wrappers is avoided when
   the cleanup method fails.
 
 The following example illustrates the use of the destructor on an object
@@ -613,7 +625,7 @@ representations. Serialized objects can be stored in a file and reloaded
 at a later time. They can be passed on to other processess, through a file
 or a pipe. They can even be transmitted over a network through nc(1).
 
-* NOTE: Static attributes are not subject to serialisation.
+* **NOTE** Static attributes are not subject to serialisation.
 
 ### 10.1. Serialising
 
@@ -880,10 +892,7 @@ popular ASH derivate in the GNU world, dash, is not compatible.
 Compatibility could be achieved, but the syntactical impact was deemed too
 painful.
 
-The serialisation relies on external commands that might not be present
-everywhere, namely b64encode(1) and b64decode(1)
-
-Compatibilty hacks can be found at the very end of the file. This chapter
+Compatibilty hacks can be found at the very end of bsda_obj.sh. This chapter
 describes some of the differences between FreeBSD sh and bash that one
 might have to keep in mind when implementing classes with this framework.
 
