@@ -476,10 +476,7 @@ bsda:tty:Terminal.clean() {
 # has to be directed by the caller.
 #
 bsda:tty:Terminal.draw() {
-	local IFS buffer count
-
-	IFS='
-'
+	local buffer count
 
 	$this.getDisplayBuffer buffer count
 	/usr/bin/tput vi cr AL $count
@@ -537,7 +534,7 @@ bsda:tty:Terminal.getDisplayBuffer() {
 		buffer="$(
 			$this.getBuffer \
 			| /usr/bin/awk "
-				NR<=$count&&\$0=substr(\$0 \" \", 1, $maxco)")"
+				NR<=$count&&\$0=substr(\$0 \" \", 1, $maxco)END{printf \".\"}")"
 	else
 		buffer=
 	fi
@@ -999,8 +996,8 @@ bsda:tty:Terminal.line() {
 	fi > /dev/tty
 
 	# Store the new line in the status line buffer.
-	buffer="$($this.getBuffer | /usr/bin/sed -n -e "$((pos + 1))c\\$IFS${2:+\\${2%%$IFS*}}" -e p -e "\$i\\$IFS.")"
-	$this.setBuffer "${buffer%.}"
+	buffer="$($this.getBuffer | /usr/bin/awk "NR==$((pos + 1)){\$0=\"${2%%$IFS*}\"}1;END{printf \".\"}")"
+	$this.setBuffer "${buffer%$IFS.}"
 
 	return 0
 }
