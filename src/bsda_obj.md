@@ -330,7 +330,7 @@ Directly operating on attributes is not possible.
 		# Get counter value.
 		bsda:obj:getVar count ${this}count
 		# Increase counter value copy.
-		count=$(($count + 1))
+		count=$((count + 1))
 		# Store the counter value.
 		setvar ${this}count $count
 	}
@@ -343,7 +343,7 @@ setters are documented in chapter 7 and 8.
 		# Get counter value.
 		$this.getCount count
 		# Increase counter value copy.
-		count=$(($count + 1))
+		count=$((count + 1))
 		# Store the counter value.
 		$this.setCount $count
 	}
@@ -367,7 +367,7 @@ Afterwards the attribute is incremented:
 		$this.getCount count
 		$caller.setvar $1 $count
 		# Increase counter value copy.
-		count=$(($count + 1))
+		count=$((count + 1))
 		# Store the counter value.
 		$this.setCount $count
 	}
