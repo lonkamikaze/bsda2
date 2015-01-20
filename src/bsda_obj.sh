@@ -247,16 +247,16 @@ bsda:obj:createClass() {
 				methods="$methods${arg#x:}$IFS"
 			;;
 			-:*)
-				attributes="$attributes${attributes:+$IFS}${arg#-:}"
+				attributes="$attributes${arg#-:}$IFS"
 			;;
 			r:*)
-				attributes="$attributes${attributes:+$IFS}${arg##*:}"
-				getters="$getters${getters:+$IFS}${arg#r:}"
+				attributes="$attributes${arg##*:}$IFS"
+				getters="$getters${arg#r:}$IFS"
 			;;
 			w:*)
-				attributes="$attributes${attributes:+$IFS}${arg##*:}"
-				getters="$getters${getters:+$IFS}${arg#w:}"
-				setters="$setters${getters:+$IFS}${arg#w:}"
+				attributes="$attributes${arg##*:}$IFS"
+				getters="$getters${arg#w:}$IFS"
+				setters="$setters${arg#w:}$IFS"
 			;;
 			i:*)
 				if [ -n "$init" ]; then
@@ -275,10 +275,10 @@ bsda:obj:createClass() {
 				clean="$class.${arg##*:}"
 			;;
 			extends:*)
-				extends="$extends${extends:+$IFS}${arg#extends:}"
+				extends="$extends${arg#extends:}$IFS"
 			;;
 			implements:*)
-				implements="$implements${implements:+$IFS}${arg#implements:}"
+				implements="$implements${arg#implements:}$IFS"
 			;;
 			*)
 				# Assume everything else is a comment.
@@ -292,7 +292,7 @@ bsda:obj:createClass() {
 	classPrefix="${namespacePrefix}$(echo "$class" | /usr/bin/tr ':' '_')_"
 
 	# Set the instance match pattern.
-	setvar ${classPrefix}instancePatterns "${classPrefix}[0-9a-f]+_[0-9]+_[0-9]+_[0-9]+_"
+	setvar ${classPrefix}instancePatterns "${classPrefix}([0-9a-f]+_){5}[0-9]+_$IFS"
 
 	# Create getters.
 	for method in $getters; do
@@ -376,13 +376,13 @@ bsda:obj:createClass() {
 		parents="$($parent.getInterfaces | /usr/bin/grep -vFx "$implements")"
 		# Append the detected interfaces to the list of implemented
 		# interfaces.
-		implements="$implements${implements:+${parents:+$IFS}}$parents"
+		implements="$implements${parents:+$parents$IFS}"
 
 		# Get the parents of this class.
 		# Filter already registered parents.
 		parents="$($parent.getParents | /usr/bin/grep -vFx "$extends")"
 		# Append the detected parents to the list of extended classes.
-		extends="$extends${parents:+$IFS$parents}"
+		extends="$extends${parents:+$parents$IFS}"
 
 		# Get the super methods, first class wins.
 		if [ -z "$superInit" ]; then
@@ -399,12 +399,11 @@ bsda:obj:createClass() {
 		inheritedAttributes="$($parent.getAttributes | /usr/bin/grep -vFx "$attributes")"
 
 		# Update the list of attributes.
-		attributes="$inheritedAttributes${inheritedAttributes:+${attributes:+$IFS}}$attributes"
+		attributes="${inheritedAttributes:+$inheritedAttributes$IFS}$attributes"
 
 		# Create aliases for methods.
 		for method in $inheritedMethods; do
-			# Check whether this method already exists with a
-			# different scope.
+			# Check whether this method already exists
 			if echo "$methods" | /usr/bin/grep -qx ".*:${method##*:}"; then
 				# Skip ahead.
 				continue
@@ -417,12 +416,12 @@ bsda:obj:createClass() {
 		done
 
 		# Update the list of methods.
-		methods="$inheritedMethods${inheritedMethods:+$IFS}$methods"
+		methods="${inheritedMethods:+$inheritedMethods$IFS}$methods"
 
 		# Update the instance match patterns of parents.
 		for parent in $parent$IFS$parents; do
 			$parent.getPrefix parent
-			eval "${parent}instancePatterns=\"\${${parent}instancePatterns}|\${${classPrefix}instancePatterns}\""
+			eval "${parent}instancePatterns=\"\${${parent}instancePatterns}\${${classPrefix}instancePatterns}\""
 		done
 	done
 
@@ -442,18 +441,18 @@ bsda:obj:createClass() {
 		# Filter already registered parents.
 		parents="$($interface.getParents | /usr/bin/grep -vFx "$implements")"
 		# Append the detected parents to the list of extended classes.
-		implements="$implements${parents:+$IFS$parents}"
+		implements="$implements${parents:+$parents$IFS}"
 
 		# Get inherited public methods.
 		inheritedMethods="$($interface.getMethods | /usr/bin/grep -vFx "$methods")"
 
 		# Update the list of methods.
-		methods="$inheritedMethods${inheritedMethods:+$IFS}$methods"
+		methods="${inheritedMethods:+$inheritedMethods$IFS}$methods"
 
 		# Update the instance match patterns of parents.
-		for parent in $interface${parents:+$IFS$parents}; do
+		for parent in $interface$IFS$parents; do
 			$parent.getPrefix parent
-			eval "${parent}instancePatterns=\"\${${parent}instancePatterns:+\${${parent}instancePatterns}|}\${${classPrefix}instancePatterns}\""
+			eval "${parent}instancePatterns=\"\${${parent}instancePatterns}\${${classPrefix}instancePatterns}\""
 		done
 	done
 
@@ -593,8 +592,7 @@ bsda:obj:createClass() {
 				$clean \"\$@\" || return
 				# Unregister cleanup function from EXIT trap
 				local nl
-				nl='
-'
+				nl='$IFS'
 				bsda_obj_freeOnExit=\"\${bsda_obj_freeOnExit%%\$this*\}\${bsda_obj_freeOnExit#*\$this\$nl\}\"
 			}
 
@@ -892,7 +890,7 @@ bsda:obj:createInterface() {
 				methods="${methods}public:${arg#x:}$IFS"
 			;;
 			extends:*)
-				extends="$extends${extends:+$IFS}${arg#extends:}"
+				extends="$extends${arg#extends:}$IFS"
 			;;
 			*)
 				# Assume everything else is a comment.
@@ -906,7 +904,7 @@ bsda:obj:createInterface() {
 	interfacePrefix="${namespacePrefix}$(echo "$interface" | /usr/bin/tr ':' '_')_"
 
 	# Set the instance match pattern.
-	setvar ${interfacePrefix}instancePatterns "${interfacePrefix}[0-9a-f]+_[0-9]+_[0-9]+_[0-9]+_"
+	setvar ${interfacePrefix}instancePatterns "${interfacePrefix}([0-9a-f]+_){5}[0-9]+_$IFS"
 
 	# Manage inheritance.
 	for parent in $extends; do
@@ -920,18 +918,18 @@ bsda:obj:createInterface() {
 		# Filter already registered parents.
 		parents="$($parent.getParents | /usr/bin/grep -vFx "$extends")"
 		# Append the detected parents to the list of extended interfaces.
-		extends="$extends${parents:+$IFS$parents}"
+		extends="$extends${parents:+$parents$IFS}"
 
 		# Get inherited public methods.
 		inheritedMethods="$($parent.getMethods | /usr/bin/grep -vFx "$methods")"
 
 		# Update the list of methods.
-		methods="$inheritedMethods${inheritedMethods:+$IFS}$methods"
+		methods="${inheritedMethods:+$inheritedMethods$IFS}$methods"
 
 		# Update the instance match patterns of parents.
-		for parent in $parent${parents:+$IFS$parents}; do
+		for parent in $parent$IFS$parents; do
 			$parent.getPrefix parent
-			eval "${parent}instancePatterns=\"\${${parent}instancePatterns}|\${${interfacePrefix}instancePatterns}\""
+			eval "${parent}instancePatterns=\"\${${parent}instancePatterns}\${${interfacePrefix}instancePatterns}\""
 		done
 	done
 
