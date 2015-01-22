@@ -34,40 +34,42 @@ readonly _bsda_tty_=1
 # Output duplication has been removed in favour of tee(1).
 #
 # Tested on:
-#	TERM		ISSUES
-#	xterm		flickers
-#	cons25
-#	jfbterm		flickers
-#	rxvt-unicode
-# Third party tested:
-#	screen
-#	xterm-color
+#
+# | Terminal     | TERM
+# |--------------|--------
+# | xterm        | xterm
+# | console      | xterm
+# | rxvt-unicode | rxvt
+# | tmux         | screen
 #
 
 #
 # A list of useful termcap(5) capabilities, used with tput(1):
-# 	save_cursor		sc
-#	restore_cursor		rc
-#	cursor_address		cm #1 #2
-#	cursor_home		ho
-#	columns			co => #
-#	lines			li => #
-#	clr_eol			ce
-#	clr_eos			cd
-#	delete_line		dl
-#	parm_insert_line	AL #1
-#	insert_line		al
-#	cursor_invisible	vi
-#	cursor_normal		ve
-#	cursor_visible		vs
-#	parm_down_cursor	DO #1	fails on jfbterm, use jot -b do #1
-#	parm_up_cursor		UP #1	fails on jfbterm, use jot -b up #1
-#	carriage_return		cr
-#	newline			nw
-#	cursor_down		do
-#	cursor_up		up
-#	eat_newline_glitch	xn
-#	init_tabs		it => #
+#
+# | Command            | Short    | Problems
+# |--------------------|----------|-----------------------
+# | save_cursor        | sc       |
+# | restore_cursor     | rc       |
+# | cursor_address     | cm #1 #2 |
+# | cursor_home        | ho       |
+# | columns            | co => #  |
+# | lines              | li => #  |
+# | clr_eol            | ce       |
+# | clr_eos            | cd       |
+# | delete_line        | dl       |
+# | parm_insert_line   | AL #1    |
+# | insert_line        | al       |
+# | cursor_invisible   | vi       |
+# | cursor_normal      | ve       |
+# | cursor_visible     | vs       |
+# | parm_down_cursor   | DO #1    | DO 0 glitches in tmux
+# | parm_up_cursor     | UP #1    | UP 0 glitches in tmux
+# | carriage_return    | cr       |
+# | newline            | nw       |
+# | cursor_down        | do       |
+# | cursor_up          | up       |
+# | eat_newline_glitch | xn       |
+# | init_tabs          | it => #  |
 #
 
 # Terminal exceptions.
@@ -88,29 +90,27 @@ bsda_tty_errno=0
 # A helper function library.
 #
 bsda:obj:createClass bsda:tty:Library \
-	x:public:format \
-		"A printf wrapper to format a line adjusted to the available" \
-		"terminal space." \
-	x:public:convertBytes \
-		"Provides byte count representations." \
-	x:public:convertBytesToUnit \
-		"Provides byte count representations with a fixed unit." \
+	x:public:format             "A printf wrapper to format a line" \
+	                            "adjusted to the terminal width" \
+	x:public:convertBytes       "Provides byte count representations" \
+	x:public:convertBytesToUnit "Provides byte count representations" \
+	                            "with a fixed unit" \
 
 #
 # Convert byte counts into human readable values.
 #
 # This method runs out of units when peta bytes are reached.
 #
-# @param 1
-#	The variable to return the converted byte in.
-# @param 2
-#	The variable to return the the conversion unit in.
+# @param &1
+#	The variable to return the converted byte in
+# @param &2
+#	The variable to return the the conversion unit in
 # @param 3
-#	The value to convert.
+#	The value to convert
 # @param 4
 #	The optional targeted maximum string length. A length below 3 leads
 #	to 0 values between 1000 and 1024 of the underlying unit,
-#	the default length is 4.
+#	the default length is 4
 #
 bsda:tty:Library.convertBytes() {
 	local width unit value scale decscale rest
@@ -152,16 +152,16 @@ bsda:tty:Library.convertBytes() {
 #
 # Convert byte counts into a specified representation.
 #
-# @param 1
-#	The variable to return the converted byte in.
+# @param &1
+#	The variable to return the converted byte in
 # @param 2
-#	The conversion unit either ' ', 'k', 'm', 'g', 't', 'p'.
+#	The conversion unit either ' ', 'k', 'm', 'g', 't', 'p'
 # @param 3
-#	The value to convert.
+#	The value to convert
 # @param 4
 #	The optional targeted maximum string length. A length below 3 leads
 #	to 0 values between 1000 and 1024 of the underlying unit,
-#	the default length is 4.
+#	the default length is 4
 #
 bsda:tty:Library.convertBytesToUnit() {
 	local width targetUnit unit value scale decscale rest
@@ -213,13 +213,13 @@ bsda:tty:Library.convertBytesToUnit() {
 # available columns, 80 is assumed.
 #
 # The following things break this function:
-#	\r, \n, \t
-#		The formatting characters are all counted as 1 regular
-#		character, so the output may end up too short or spreading
-#		more than 1 line
-#	unmatching number of arguments
-#		Providing the wrong number of arguments, causes them to show
-#		up in the wrong output columns
+# - \r, \n, \t
+#   - The formatting characters are all counted as 1 regular
+#     character, so the output may end up too short or spreading
+#     more than 1 line
+# - unmatching number of arguments
+#   - Providing the wrong number of arguments, causes them to show
+#     up in the wrong output columns
 #
 # Format pattern insertions are defined in the following way:
 #	PADDING :=	"0" | "-" | ""
@@ -228,26 +228,24 @@ bsda:tty:Library.convertBytesToUnit() {
 #	STYLE :=	[[:alpha:]]
 #	FORMAT :=	"<" PADDING WIDTH CUT ":" STYLE ">"
 #
-# PADDING	"0"		The value is left-filled with "0"
-#		"-"		The value is right-padded
-#		""		The value is left-padded
+# | Definition | Pattern      | Description
+# |------------|--------------|--------------------------------------
+# | PADDING    | "0"          | The value is left-filled with "0"
+# |            | "-"          | The value is right-padded
+# |            | ""           | The value is left-padded
+# | WIDTH      | [[:digit:]]* | A numeric value
+# |            | "x"          | Auto-adjust
+# |            | ""           | No adjustment
+# | CUT	       | "-"          | Remove characters from the beginning
+# |            | ""           | Remove trailing characters
+# | STYLE      | [[:alpha:]]  | A character declaring a printf style
 #
-# WIDTH		[[:digit:]]*	A numeric value
-#		"x"		Auto-adjust
-#		""		No adjustment
-#
-# CUT		"-"		Remove characters from the beginning
-#		""		Remove trailing characters
-#
-# STYLE		[[:alpha:]]	A character from the alphabet declaring a
-#				printf style
-#
-# @param 1
-#	The return variable name.
+# @param &1
+#	The return variable name
 # @param 2
-#	The pattern to convert and use.
+#	The pattern to convert and use
 # @param @
-#	The remaining arguments will be passed on to printf.
+#	The remaining arguments will be passed on to printf
 #
 bsda:tty:Library.format() {
 	local IFS outvar pattern printf columns format arg width pad style
@@ -307,7 +305,7 @@ bsda:tty:Library.format() {
 		set -- "$@" "$arg"
 		printf="$(echo "$printf" | /usr/bin/sed -E "s,$format,%$pad$width$style,")"
 	done
-	output="$(/usr/bin/printf "$printf" "$@")"
+	output="$(printf "$printf" "$@")"
 
 	#
 	# The second pattern parsing is performed to adjust the width of
@@ -369,7 +367,7 @@ bsda:tty:Library.format() {
 	fi
 
 	# Return the result.
-	output="$(/usr/bin/printf "$printf" "$@" | /usr/bin/awk "\$0=substr(\$0, 1, $columns)")"
+	output="$(printf "%.${columns}s" "$(printf "$printf" "$@")")"
 	$caller.setvar "$outvar" "$output"
 }
 
@@ -379,10 +377,8 @@ bsda:tty:Library.format() {
 # Terminal.refresh() method is called.
 #
 bsda:obj:createInterface bsda:tty:StatusProvider \
-	x:reportStatus \
-		"Expected to return a status line to the first parameter." \
-	x:disconnectStatus \
-		"Is called if the status provider gets disconnected." \
+	x:reportStatus     "Returns a status line" \
+	x:disconnectStatus "Is called if the status provider gets disconnected"
 
 #
 # Represents a terminal to control output on stdout, stderr and status lines.
@@ -392,48 +388,30 @@ bsda:obj:createInterface bsda:tty:StatusProvider \
 # For convenience it also inherits the methods of the helper function library.
 #
 bsda:obj:createClass bsda:tty:Terminal extends:bsda:tty:Library \
-	w:private:active \
-		"Terminal control active flag." \
-	w:private:count \
-		"The number of lines dedicated to status output." \
-	w:private:visible \
-		"The current visibility state." \
-	w:private:providers \
-		"A list of references to StatusProvider instances." \
-	w:private:buffer \
-		"A buffer of the status lines, for show." \
-	i:private:init \
-		"The constructor checks whether a terminal is available." \
-	c:private:clean \
-		"Notifies the StatusProvider instances." \
-	x:private:draw \
-		"Draws the buffer." \
-	x:private:getDisplayCount \
-		"Returns the number of status lines drawn." \
-	x:private:getDisplayBuffer \
-		"Returns the portion of the buffer that may be displayed." \
-	x:public:deactivate \
-		"Deactivates the Terminal controlling methods." \
-	x:public:use \
-		"Controls the number of lines used for status display." \
-	x:public:hide \
-		"Hide the status lines." \
-	x:public:show \
-		"Recover the last status display." \
-	x:public:refresh \
-		"Refresh status lines." \
-	x:public:attach \
-		"Attach a StatusProvider to a status line." \
-	x:public:detach \
-		"Detach a StatusProvider from a status line." \
-	x:public:flush \
-		"Detach all StatusProviders." \
-	x:public:line \
-		"Sets a status line." \
-	x:public:stdout \
-		"Write to stdout." \
-	x:public:stderr \
-		"Write to stderr." \
+	w:private:active           "Terminal control active flag." \
+	w:private:count            "The number of status lines" \
+	w:private:visible          "The current visibility state" \
+	w:private:providers        "A list of StatusProvider instances" \
+	w:private:buffer           "A buffer of the status lines" \
+	i:private:init             "The constructor checks whether a" \
+	                           "terminal is available." \
+	c:private:clean            "Notifies the StatusProvider instances" \
+	x:private:draw             "Draws the buffer" \
+	x:private:getDisplayCount  "Returns the number of status lines drawn" \
+	x:private:getDisplayBuffer "Returns the portion of the buffer that" \
+	                           "may be displayed." \
+	x:public:deactivate        "Deactivates Terminal control" \
+	x:public:use               "Controls the number of lines used for" \
+	                           "status display" \
+	x:public:hide              "Hide the status lines" \
+	x:public:show              "Recover the last status display" \
+	x:public:refresh           "Refresh status lines" \
+	x:public:attach            "Attach a StatusProvider to a status line" \
+	x:public:detach            "Detach a StatusProvider" \
+	x:public:flush             "Detach all StatusProviders" \
+	x:public:line              "Sets a status line" \
+	x:public:stdout            "Write to stdout" \
+	x:public:stderr            "Write to stderr"
 
 #
 # The constructor checks whether a terminal is available.
@@ -481,7 +459,7 @@ bsda:tty:Terminal.draw() {
 	$this.getDisplayBuffer buffer count
 	/usr/bin/tput vi cr AL $count
 	echo -n "$buffer"
-	/usr/bin/tput cr $(test $count -gt 1 && /usr/bin/jot -b up $((count - 1))) ve
+	/usr/bin/tput cr UP $((count)) do ve
 }
 
 #
@@ -560,9 +538,9 @@ bsda:tty:Terminal.deactivate() {
 # Sets the number of status lines to manage for this terminal.
 #
 # @param 1
-#	The number of status lines to use.
+#	The number of status lines to use
 # @throws bsda_tty_ERR_TERMINAL_LINECOUNT_NOT_UINT
-#	Thrown if the provided number of lines is not an unsigned integer.
+#	Thrown if the provided number of lines is not an unsigned integer
 #
 bsda:tty:Terminal.use() {
 	local IFS active count buffer providers provider index visible
@@ -670,13 +648,13 @@ bsda:tty:Terminal.show() {
 # Causes a redraw of the status lines if they are currently visible.
 #
 # @param @
-#	Each parameter represents a line index or a StatusProvider instance.
+#	Each parameter represents a line index or a StatusProvider instance
 # @throws bsda_tty_ERR_TERMINAL_STATUSPROVIDER_NOT_IN_LIST
-#	Is thrown if an invalid provider was given.
+#	Is thrown if an invalid provider was given
 # @throws bsda_tty_ERR_TERMINAL_LINEINDEX_NOT_A_NUMBER
-#	Is thrown if the given line index is not a number.
+#	Is thrown if the given line index is not a number
 # @throws bsda_tty_ERR_TERMINAL_LINEINDEX_OUT_OF_BOUNDS
-#	Is thrown if an inexistant index line is given.
+#	Is thrown if an inexistant index line is given
 #
 bsda:tty:Terminal.refresh() {
 	local IFS active provider index line visible count sedcmd buffer
@@ -759,16 +737,16 @@ bsda:tty:Terminal.refresh() {
 # Lines are counted from top to bottom, starting at 0.
 #
 # @param 1
-#	The StatusProvider instance to attach.
+#	The StatusProvider instance to attach
 # @param 2
-#	The index of the line to attach the provider to, optional.
+#	The index of the line to attach the provider to, optional
 # @throws bsda_tty_ERR_TERMINAL_STATUSPROVIDER_INVALID
-#	Is thrown if an invalid provider was given.
+#	Is thrown if an invalid provider was given
 # @throws bsda_tty_ERR_TERMINAL_LINEINDEX_NOT_A_NUMBER
-#	Is thrown if the given line index is not a number.
+#	Is thrown if the given line index is not a number
 # @throws bsda_tty_ERR_TERMINAL_LINEINDEX_OUT_OF_BOUNDS
 #	Is thrown if the given line index is outside of the scope of currently
-#	managed lines.
+#	managed lines
 #
 bsda:tty:Terminal.attach() {
 	local IFS active index count buffer providers provider line visible
@@ -856,13 +834,13 @@ bsda:tty:Terminal.flush() {
 # Detaches the given provider. The screen is not redrawn.
 #
 # @param 1
-#	A line index or a StatusProvider instance.
+#	A line index or a StatusProvider instance
 # @throws bsda_tty_ERR_TERMINAL_STATUSPROVIDER_NOT_IN_LIST
-#	Is thrown if an invalid provider was given.
+#	Is thrown if an invalid provider was given
 # @throws bsda_tty_ERR_TERMINAL_LINEINDEX_NOT_A_NUMBER
-#	Is thrown if the given line index is not a number.
+#	Is thrown if the given line index is not a number
 # @throws bsda_tty_ERR_TERMINAL_LINEINDEX_OUT_OF_BOUNDS
-#	Is thrown if an inexistant index line is given.
+#	Is thrown if an inexistant index line is given
 #
 bsda:tty:Terminal.detach() {
 	local IFS active providers provider index sedcmd buffer count
@@ -948,16 +926,16 @@ bsda:tty:Terminal.detach() {
 # The provided text is reduced to the contents of the first line.
 #
 # @param 1
-#	The index line to update.
+#	The index line to update
 # @param 2
-#	The text to set the line to.
+#	The text to set the line to
 # @throws bsda_tty_ERR_TERMINAL_LINEINDEX_NOT_A_NUMBER
-#	Is thrown if the given line index is not a number.
+#	Is thrown if the given line index is not a number
 # @throws bsda_tty_ERR_TERMINAL_LINEINDEX_OUT_OF_BOUNDS
-#	Is thrown if an inexistant index line is given.
+#	Is thrown if an inexistant index line is given
 #
 bsda:tty:Terminal.line() {
-	local IFS active visible count pos buffer line maxco
+	local IFS active visible count pos buffer maxco
 
 	$this.getActive active
 	test -z "$active" && return
@@ -985,14 +963,13 @@ bsda:tty:Terminal.line() {
 		# Crop the line to display.
 		maxco=$(/usr/bin/tput co 2> /dev/tty || echo 80)
 		/usr/bin/tput xn || maxco=$((maxco - 1))
-		line="$(echo "$2" | /usr/bin/awk "\$0=substr(\$0 \" \", 1, $maxco);{exit}")"
 
 		# Jump to the right line.
-		/usr/bin/tput vi cr $(test $pos -gt 0 && /usr/bin/jot -b do $pos) ce
+		/usr/bin/tput vi cr up DO $((pos + 1)) ce
 		# Draw it.
-		echo -n "$line"
+		printf "%.${maxco}s" "${2%%$IFS*}"
 		# Return the cursor to its origin.
-		/usr/bin/tput cr $(test $pos -gt 0 && /usr/bin/jot -b up $pos) ve
+		/usr/bin/tput cr UP $((pos + 1)) do ve
 	fi > /dev/tty
 
 	# Store the new line in the status line buffer.
@@ -1011,7 +988,7 @@ bsda:tty:Terminal.line() {
 # Double wide multibyte characters might break this.
 #
 # @param @
-#	The text to output.
+#	The text to output
 #
 bsda:tty:Terminal.stdout() {
 	local IFS output draw active visible count maxli maxco lines
@@ -1061,8 +1038,6 @@ bsda:tty:Terminal.stdout() {
 	# from the buffer.
 	$this.getDisplayBuffer buffer count
 
-	# The return value.
-	status=0
 	# Only perform all that fancy stuff in visible mode.
 	if [ -n "$active" -a -n "$visible" -a $((maxli)) -gt 1 -a $((count)) -gt 0 ]; then
 		# Get the maximum lines left for output.
@@ -1097,26 +1072,22 @@ bsda:tty:Terminal.stdout() {
 
 			# Put the output on stdout.
 			echo -n "$draw"
-			/usr/bin/tput cr  > /dev/tty
-			echo -n "$buffer" > /dev/tty
-			/usr/bin/tput cr $(/usr/bin/jot -b up $count ) do > /dev/tty
+			( /usr/bin/tput vi cr
+			  echo -n "$buffer"
+			  /usr/bin/tput cr UP $count do ve
+			) > /dev/tty
 		done
 	else
 		# Simply output stuff.
 		echo -n "$output"
 	fi
-
-	return 0
 }
 
 #
 # Does the same as the stdout() method on stderr.
 #
 # @param @
-#	The text to output.
-# @return
-#	False (1), if the output was not drawn on the terminal,
-#	true (0) otherwise.
+#	The text to output
 #
 bsda:tty:Terminal.stderr() {
 	bsda:tty:Terminal.stdout "$@" 1>&2
