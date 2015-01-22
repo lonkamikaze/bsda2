@@ -110,7 +110,7 @@ Creating a class does not require more than a class name:
 	bsda:obj:createClass MyClass
 
 After the previous line the class can be used to create objects,
-however useless, and all the reserved methods are available:
+and all the reserved methods are available:
 
 	MyClass myObject
 	$myObject.delete
@@ -517,6 +517,23 @@ Return values:
 |----------|------------------------------------------------------------
 | 0        | If there is no cleanup method
 | *        | The return value depends on the cleanup method
+
+Certain data structures may need to dispose of entire lists of objects,
+especially within their destructor. This can be done by iterating through
+the list or delegating that task to the bsda:obj:delete[]() function:
+
+	bsda:obj:delete[] $($this.getChildren)
+
+Using the shell input field separator logic, this can be used for different
+list formats. E.g. a list in the following format:
+
+	<obj0>,<obj1>,<obj2>,
+
+The objects in this list can be deleted by calling:
+
+	local IFS
+	IFS=','
+	bsda:obj:delete[] $($this.getCSChildren)
 
 
 

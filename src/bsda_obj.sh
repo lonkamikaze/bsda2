@@ -489,6 +489,9 @@ bsda:obj:createClass() {
 	# Add the last method (this never happens in the loop).
 	methods="$methods${previousMethod:+$scope:$previousMethod$IFS}"
 
+	# Add . in front of alphanumeric method names
+	methods="$(echo "$methods" | /usr/bin/sed -E "s/:([[:alnum:]])/:.\\1/")"
+
 	#
 	# Store access scope checks for each scope in the class context.
 	# Note that at the time this is run the variables class and this
@@ -1008,6 +1011,27 @@ bsda:obj:getVar() {
 }
 
 #
+# Delete all objects in a list of objects.
+#
+# If deleting an object fails, it has no influence on the subsequent
+# deletion of the following objects.
+#
+# @param @
+#	The list of objects
+# @return
+#	The bitwise OR product of all destructor return values
+#
+bsda:obj:delete[]() {
+	local obj ret
+	ret=0
+	for obj in "$@"; do
+		$obj.delete
+		ret=$((ret | $?))
+	done
+	return $ret
+}
+
+#
 # Returns an object reference to a serialised object.
 #
 # @param 1
@@ -1195,14 +1219,14 @@ if [ -z "$BSDA_OBJ_NOSCOPE" ]; then
 			eval "scope=\"$scope\""
 			method=${method##*:}
 			eval "
-				$3.$method() {
+				$3$method() {
 					$scope
 					local caller
 					bsda:obj:callerSetup
 					local class this _return
 					class=$1
 					this=$3
-					$1.$method \"\$@\"
+					$1$method \"\$@\"
 					_return=\$?
 					bsda:obj:callerFinish
 					return \$_return
@@ -1217,13 +1241,13 @@ else
 		for method in $4; do
 			method=${method##*:}
 			eval "
-				$3.$method() {
+				$3$method() {
 					local caller
 					bsda:obj:callerSetup
 					local class this _return
 					class=$1
 					this=$3
-					$1.$method \"\$@\"
+					$1$method \"\$@\"
 					_return=\$?
 					bsda:obj:callerFinish
 					return \$_return
@@ -1245,7 +1269,7 @@ bsda:obj:deleteMethods() {
 	local method
 	for method in $2; do
 		method=${method##*:}
-		unset -f "$1.$method"
+		unset -f "$1$method"
 	done
 }
 
@@ -1515,7 +1539,7 @@ bsda:obj:fork
 # Ignore nullptr delete.
 #
 .delete() {
-	: # bash hack
+	: # bash does not allow empty functions
 }
 
 #
