@@ -473,14 +473,14 @@ bsda:obj:createClass() {
 		else
 			# Widen the scope if needed.
 			case "${method%:*}" in
-				public)
-					scope=public
-				;;
-				protected)
-					if [ "$scope" = "private" ]; then
-						scope=protected
-					fi
-				;;
+			public)
+				scope=public
+			;;
+			protected)
+				if [ "$scope" = "private" ]; then
+					scope=protected
+				fi
+			;;
 			esac
 		fi
 
@@ -488,9 +488,6 @@ bsda:obj:createClass() {
 	done
 	# Add the last method (this never happens in the loop).
 	methods="$methods${previousMethod:+$scope:$previousMethod$IFS}"
-
-	# Add . in front of alphanumeric method names
-	methods="$(echo "$methods" | /usr/bin/sed -E "s/:([[:alnum:]])/:.\\1/")"
 
 	#
 	# Store access scope checks for each scope in the class context.
@@ -1219,14 +1216,14 @@ if [ -z "$BSDA_OBJ_NOSCOPE" ]; then
 			eval "scope=\"$scope\""
 			method=${method##*:}
 			eval "
-				$3$method() {
+				$3.$method() {
 					$scope
 					local caller
 					bsda:obj:callerSetup
 					local class this _return
 					class=$1
 					this=$3
-					$1$method \"\$@\"
+					$1.$method \"\$@\"
 					_return=\$?
 					bsda:obj:callerFinish
 					return \$_return
@@ -1241,13 +1238,13 @@ else
 		for method in $4; do
 			method=${method##*:}
 			eval "
-				$3$method() {
+				$3.$method() {
 					local caller
 					bsda:obj:callerSetup
 					local class this _return
 					class=$1
 					this=$3
-					$1$method \"\$@\"
+					$1.$method \"\$@\"
 					_return=\$?
 					bsda:obj:callerFinish
 					return \$_return
