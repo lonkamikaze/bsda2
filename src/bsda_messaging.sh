@@ -624,7 +624,7 @@ bsda:messaging:FifoMessenger.receiveLine() {
 	local IFS line
 	IFS='
 '
-	eval "read line <&$($this.getDesc)"
+	eval "read -r line <&$($this.getDesc)"
 	$caller.setvar $1 "$line"
 }
 
@@ -645,7 +645,7 @@ bsda:messaging:FifoMessenger.receive() {
 	$this.getDesc desc
 	lines=
 	count=0
-	while eval "read -t0 line <&$desc"; do
+	while eval "read -rt0 line <&$desc"; do
 		lines="$lines$line$IFS"
 		count=$((count + 1))
 	done
