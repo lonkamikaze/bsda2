@@ -66,7 +66,7 @@ RESULT
 # I do not want this, ever!
 \&.if ${.CURDIR:M%%PORTS%%/audio/arts}
 IGNORE=                 yes
-\&.endif
+\&.endif # %%PORTS%%/audio/arts
 .Ed
 .Ss DIRECTIVES
 Apart from being put behind trailing comments native
@@ -91,7 +91,7 @@ RESULT
 CFLAGS+=	-m32
 LDCONFIG+=	-32
 \&.endif
-\&.endif
+\&.endif # %%PORTS%%/*
 .Ed
 .Ss QUOTES
 Unless part of a comment quotes always have to follow a variable assignment.
@@ -140,8 +140,8 @@ RESULT
 \&.if ${.CURDIR:M%%PORTS%%/*} && !${.CURDIR:M*/work/*}
 \&.if ${.CURDIR:M*/x11*}
 IGNORE=                 yes
-\&.endif
-\&.endif
+\&.endif # */x11*
+\&.endif # %%PORTS%%/* & !*/work/*
 .Ed
 .Ss VARIABLES
 For
@@ -173,7 +173,7 @@ CFLAGS= -O2 -pipe
 \&.if ${.CURDIR:M/usr/src}
 CPUTYPE=i686
 CFLAGS= -O -pipe
-\&.endif
+\&.endif # /usr/src
 .Ed
 .Ss FLAGS
 There are two kinds of flags, negated flags and regular flags.

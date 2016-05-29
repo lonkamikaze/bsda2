@@ -148,6 +148,7 @@ pattern) {
 #	The location pattern for this block.
 #
 function beginBlock(pattern) {
+	nesting[nesting_len++] = pattern;
 	# Print the if.
 	printf("%s", ".if ");
 
@@ -251,7 +252,7 @@ block) {
 			parse(block);
 
 		# End the block.
-		print(".endif");
+		print(".endif # " nesting[--nesting_len]);
 
 		# Parse whatever is behind the end of the block.
 		sub("[^}]*}", "", line);
