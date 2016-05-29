@@ -28,7 +28,7 @@ for parameter; {
 
 : ${destdir=}
 : ${prefix=/usr/local}
-: ${datadir=$prefix/share/bsdadminscripts2}
+: ${datadir=$prefix/share/bsda2}
 
 # If set, destdir should end with a /
 destdir=${destdir%/}${destdir:+/}
