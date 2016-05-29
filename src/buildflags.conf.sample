@@ -1,0 +1,66 @@
+#
+# Dear bsdadminscripts user, beware for this example is a copy of my
+# very own buildflags.conf and I'm of a rather experimental nature when it
+# comes to building software. There are things done here that are definitely
+# not supported or recommended.
+#
+# Also note that this file is shared over NFS and thus certain machine
+# specific settings are left in the make.conf(5) file.
+#
+# If some of the variables used here don't make sense to you, search for them
+# in the buildflags.mk(1), ports(7), make.conf(5) or in the file
+# %%PORTS%%/Mk/bsd.port.mk.
+#
+# Apart from that, I hope the syntax is easy enough to understand with
+# the help of the buildflags.conf(1) manual page.
+#
+# - Dominic Fandrey <kamikaze@bsdforen.de>
+#
+
+# ---< configure buildworld/buildkernel >--------------------------------------
+/usr/src | /usr/src/*{
+	USE_DISTCC
+	USE_CCACHE
+	THREADS=4
+
+	# Don't clean
+	NO_CLEAN
+}
+# -----------------------------------------------------------------------------
+
+# ---< configure ports >-------------------------------------------------------
+%%PORTS%%/*{
+	# Clustering
+	USE_DISTCC
+	USE_CCACHE
+
+	# Common settings that are applied to all ports in hope to do some good
+	OVERRIDE_LINUX_BASE_PORT=c6
+	OVERRIDE_LINUX_NONBASE_PORTS=c6
+	TEX_DEFAULT=texlive
+	PAPERSIZE=a4
+
+	# Problems with ccache/distcc
+	*/archivers/lzip         {!USE_CCACHE !USE_DISTCC}
+	*/devel/boost*           {!USE_CCACHE !USE_DISTCC}
+	*/devel/valgrind         {!USE_CCACHE !USE_DISTCC}
+	*/editors/vim*           {!USE_CCACHE !USE_DISTCC}
+	*/emulators/virtualbox-* {!USE_CCACHE !USE_DISTCC}
+	*/print/freetype         {!USE_CCACHE !USE_DISTCC}
+	*/textproc/xmlto         {!USE_CCACHE !USE_DISTCC}
+	*/security/libgpg-error  {!USE_CCACHE !USE_DISTCC}
+	*/sysutils/fusefs-davfs2 {!USE_CCACHE !USE_DISTCC}
+	*/www/nspluginwrapper    {!USE_CCACHE !USE_DISTCC}
+	*/www/serf               {!USE_CCACHE !USE_DISTCC}
+	*/x11/dgs                {!USE_CCACHE !USE_DISTCC}
+	*/x11/gnome-menus        {!USE_CCACHE !USE_DISTCC}
+
+	# Compiler troubles
+	*/devel/py-orbit         {USE_GCC=any}
+	*/devel/sdcc             {USE_GCC=any}
+	*/graphics/gimp-app      {USE_GCC}
+
+	# Bug workarounds
+	*/print/linux-c6-cups-libs{USE_LINUX_RPM=yes}
+}
+# -----------------------------------------------------------------------------

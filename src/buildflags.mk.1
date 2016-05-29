@@ -1,0 +1,130 @@
+.\"
+.\" Copyright (c) 2006-2009, 2016
+.\" Dominic Fandrey <kamikaze@bsdforen.de>
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\" 1. Redistributions of source code must retain the above copyright
+.\"    notice, this list of conditions and the following disclaimer.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND
+.\" ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+.\" ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE
+.\" FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.\" DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+.\" OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+.\" HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+.\" LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+.\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+.\" SUCH DAMAGE.
+.\"
+.\"
+.Dd 29 May, 2016
+.Dt BUILDFLAGS.MK 1
+.Os
+.Sh NAME
+.Nm buildflags.mk
+.Nd import
+.Xr buildflags.conf 1
+.Sh SYNOPSIS
+.Nm
+.Sh DESCRIPTION
+The primary function of the
+.Nm
+script is to use the
+.Xr buildflags.conf 1
+file, but it also offers knobs to easily use tools such as distcc and ccache.
+.Pp
+The intended way to use it is to add the following lines to
+.Xr make.conf 5 .
+.Bd -literal -offset indent
+\&.sinclude "%%DATADIR%%/buildflags.mk"
+.Ed
+.Pp
+.Sh OPTIONS
+The following options to control the internals of
+.Nm
+are available:
+.Bl -tag -width indent
+.It BUILDFLAGS_CCACHE
+The ccache binary.
+.Pp
+Default:
+.Pa %%PREFIX%%/bin/ccache
+.It BUILDFLAGS_CONF
+The configuration file.
+.Pp
+Default:
+.Pa %%PREFIX%%/etc/buildflags.conf
+.It BUILDFLAGS_DISTCC
+The distcc binary.
+.Pp
+Default:
+.Pa %%PREFIX%%/bin/distcc
+.It BUILDFLAGS_PARSER
+The program that parses the configuration file.
+.Pp
+Default:
+.Pa %%DATADIR%%/buildflags.awk
+.It BUILDFLAGS_TMP
+A temporary file required to include the parsed configuration.
+.Pp
+Default:
+.Pa %%TMP%%/buildflags.tmp.mk.${USER}
+.El
+.Pp
+The following additional knobs are offered to manipulate make jobs:
+.Bl -tag -width indent
+.It SUBTHREADS
+WARNING: This setting is deprecated in favour of the ports native settings
+.Dv FORCE_MAKE_JOBS
+and
+.Dv MAKE_JOBS_NUMBER.
+.Pp
+This knob does for ports what
+.Dv THREADS
+does everywhere else. It does not
+have an effect if the target install is specified. Thus it is recommended to
+run
+.Ic make build
+and
+.Ic make install
+seperately.
+.It THREADS
+This knob causes make to create parallel jobs. A sensible value is
+twice the number of CPU cores available. This increases the
+amount of memory used. If the system starts to swap often, the number should
+be decreased to the number of available CPU cores.
+Do not use
+.Dv THREADS
+with the ports system.
+.It USE_DISTCC
+Prepends the distcc binary to
+.Dv CC , CXX
+and
+.Dv CPP .
+.It USE_CCACHE
+Prepends the ccache binary to
+.Dv CC , CXX
+and
+.Dv CPP .
+.It WITH_GCC
+Triggers the use of the alternative gcc defined with
+.Dv BUILDFLAGS_GCC .
+If
+.Dv BUILDFLAGS_GCC
+has not been definied it will be set to whatever
+.Dv WITH_GCC
+was set.
+.El
+.Sh SEE ALSO
+.Xr buildflags.awk 1 ,
+.Xr buildflags.conf 1
+.Sh HISTORY
+The
+.Nm
+script first appeared in the bsdadminscripts-2.0 collection.
+.Sh AUTHOR
+.An Dominic Fandrey Aq kamikaze@bsdforen.de
