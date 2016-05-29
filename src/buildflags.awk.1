@@ -1,0 +1,206 @@
+.\"
+.\" Copyright (c) 2006-2009, 2016
+.\" Dominic Fandrey <kamikaze@bsdforen.de>
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\" 1. Redistributions of source code must retain the above copyright
+.\"    notice, this list of conditions and the following disclaimer.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND
+.\" ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+.\" ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE
+.\" FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.\" DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+.\" OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+.\" HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+.\" LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+.\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+.\" SUCH DAMAGE.
+.\"
+.\"
+.Dd 29 May, 2016
+.Dt BUILDFLAGS.AWK 1
+.Os
+.Sh NAME
+.Nm buildflags.awk
+.Nd convert
+.Xr buildflags.conf 1
+files into make syntax
+.Sh SYNOPSIS
+.Nm
+file
+.Sh DESCRIPTION
+The
+.Nm
+script converts a
+.Xr buildflags.conf 1
+file into valid make syntax. The script can
+normally be found under '%%DATADIR%%/buildflags.awk'.
+.Pp
+This is not end user documentation, if you just want to use buildflags.conf
+files please refer to the
+.Xr buildflags.conf 1
+manual page.
+.Sh SYNTAX
+While the
+.Xr buildflags.conf 1
+man page describes how to use the buildflags.conf syntax, this page
+describes the resulting make syntax. Syntax examples will always be followed
+by the resulting make code. The term space actually refers to all whitespace 
+characters (including tabs).
+.Ss COMMENTS
+Unless they're enclosed by '"' comments have the highest priority in the
+buildflags.conf syntax.
+Comments that are found behind valid code will end up one line before it.
+.Pp
+EXAMPLE
+.Bd -literal -offset indent
+%%PORTS%%/audio/arts	{IGNORE} # I do not want this, ever!
+.Ed
+.Pp
+RESULT
+.Bd -literal -offset indent
+# I do not want this, ever!
+\&.if ${.CURDIR:M%%PORTS%%/audio/arts}
+IGNORE=                 yes
+\&.endif
+.Ed
+.Ss DIRECTIVES
+Apart from being put behind trailing comments native
+.Xr make 1
+directives remain
+entirely unchanged. Native directives are everything that begins with a '.'.
+.Pp
+EXAMPLE
+.Bd -literal -offset indent
+%%PORTS%%/* {
+	.if defined(WANT_I386)
+		CFLAGS+=	-m32
+		LDCONFIG+=	-32
+	.endif
+}
+.Ed
+.Pp
+RESULT
+.Bd -literal -offset indent
+\&.if ${CURDIR:M%%PORTS%%/*}
+\&.if defined(WANT_I386)
+CFLAGS+=	-m32
+LDCONFIG+=	-32
+\&.endif
+\&.endif
+.Ed
+.Ss QUOTES
+Unless part of a comment quotes always have to follow a variable assignment.
+Whatever lies within them will remain untouched, but there are no escape
+sequences, thus there is no way to enclose a '"' within quotes. Only double
+quotes have meaning, single quotes do not have a special function.
+.Pp
+EXAMPLE
+.Bd -literal -offset indent
+# " in a comment does not matter.
+BUT= "	in an
+	assignment
+	does"
+CFLAGS="-O2 -pipe" # We want optimized binaries!
+.Ed
+.Pp
+RESULT
+.Bd -literal -offset indent
+# " in a comment does not matter.
+BUT= "	in an
+	assignment
+	does"
+# We want optimized binaries!
+CFLAGS="-O2 -pipe"
+.Ed
+.Ss LOCATIONS
+Locations are paths that are used to define where a variable assignment is
+valid, this is achieved by make. This script will simply convert such location
+blocks to a make '.if' statement. If possible symlinked paths will be
+substituted with their physical paths. A '!' at the beginning of a path means
+that is should not be matched. Several paths can be appended with '&'
+(logical and) and '|' (logical or).
+.Pp
+After the location a block is opened by the character '{' and closed by
+the character '}'.
+.Pp
+EXAMPLE
+.Bd -literal -offset indent
+%%PORTS%%/* & !*/work/*{
+	*/x11*	{IGNORE}
+}
+.Ed
+.Pp
+RESULT
+.Bd -literal -offset indent
+\&.if ${.CURDIR:M%%PORTS%%/*} && !${.CURDIR:M*/work/*}
+\&.if ${.CURDIR:M*/x11*}
+IGNORE=                 yes
+\&.endif
+\&.endif
+.Ed
+.Ss VARIABLES
+For
+.Nm
+there are two kinds of variable assignments. Compact variable assignments
+and long variable assignments. Variable assignments within quotes are
+directly dealt with by the quoting code.
+.Pp
+Compact variable assignments are directly followed by their value, without
+any spaces behind the '=' and their value ends with the first space or line
+break. This makes it possible to have several such assignments in a single
+line. Any such assignment will be parsed into its own line, though.
+.Pp
+Long variable assignments are followed by spaces and the only way to end
+them without a line break is a '}'.
+.Pp
+EXAMPLE
+.Bd -literal -offset indent
+THREADS=4
+CPUTYPE?=p3 CFLAGS= -O2 -pipe
+/usr/src{CPUTYPE=i686 CFLAGS= -O -pipe}
+.Ed
+.Pp
+RESULT
+.Bd -literal -offset indent
+THREADS=4
+CPUTYPE?=p3
+CFLAGS= -O2 -pipe
+\&.if ${.CURDIR:M/usr/src}
+CPUTYPE=i686
+CFLAGS= -O -pipe
+\&.endif
+.Ed
+.Ss FLAGS
+There are two kinds of flags, negated flags and regular flags.
+.Pp
+Regular flags are variable assignments assuming that the mostly used assignment
+simply is 'yes'. To define a flag it is enough to put the flag name in an
+appropriate place.
+.Pp
+Negated flags are a way to undefine variables. To do so simply precede a
+flag name with '!'.
+.Pp
+EXAMPLE
+.Bd -literal -offset indent
+!THREADS WITHOUT_BDB
+.Ed
+.Pp
+RESULT
+.Bd -literal -offset indent
+\&.undef THREADS
+WITHOUT_BDB=            yes
+.Ed
+.Sh SEE ALSO
+.Xr buildflags.conf 1 ,
+.Xr buildflags.mk 1
+.Sh HISTORY
+The
+.Nm
+script first appeared in the bsdadminscripts-2.1 collection.
+.Sh AUTHOR
+Dominic Fandrey <kamikaze@bsdforen.de>

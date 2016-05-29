@@ -1,0 +1,166 @@
+.\"
+.\" Copyright (c) 2006-2009, 2016
+.\"  Dominic Fandrey <kamikaze@bsdforen.de>
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\" 1. Redistributions of source code must retain the above copyright
+.\"    notice, this list of conditions and the following disclaimer.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND
+.\" ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+.\" ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE
+.\" FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+.\" DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+.\" OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+.\" HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+.\" LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+.\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+.\" SUCH DAMAGE.
+.\"
+.\"
+.Dd 29 May, 2016
+.Dt BUILDFLAGS.CONF 1
+.Os
+.Sh NAME
+.Nm buildflags.conf
+.Nd set build options for
+.Xr ports 7 ,
+world and everything
+.Sh DESCRIPTION
+The
+.Nm
+file is used by
+.Xr buildflags.mk 1
+to configure
+.Xr make 1
+jobs.
+.Pp
+The intended way to use it is to add the following lines to
+.Xr make.conf 5 .
+.Bd -literal -offset indent
+\&.sinclude "%%DATADIR%%/buildflags.mk"
+.Ed
+.Sh SYNTAX
+A
+.Nm
+file gets parsed into a make file. If you want to make sure that your
+syntax is right you can do so by running:
+.Pp
+%%DATADIR%%/buildflags.awk buildflags.conf | less
+.Pp
+The
+.Nm
+syntax only knows four kinds of data:
+.Bd -literal -offset indent
+comments, locations, knobs and variables
+.Ed
+.Ss COMMENTS
+Comments are everything behind a '#'. The only exception is a '#' within
+a '"' block.
+.Bd -literal -offset indent
+# This is a comment.
+.Ed
+.Ss LOCATIONS
+A location is a folder in which a make job runs.
+Locations make it possible to limit assignments only to certain ports or
+other build systems.
+.Pp
+A location consists of a path and/or a pattern. The difference between a
+path and a pattern is that the pattern will remain untouched and a path will
+be resolved as far as possible. Resolving a path means that a path will be
+substituted with its physical path.
+.Pp
+Several locations can be connected with '&' (logical and) and '|'
+(logical or).
+.Pp
+If e.g. '%%PORTS%%' is a link to '/mnt/vault/ports' a location
+like '%%PORTS%%/x11*' will be resolved into '/mnt/vault/ports/x11*'.
+In this case '%%PORTS%%' is the path and '/x11*' the pattern.
+.Pp
+Every location is followed by a block that can contain comments, knobs,
+variables and other locations. A block is opened with the character '{'
+and closed with '}'. Here is an example:
+.Bd -literal -offset indent
+%%PORTS%%/* & !*/work/*{
+	WITH_IPV6
+	*/x11/toolkits-gtk20	{WITHOUT_DEBUG}
+}
+.Ed
+.Ss KNOBS
+A knob really is a variable with a default assignment:
+.Bd -literal -offset indent
+WITH_DEBUG
+!CPUTYPE
+.Ed
+.Pp
+This example would set 'WITH_DEBUG=yes' and undefine 'CPUTYPE'. You can have
+several knobs in a single line:
+.Bd -literal -offset indent
+WITH_DEBUG !CPUTYPE
+.Ed
+.Ss VARIABLES
+Assigning variables is simply done with an '=' other ways of assignment
+known from
+.Xr make 1
+like '?=', ':=' or '!=' can also be used. There may not be spaces in front of
+a '='.
+.Pp
+If the '=' is followed by spaces. The whole trailing line will be assigned
+as the value, unless the first character is a '"'.
+Values may not contain a '"'. If the value is right behind the '=' only one
+word will be assigned, the next word will be treated as a knob or variable.
+.Pp
+Here are some examples of valid assignments:
+.Bd -literal -offset indent
+CPUTYPE?="pentium-m" CFLAGS="-O2 -pipe" THREADS=5
+SUPFLAGS=	-E -g -L 2 -z
+.Ed
+.Ss DIRECTIVES
+Native
+.Xr make 1
+directives can be included. Apart from putting trailing comments in front of
+them and removing preceding spaces they are not changed. Make directives begin
+with a '.', among them are '.if', '.include' and '.for'.
+.Pp
+The following is a valid example:
+.Bd -literal -offset indent
+%%PORTS%%/* {
+	.if defined(WANT_I386)
+		CFLAGS+=	-m32
+		LDCONFIG+=	-32
+	.endif
+}
+.Ed
+.Sh WARNINGS
+There are things that should not be done.
+.Ss WRKDIRPREFIX
+Do not set the WRKDIRPREFIX directive in
+.Nm .
+Doing so would break updating of
+.Xr bsdadminscripts 1
+in the FreeBSD
+.Xr ports 7
+collection.
+.Sh SEE ALSO
+.Xr buildflags.awk 1 ,
+.Xr buildflags.mk 1
+.Xr make 1
+.Sh FILES
+.Bl -tag -width indent
+.It Pa ${HOME}/.buildflags.conf
+User specific build settings.
+.It Pa %%PREFIX%%/etc/buildflags.conf
+Default location of the
+.Nm .
+.It Pa %%PREFIX%%/etc/buildflags.conf.sample
+An example configuration file.
+.El
+.Sh HISTORY
+The
+.Nm
+file first appeared in the bsdadminscripts-2.0 collection.
+.Sh AUTHOR
+Dominic Fandrey <kamikaze@bsdforen.de>
