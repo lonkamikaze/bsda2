@@ -2,6 +2,12 @@ files="
 bsda_messaging.sh,0644,%%DATADIR%%/bsda_messaging.sh
 bsda_obj.sh,0644,%%DATADIR%%/bsda_obj.sh
 bsda_tty.sh,0644,%%DATADIR%%/bsda_tty.sh
+buildflags.awk,0755,%%DATADIR%%/buildflags.awk
+buildflags.conf.sample,0644,%%PREFIX%%/etc/buildflags.conf.sample
+buildflags.mk,0644,%%DATADIR%%/buildflags.mk
+buildflags.awk.1,0644,%%MAN%%/man1/buildflags.awk.1.gz
+buildflags.conf.1,0644,%%MAN%%/man1/buildflags.conf.1.gz
+buildflags.mk.1,0644,%%MAN%%/man1/buildflags.mk.1.gz
 head.awk,0755,%%DATADIR%%/head.awk
 pkg_libchk,0755,%%PREFIX%%/sbin/pkg_libchk
 pkg_libchk.1,0644,%%MAN%%/man1/pkg_libchk.1.gz
