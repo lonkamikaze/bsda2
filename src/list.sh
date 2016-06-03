@@ -1,4 +1,5 @@
-#!/bin/sh -fCe
+#!/bin/sh
+set -fCe
 
 . install.inc
 
