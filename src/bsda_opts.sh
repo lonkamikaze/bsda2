@@ -24,7 +24,7 @@
 test -n "$_bsda_opts_" && return 0
 readonly _bsda_opts_=1
 
-. ${bsda_dir:-.}/bsda_obj.sh
+. ${bsda_dir:-.}/bsda_container.sh
 
 bsda:obj:createClass bsda:opts:Options \
 	r:private:result \
@@ -35,7 +35,8 @@ bsda:obj:createClass bsda:opts:Options \
 	i:private:init \
 	c:private:clean \
 	x:public:getopt \
-	x:public:usage
+	x:public:usage \
+	x:public:append
 
 bsda:opts:Options.init() {
 	setvar ${this}result "$1"
@@ -84,6 +85,19 @@ bsda:opts:Options.getopt() {
 		return 0
 	fi
 	# No options left
+	if [ -n "$1" -a -z "${1##-?}" ]; then
+		$caller.setvar "$retvar" OPT_UNKNOWN
+		return 0
+	fi
+	if [ -n "$1" -a -z "${1##--*}" ]; then
+		$caller.setvar "$retvar" OPT_UNKNOWN
+		return 0
+	fi
+	if [ -n "$1" -a -z "${1##-*}" ]; then
+		$caller.setvar "$retvar" OPT_SPLIT
+		return 0
+	fi
+	$caller.setvar "$retvar" OPT_NOOPT
 	return 1
 }
 
@@ -102,5 +116,46 @@ bsda:opts:Options.usage() {
 $result"
 	fi
 	$caller.setvar "$1" "$result"
+}
+
+bsda:opts:Options.append() {
+	local next
+	$this.getNext next
+	if [ -n "$next" ]; then
+		$next.append "$@"
+		return
+	fi
+	$class ${this}next "$@"
+}
+
+bsda:obj:createClass bsda:opts:Flags \
+	bsda:container:Map r:private:flags "Flag counters" \
+	i:private:init \
+	c:private:clean \
+	x:public:add \
+	x:public:check
+
+bsda:opts:Flags.init() {
+	bsda:container:Map ${this}flags
+}
+
+bsda:opts:Flags.clean() {
+	$($this.getFlags).delete
+}
+
+bsda:opts:Flags.add() {
+	local flags value
+	$this.getFlags flags
+	$flags[ "$1" ] value
+	value=$((value + 1))
+	$flags[ "$1" ]= ${value}
+}
+
+
+bsda:opts:Flags.check() {
+	local flags value
+	$this.getFlags flags
+	$flags[ "$1" ] value
+	test $((value)) -eq $(($2))
 }
 
