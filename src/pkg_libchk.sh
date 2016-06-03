@@ -26,8 +26,7 @@ readonly _pkg_libchk_=1
 
 . ${bsda_dir:-.}/bsda_tty.sh
 . ${bsda_dir:-.}/bsda_messaging.sh
-
-readonly pkg_libchk_version=1.99
+. ${bsda_dir:-.}/pkg_options.sh
 
 #
 # A simple object to pass job results through the FIFO.
@@ -61,18 +60,11 @@ pkg:libchk:JobResult.init() {
 # The session object for pkg_libchk.
 #
 bsda:obj:createClass pkg:libchk:Session \
+	r:private:flags        "A bsda:opts:Flags flag store and counter" \
 	r:private:term         "The bsda:tty:Terminal instances for output" \
 	r:private:messenger    "The bsda:messaging:FifoMessenger instance" \
 	r:private:packages     "The list of packages to process" \
-	r:private:clean        "Clean output (no status) flag" \
-	r:private:dependencies "Work on dependencies flag" \
 	r:private:jobs         "The number of parallel jobs" \
-	r:private:mean         "Flag to turn of false positive checks" \
-	r:private:compat       "Consider compat libs missing flag" \
-	r:private:origin       "Display origin instead of name flag" \
-	r:private:raw          "Raw output flag" \
-	r:private:requiredBy   "Work on requiring packages flag" \
-	r:private:verbose      "Verbosity flag" \
 	i:public:init          "The constructor" \
 	c:public:clean         "The destructor" \
 	x:private:params       "Parse command line arguments" \
@@ -97,6 +89,7 @@ pkg:libchk:Session.init() {
 	setvar ${this}compat 1
 
 	# Read command line arguments
+	bsda:opts:Flags ${this}flags
 	$this.params "$@"
 
 	# Setup terminal lines
@@ -116,6 +109,7 @@ pkg:libchk:Session.init() {
 # The destructor, clean up acquired resources.
 #
 pkg:libchk:Session.clean() {
+	$($this.getFlags).delete
 	$($this.getMessenger).delete
 	$($this.getTerm).delete
 }
@@ -127,27 +121,33 @@ pkg:libchk:Session.clean() {
 #	The command line arguments
 #
 pkg:libchk:Session.params() {
-	local nl option
+	local options flags nl option
+
+	bsda:opts:Options options
+	pkg:options:append $options
+	$options.append \
+	CLEAN     -c  --clean     'Turn off progress output' \
+	HELP      -h  --help      'Display the list of commands' \
+	JOBS      -j* --jobs      'Number of parallel jobs' \
+	NO_FILTER -m  --no-filter 'Do not perform false positive filtering' \
+	NO_COMPAT -n  --no-compat 'Do not report compat dependencies' \
+	VERBOSE   -v  --verbose   'Verbose output' \
+
+	$this.getFlags flags
 
 	nl='
 '
 
 	while [ $# -gt 0 ]; do
-		case "$1" in
-		-a | --all)
-			setvar ${this}packages -qa
+		$options.getopt option "$@"
+		case "$option" in
+		PKG_* | CLEAN | NO_FILTER | NO_COMPAT | VERBOSE)
+			$flags.add "$option"
 		;;
-		-c | --clean)
-			$($this.getTerm).deactivate
-			setvar ${this}clean 1
+		HELP)
+			$this.help "$options"
 		;;
-		-d | --dependencies)
-			setvar ${this}dependencies 1
-		;;
-		-h | --help)
-			$this.help
-		;;
-		-j* | --jobs)
+		JOBS)
 			local jobs
 			jobs="${1#-j}"
 			jobs="${jobs#--jobs}"
@@ -167,46 +167,19 @@ pkg:libchk:Session.params() {
 				setvar ${this}jobs $jobs
 			fi
 		;;
-		-m | --mean)
-			setvar ${this}mean 1
-		;;
-		-n | --no-compat) setvar ${this}compat
-		;;
-		-o | --origin)
-			setvar ${this}origin 1
-		;;
-		-q | --raw)
-			setvar ${this}raw 1
-			if [ -n "$($this.getVerbose)" ]; then
-				$($this.getTerm).stderr \
-					"The parameters -v and -q may not be used at the same time."
-				exit 3
-			fi
-		;;
-		-r | --required-by)
-			setvar ${this}requiredBy 1
-		;;
-		-v | --verbose)
-			setvar ${this}verbose 1
-			if [ -n "$($this.getRaw)" ]; then
-				$($this.getTerm).stderr \
-					"The parameters -q and -v may not be used at the same time."
-				exit 3
-			fi
-		;;
-		-? | --*)
+		OPT_UNKNOWN)
 			$($this.getTerm).stderr \
 				"Unknown parameter \"$1\"."
 			exit 2
 		;;
-		-*)
+		OPT_SPLIT)
 			local arg
 			arg="$1"
 			shift
 			set -- "${arg%${arg#-?}}" "-${arg#-?}" "$@"
 			continue
 		;;
-		*)
+		OPT_NOOPT)
 			local pkgs
 			$this.getPackages pkgs
 			setvar ${this}packages "$pkgs${pkgs:+$nl}$1"
@@ -214,14 +187,28 @@ pkg:libchk:Session.params() {
 		esac
 		shift
 	done
+
+	if ! $flags.check CLEAN 0; then
+		$($this.getTerm).deactivate
+	fi
+
+	if ! $flags.check VERBOSE 0 && ! $flags.check PKG_QUIET 0; then
+		$($this.getTerm).stderr \
+			"The parameters -v and -q may not be used at the same time."
+		exit 3
+	fi
+
+	$options.delete
 }
 
 #
 # Print usage message.
 #
 pkg:libchk:Session.help() {
-	$($this.getTerm).stdout "pkg_libchk v$pkg_libchk_version
-usage:	$name [-a] [-c] [-d] [-h] [-jN] [-m] [-n] [-o] [-q] [-r] [-v] [packages]"
+	local usage
+	$1.usage usage "\t%.2s, %-18s  %s\n"
+	$($this.getTerm).stdout "usage: pkg_libchk [-acdhmnoqrv] [-j jobs] [pkg-name]
+$usage"
 	exit 0
 }
 
@@ -232,33 +219,52 @@ usage:	$name [-a] [-c] [-d] [-h] [-jN] [-m] [-n] [-o] [-q] [-r] [-v] [packages]"
 # The list of requested packages is created by the Session.param() method.
 #
 pkg:libchk:Session.packages() {
-	local IFS all pkgs dep req ret
+	local IFS pkgs dep req ret flags pkgargs
 	IFS='
 '
-	$this.getPackages pkgs
-	test -z "$pkgs" && pkgs=-qa
+	$this.getFlags flags
 
-	# Remember if all packages are requested
-	all=
-	if [ "$pkgs" == "-qa" ]; then
-		all=1
+	$this.getPackages pkgs
+	test -z "$pkgs" && $flags.add PKG_ALL
+
+	# Check all packages
+	if ! $flags.check PKG_ALL 0; then
+		pkgs="-qa"
+	fi
+
+	# Get arguments for pkg-info
+	args=
+	if ! $flags.check PKG_CASE_SENSITIVE 0; then
+		args="$args$IFS-C"
+	fi
+	if ! $flags.check PKG_GLOB 0; then
+		args="$args$IFS-g"
+	fi
+	if ! $flags.check PKG_CASE_INSENSITIVE 0; then
+		args="$args$IFS-i"
+	fi
+	if ! $flags.check PKG_REGEX 0; then
+		args="$args$IFS-x"
+	fi
+	if ! $flags.check PKG_BY_ORIGIN 0; then
+		args="$args$IFS-O"
 	fi
 	
 	# Get requested packages
-	if pkgs="$(/usr/sbin/pkg info -E $pkgs 2>&1)"; then :; else
+	if ! pkgs="$(/usr/sbin/pkg info -E $args $pkgs 2>&1)"; then
 		ret=$?
 		$($this.getTerm).stderr "$pkgs"
 		exit $ret
 	fi
 	pkgs="$(echo "$pkgs" | /usr/bin/awk '!a[$0]++')"
 	# Get dependencies if requested
-	if [ -n "$($this.getDependencies)" ]; then
+	if ! $flags.check PKG_DEPENDENCIES 0; then
 		dep="$(/usr/sbin/pkg info -qd $pkgs)"
 		pkgs="$pkgs${dep:+$IFS}$dep"
 		pkgs="$(echo "$pkgs" | /usr/bin/awk '!a[$0]++')"
 	fi
 	# Get required by packages if requested
-	if [ -n "$($this.getRequiredBy)" ]; then
+	if ! $flags.check PKG_REQUIRED_BY 0; then
 		req="$(/usr/sbin/pkg info -qr $pkgs)"
 		pkgs="$pkgs${req:+$IFS}$req"
 		pkgs="$(echo "$pkgs" | /usr/bin/awk '!a[$0]++')"
@@ -267,14 +273,14 @@ pkg:libchk:Session.packages() {
 	# Origins are equally valid unique identifiers, so they can be
 	# used internally as well, so we do not have to convert for
 	# display.
-	if [ -n "$($this.getOrigin)" ]; then
+	if ! $flags.check PKG_ORIGIN 0; then
 		pkgs="$(/usr/sbin/pkg info -qo $pkgs)"
 	fi
 
 	setvar ${this}packages "$pkgs"
 
-	if [ -n "$($this.getVerbose)" ]; then
-		if [ -n "$all" ]; then
+	if ! $flags.check VERBOSE 0; then
+		if ! $flags.check PKG_ALL 0; then
 			$($this.getTerm).stderr "Checking all packages ..."
 		else
 			$($this.getTerm).stderr "Checking packages:" \
@@ -294,25 +300,25 @@ pkg:libchk:Session.packages() {
 #	The serialised JobResult
 #
 pkg:libchk:Session.print() {
-	local res misses verbose pkg IFS miss file lib output
+	local res misses pkg IFS miss file lib output flags
 	bsda:obj:deserialise res "$2"
 	$caller.setvar "$1" "$($res.getSline)"
+
+	$this.getFlags flags
 
 	$res.getPkg pkg
 	$res.getMisses misses
 	$res.delete
-	$this.getVerbose verbose
-	$this.getMean mean
 
 	# Discard indirect dependencies
-	if [ -z "$verbose" -a -z "$($this.getMean)" ]; then
+	if $flags.check VERBOSE 0 && $flags.check NO_FILTER 0; then
 		misses="$(echo "$misses" | /usr/bin/grep -F '|[direct]')"
 	fi
 
 	test -z "$misses" && return
 
-	# Honour raw output flag
-	if [ -n "$($this.getRaw)" ]; then
+	# Honour quiet output flag
+	if ! $flags.check PKG_QUIET 0; then
 		$($this.getTerm).stdout "$pkg"
 		return
 	fi
@@ -324,10 +330,10 @@ pkg:libchk:Session.print() {
 	for miss in $misses; {
 		file="${miss%%|*}"
 		lib="${miss#*|}";lib="${lib%%|*}"
-		if [ -z "$verbose" ]; then
+		if $flags.check VERBOSE 0; then
 			output="${output:+$output$IFS}$pkg: $file misses $lib"
 		fi
-		if [ -n "$verbose" ]; then
+		if ! $flags.check VERBOSE 0; then
 			if [ -z "${miss##*|\[direct]}" ]; then
 				output="${output:+$output$IFS}$pkg: $file directly misses $lib"
 			else
@@ -410,24 +416,25 @@ pkg:libchk:Session.run() {
 #	The status line this job is listed on
 #
 pkg:libchk:Session.job() {
-	local IFS file files lib misses miss res mean pfiles
+	local IFS file files lib misses miss res pfiles flags
 	local compat
 	IFS='
 '
+	$this.getFlags flags
+	$flags.check NO_COMPAT 0 && compat=1 || compat=
+
 	files="$(/usr/sbin/pkg info -ql "$1")"
 	        # The files of the package
 
 	# Get misses
-	$this.getCompat compat
 	misses="$(/usr/bin/ldd $files 2> /dev/null | /usr/bin/awk "
 		/^[^ ].*:\$/{sub(/:\$/,\"\");file=\$0}
 		/not found/${compat:+||/\/lib\/compat\//}{print file \"|\" \$1 \"|\"}
 	")"
 
-	$this.getMean mean
 	# Check whether a miss is actually contained in the same
 	# package, e.g. libjvm.so in openjdk
-	if [ -z "$mean" -a -n "$misses" ]; then
+	if $flags.check NO_FILTER 0 && [ -n "$misses" ]; then
 		pfiles="$(echo "$files" \
 		          | /usr/bin/sed -e 's,.*/,|,' -e 's,$,|,')"
 		misses="$(echo "$misses" | /usr/bin/grep -vF "$pfiles")"
