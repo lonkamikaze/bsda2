@@ -184,8 +184,8 @@ pkg:libchk:Session.params() {
 pkg:libchk:Session.help() {
 	local usage
 	$1.usage usage "\t%.2s, %-18s  %s\n"
-	$($this.getTerm).stdout "usage: pkg_libchk [-acdhmnoqrv] [-j jobs] [pkg-name]
-$usage"
+	$($this.getTerm).stdout "usage: pkg_libchk [-aCcdghimnOoqrvx] [-j jobs] [pkg-name]
+$(echo -n "$usage" | /usr/bin/sort -f)"
 	exit 0
 }
 
