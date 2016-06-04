@@ -123,16 +123,16 @@ bsda:opts:Flags.clean() {
 bsda:opts:Flags.add() {
 	local flags value
 	$this.getFlags flags
-	$flags[ "$1" ] value
+	$flags.[ "$1" ] value
 	value=$((value + 1))
-	$flags[ "$1" ]= ${value}
+	$flags.[ "$1" ]= ${value}
 }
 
 
 bsda:opts:Flags.check() {
 	local flags value
 	$this.getFlags flags
-	$flags[ "$1" ] value
+	$flags.[ "$1" ] value
 	test $((value)) -eq $(($2))
 }
 

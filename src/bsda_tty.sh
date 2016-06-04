@@ -981,7 +981,7 @@ bsda:tty:Terminal.stdout() {
 	# Take output either from arguments, or if none are provided from
 	# stdin.
 	if [ $# -gt 0 ]; then
-		output="$@"
+		output="$*"
 	else
 		output="$(/bin/cat)"
 	fi

@@ -1184,7 +1184,7 @@ bsda:obj:isSimpleFloat() {
 if [ -z "$BSDA_OBJ_NOSCOPE" ]; then
 	# Use the regular implementation.
 	bsda:obj:createMethods() {
-		local method scope dot
+		local method scope
 		for method in $4; do
 			scope=${method%:*}
 			# Get scope check from class.
@@ -1192,14 +1192,8 @@ if [ -z "$BSDA_OBJ_NOSCOPE" ]; then
 			# Add method name to scope.
 			eval "scope=\"$scope\""
 			method=${method##*:}
-			dot=
-			case "$method" in
-			[a-zA-Z0-9]*)
-				dot=.
-				;;
-			esac
 			eval "
-				$3$dot$method() {
+				$3.$method() {
 					$scope
 					local caller
 					bsda:obj:callerSetup
@@ -1217,17 +1211,11 @@ if [ -z "$BSDA_OBJ_NOSCOPE" ]; then
 else
 	# Use the implementation without scope checks.
 	bsda:obj:createMethods() {
-		local method dot
+		local method
 		for method in $4; do
 			method=${method##*:}
-			dot=
-			case "$method" in
-			[a-zA-Z0-9]*)
-				dot=.
-				;;
-			esac
 			eval "
-				$3$dot$method() {
+				$3.$method() {
 					local caller
 					bsda:obj:callerSetup
 					local class this _return
@@ -1252,16 +1240,10 @@ fi
 #	A list of method names.
 #
 bsda:obj:deleteMethods() {
-	local method dot
+	local method
 	for method in $2; do
 		method=${method##*:}
-		dot=
-		case "$method" in
-		[a-zA-Z0-9]*)
-			dot=.
-			;;
-		esac
-		unset -f "$1$dot$method"
+		unset -f "$1.$method"
 	done
 }
 
