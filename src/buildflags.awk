@@ -1,4 +1,4 @@
-#!%%AWK%% -f
+#!/usr/bin/awk -f
 #
 # This script parses a configuration file and returns it as make syntax.
 #

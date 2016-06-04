@@ -1,4 +1,4 @@
-#!%%AWK%% -f
+#!/usr/bin/awk -f
 #
 # Outputs a given number of lines, unlike head(1) lines are counted as they
 # appear on the terminal.
