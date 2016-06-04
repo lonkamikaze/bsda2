@@ -81,8 +81,8 @@ It results in the following `make` output:
 	.endif # */archivers/lzip
 	.endif # /usr/ports/*
 
-bsda:obj
---------
+[bsda:obj](bsda_obj.md)
+-----------------------
 
 The bsda:obj framework dates back to the hacker conference GPN8 
 (Karlsruhe, 2009). It provides OO foo for shell scripts, like classes with
