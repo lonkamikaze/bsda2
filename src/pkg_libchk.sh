@@ -116,7 +116,7 @@ pkg:libchk:Session.params() {
 '
 
 	while [ $# -gt 0 ]; do
-		$options.getopt option "$@"
+		$options.getopt option "$1"
 		case "$option" in
 		PKG_* | CLEAN | NO_FILTER | NO_COMPAT | VERBOSE)
 			$flags.add "$option"
