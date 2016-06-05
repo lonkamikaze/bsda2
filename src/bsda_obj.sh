@@ -609,16 +609,15 @@ bsda:obj:createClass() {
 	# A serialise method.
 	eval "
 		$class.serialise() {
-			local IFS attribute serialised
+			local IFS attribute serialised svar
 
 			IFS='
 '
 
 			serialised=
 			for attribute in \$(echo '$attributes'); do
-				serialised=\"\${serialised:+\$serialised;}\${this}\$attribute=\\\"\$(
-					eval \"echo -n \\\"\\\${\${this}\$attribute}\\\"\" | /usr/bin/awk 'BEGIN {ORS = \"\${IFS}\"} nl++ {print \"\"} {gsub(/\\\\/, \"\\\\\\\\\");gsub(/\\\$/, \"\\\\\$\");gsub(/\"/, \"\\\\\\\"\");printf}'
-				)\\\"\"
+				bsda:obj:serialiseVar svar \"\${this}\$attribute\"
+				serialised=\"\${serialised:+\$serialised;}\$svar\"
 			done
 			serialised=\"\$serialised;$class.deserialise \$this\"
 
@@ -1380,6 +1379,31 @@ bsda:obj:callerSetvar() {
 	setvar $caller$1 "$2"
 	# Register variable.
 	eval "${caller}_setvars=\$${caller}_setvars\${${caller}_setvars:+ }$1"
+}
+
+#
+# Serialises a single variable by a given name.
+#
+# @param 1
+#	The name of the variable to return the string to.
+# @param 2
+#	The name of the variable to serialise.
+#
+bsda:obj:serialiseVar() {
+	if [ -n "$1" ]; then
+		setvar "$1" "$2=\"$(eval "echo \"\$$2\"" | bsda:obj:escape)\""
+	else
+		echo "$2=\"$(eval "echo \"\$$2\"" | bsda:obj:escape)\""
+	fi
+}
+
+#
+# Escapes strings on stdin for serialisation.
+#
+bsda:obj:escape() {
+	/usr/bin/awk '
+	nl++ {print ""}
+	{gsub(/[\\\$\"]/, "\\\\&");printf}'
 }
 
 #
