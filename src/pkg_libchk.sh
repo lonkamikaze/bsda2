@@ -165,11 +165,11 @@ pkg:libchk:Session.params() {
 		shift
 	done
 
-	if ! $flags.check CLEAN 0; then
+	if $flags.check CLEAN -ne 0; then
 		$($this.getTerm).deactivate
 	fi
 
-	if ! $flags.check VERBOSE 0 && ! $flags.check PKG_QUIET 0; then
+	if $flags.check VERBOSE -ne 0 && $flags.check PKG_QUIET -ne 0; then
 		$($this.getTerm).stderr \
 			"The parameters -v and -q may not be used at the same time."
 		exit 3
@@ -205,25 +205,25 @@ pkg:libchk:Session.packages() {
 	test -z "$pkgs" && $flags.add PKG_ALL
 
 	# Check all packages
-	if ! $flags.check PKG_ALL 0; then
+	if $flags.check PKG_ALL -ne 0; then
 		pkgs="-qa"
 	fi
 
 	# Get arguments for pkg-info
 	args=
-	if ! $flags.check PKG_CASE_SENSITIVE 0; then
+	if $flags.check PKG_CASE_SENSITIVE -ne 0; then
 		args="$args$IFS-C"
 	fi
-	if ! $flags.check PKG_GLOB 0; then
+	if $flags.check PKG_GLOB -ne 0; then
 		args="$args$IFS-g"
 	fi
-	if ! $flags.check PKG_CASE_INSENSITIVE 0; then
+	if $flags.check PKG_CASE_INSENSITIVE -ne 0; then
 		args="$args$IFS-i"
 	fi
-	if ! $flags.check PKG_REGEX 0; then
+	if $flags.check PKG_REGEX -ne 0; then
 		args="$args$IFS-x"
 	fi
-	if ! $flags.check PKG_BY_ORIGIN 0; then
+	if $flags.check PKG_BY_ORIGIN -ne 0; then
 		args="$args$IFS-O"
 	fi
 	
@@ -235,13 +235,13 @@ pkg:libchk:Session.packages() {
 	fi
 	pkgs="$(echo "$pkgs" | /usr/bin/awk '!a[$0]++')"
 	# Get dependencies if requested
-	if ! $flags.check PKG_DEPENDENCIES 0; then
+	if $flags.check PKG_DEPENDENCIES -ne 0; then
 		dep="$(/usr/sbin/pkg info -qd $pkgs)"
 		pkgs="$pkgs${dep:+$IFS}$dep"
 		pkgs="$(echo "$pkgs" | /usr/bin/awk '!a[$0]++')"
 	fi
 	# Get required by packages if requested
-	if ! $flags.check PKG_REQUIRED_BY 0; then
+	if $flags.check PKG_REQUIRED_BY -ne 0; then
 		req="$(/usr/sbin/pkg info -qr $pkgs)"
 		pkgs="$pkgs${req:+$IFS}$req"
 		pkgs="$(echo "$pkgs" | /usr/bin/awk '!a[$0]++')"
@@ -250,14 +250,14 @@ pkg:libchk:Session.packages() {
 	# Origins are equally valid unique identifiers, so they can be
 	# used internally as well, so we do not have to convert for
 	# display.
-	if ! $flags.check PKG_ORIGIN 0; then
+	if $flags.check PKG_ORIGIN -ne 0; then
 		pkgs="$(/usr/sbin/pkg info -qo $pkgs)"
 	fi
 
 	setvar ${this}packages "$pkgs"
 
-	if ! $flags.check VERBOSE 0; then
-		if ! $flags.check PKG_ALL 0; then
+	if $flags.check VERBOSE -ne 0; then
+		if $flags.check PKG_ALL -ne 0; then
 			$($this.getTerm).stderr "Checking all packages ..."
 		else
 			$($this.getTerm).stderr "Checking packages:" \
@@ -288,14 +288,14 @@ pkg:libchk:Session.print() {
 	$res.delete
 
 	# Discard indirect dependencies
-	if $flags.check VERBOSE 0 && $flags.check NO_FILTER 0; then
+	if $flags.check VERBOSE -eq 0 && $flags.check NO_FILTER -eq 0; then
 		misses="$(echo "$misses" | /usr/bin/grep -F '|[direct]')"
 	fi
 
 	test -z "$misses" && return
 
 	# Honour quiet output flag
-	if ! $flags.check PKG_QUIET 0; then
+	if $flags.check PKG_QUIET -ne 0; then
 		$($this.getTerm).stdout "$pkg"
 		return
 	fi
@@ -307,10 +307,9 @@ pkg:libchk:Session.print() {
 	for miss in $misses; {
 		file="${miss%%|*}"
 		lib="${miss#*|}";lib="${lib%%|*}"
-		if $flags.check VERBOSE 0; then
+		if $flags.check VERBOSE -eq 0; then
 			output="${output:+$output$IFS}$pkg: $file misses $lib"
-		fi
-		if ! $flags.check VERBOSE 0; then
+		else
 			if [ -z "${miss##*|\[direct]}" ]; then
 				output="${output:+$output$IFS}$pkg: $file directly misses $lib"
 			else
@@ -398,7 +397,7 @@ pkg:libchk:Session.job() {
 	IFS='
 '
 	$this.getFlags flags
-	$flags.check NO_COMPAT 0 && compat=1 || compat=
+	$flags.check NO_COMPAT -eq 0 && compat=1 || compat=
 
 	files="$(/usr/sbin/pkg info -ql "$1")"
 	        # The files of the package
@@ -411,7 +410,7 @@ pkg:libchk:Session.job() {
 
 	# Check whether a miss is actually contained in the same
 	# package, e.g. libjvm.so in openjdk
-	if $flags.check NO_FILTER 0 && [ -n "$misses" ]; then
+	if $flags.check NO_FILTER -eq 0 && [ -n "$misses" ]; then
 		pfiles="$(echo "$files" \
 		          | /usr/bin/sed -e 's,.*/,|,' -e 's,$,|,')"
 		misses="$(echo "$misses" | /usr/bin/grep -vF "$pfiles")"

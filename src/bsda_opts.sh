@@ -133,6 +133,6 @@ bsda:opts:Flags.check() {
 	local flags value
 	$this.getFlags flags
 	$flags.[ "$1" ] value
-	test $((value)) -eq $(($2))
+	test $((value)) "$2" $(($3))
 }
 
