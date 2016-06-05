@@ -1,6 +1,8 @@
 files="
+bsda_container.sh,0644,%%DATADIR%%/bsda_container.sh
 bsda_messaging.sh,0644,%%DATADIR%%/bsda_messaging.sh
 bsda_obj.sh,0644,%%DATADIR%%/bsda_obj.sh
+bsda_opts.sh,0644,%%DATADIR%%/bsda_opts.sh
 bsda_tty.sh,0644,%%DATADIR%%/bsda_tty.sh
 buildflags.awk,0755,%%DATADIR%%/buildflags.awk
 buildflags.conf.sample,0644,%%PREFIX%%/etc/buildflags.conf.sample
@@ -11,7 +13,7 @@ buildflags.mk.1,0644,%%MAN%%/man1/buildflags.mk.1.gz
 head.awk,0755,%%DATADIR%%/head.awk
 pkg_libchk,0755,%%PREFIX%%/sbin/pkg_libchk
 pkg_libchk.1,0644,%%MAN%%/man1/pkg_libchk.1.gz
-pkg_libchk_session.sh,0644,%%DATADIR%%/pkg_libchk_session.sh
+pkg_libchk.sh,0644,%%DATADIR%%/pkg_libchk.sh
 "
 
 for parameter; {
