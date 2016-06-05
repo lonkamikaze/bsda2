@@ -1402,8 +1402,9 @@ bsda:obj:serialiseVar() {
 #
 bsda:obj:escape() {
 	/usr/bin/awk '
+	BEGIN {ORS="\${IFS}"}
 	nl++ {print ""}
-	{gsub(/[\\\$\"]/, "\\\\&");printf}'
+	{gsub(/[\\\$\"]/, "\\\\&");printf("%s",$0)}'
 }
 
 #
