@@ -3,20 +3,71 @@ readonly _bsda_opts_=1
 
 . ${bsda_dir:-.}/bsda_container.sh
 
-bsda:obj:createClass bsda:opts:Options \
-	r:private:result \
-	r:private:short \
-	r:private:long \
-	r:private:desc \
-	r:private:next \
-	i:private:init \
-	c:private:clean \
-	x:public:getopt \
-	x:public:usage \
-	x:public:append
+#
+# This package provides bsda:opts:Options to share subsets of command line
+# options across scripts and bsd:opts:Flags to handle simple flags, whose
+# occurrence just needs to be counted.
+#
+# The following example shows how to check for a bunch of options and count
+# them as flags:
+#
+#	$options.getopt option "$1"
+#	case "$option" in
+#	PKG_* | VERBOSE)
+#		$flags.add "$option"
+#	;;
+#	...
+#	esac
+#
+# This example shows how to check a flag.
+#
+#	if $flags.check VERBOSE -ne 0; then
+#		echo "Starting in verbose mode" 1>&2
+#	fi
+#
 
+#
+# This class provides a growable collection of command line options.
+#
+# Command line arguments can be passed to the getopt() method and an
+# identifier for the first match is returned.
+#
+# There are some hard coded identifiers:
+#
+# | Identifier  | Description                                                 |
+# |-------------|-------------------------------------------------------------|
+# | OPT_UNKNOWN | An undefined option was encountered                         |
+# | OPT_SPLIT   | The argument is a chain of options that need to be split up |
+# | OPT_NOOPT   | The argument is not an option                               |
+#
+bsda:obj:createClass bsda:opts:Options \
+	r:private:ident  "The identifier to return for a match" \
+	r:private:short  "The short version of the option" \
+	r:private:long   "The long version of the option" \
+	r:private:desc   "The description for the usage output" \
+	r:private:next   "The next bsda:opts:Options instance" \
+	i:private:init   "The constructor" \
+	c:private:clean  "The destructor" \
+	x:public:getopt  "Checks the given argument against the options" \
+	x:public:usage   "Returns options and descriptions" \
+	x:public:append  "Grow the collection"
+
+#
+# The constructor creates a linked list of options.
+#
+# @param 1
+#	The identifier to return for this option, e.g. `HELP`
+# @param 2
+#	The short version of this option, e.g. `-h`
+# @param 3
+#	The long version of this option, e.g. `--help`
+# @param 4
+#	The description for this option
+# @param @
+#	More tuples defining options
+#
 bsda:opts:Options.init() {
-	setvar ${this}result "$1"
+	setvar ${this}ident "$1"
 	setvar ${this}short "$2"
 	setvar ${this}long "$3"
 	setvar ${this}desc "$4"
@@ -29,6 +80,9 @@ bsda:opts:Options.init() {
 	fi
 }
 
+#
+# Recursively delete the list.
+#
 bsda:opts:Options.clean() {
 	local next
 	$this.getNext next
@@ -37,28 +91,36 @@ bsda:opts:Options.clean() {
 	fi
 }
 
+#
+# Recursively check the given argument against the collection of options.
+#
+# @param &1
+#	The variable to return the option identifier to
+# @param 2
+#	The command line argument to check
+#
 bsda:opts:Options.getopt() {
-	local result sopt lopt next retvar
+	local ident sopt lopt next retvar
 	retvar="$1"
 	shift
 	$this.getShort sopt
 	$this.getLong lopt
-	$this.getResult result
+	$this.getIdent ident
 	# Check argument against short option
 	if [ -n "$sopt" -a -z "${1##${sopt}}" ]; then
-		$caller.setvar "$retvar" "$result"
+		$caller.setvar "$retvar" "$ident"
 		return 0
 	fi
 	# Check argument against long option
 	if [ -n "$lopt" -a -z "${1##${lopt}}" ]; then
-		$caller.setvar "$retvar" "$result"
+		$caller.setvar "$retvar" "$ident"
 		return 0
 	fi
 	# Check argument against next option
 	$this.getNext next
 	if [ -n "$next" ]; then
-		$next.getopt result "$@"
-		$caller.setvar "$retvar" "$result"
+		$next.getopt ident "$@"
+		$caller.setvar "$retvar" "$ident"
 		return 0
 	fi
 	# No options left
@@ -78,8 +140,22 @@ bsda:opts:Options.getopt() {
 	return 1
 }
 
+#
+# Returns a formatted string containing all the options and there
+# descriptions.
+#
+# Options occur in the order of definition, options without a description
+# are not listed.
+#
+# @param &1
+#	The variable to store the resulting string in
+# @param 2
+#	A printf style formatting string, the first argument will be the
+#	short option, the second the long option and the third the
+#       description
+#
 bsda:opts:Options.usage() {
-	local result next sopt lopt desc
+	local next sopt lopt desc
 	result=
 	$this.getNext next
 	if [ -n "$next" ]; then
@@ -95,6 +171,15 @@ $result"
 	$caller.setvar "$1" "$result"
 }
 
+#
+# Grow the list of options.
+#
+# This method allows patching one set of options together from different
+# collections.
+#
+# @param @
+#	See the init() constructor
+#
 bsda:opts:Options.append() {
 	local next
 	$this.getNext next
@@ -105,21 +190,36 @@ bsda:opts:Options.append() {
 	$class ${this}next "$@"
 }
 
+#
+# A simple container to hold flag occurrence counts.
+#
 bsda:obj:createClass bsda:opts:Flags \
-	bsda:container:Map r:private:flags "Flag counters" \
-	i:private:init \
-	c:private:clean \
-	x:public:add \
-	x:public:check
+	r:private:flags "A bsda:container:Map instance with flag counters" \
+	i:private:init  "The constructor" \
+	c:private:clean "The destructor" \
+	x:public:add    "Count the given flag" \
+	x:public:check  "Compare a flag numerically"
 
+#
+# The constructor initialises an empty map.
+#
 bsda:opts:Flags.init() {
 	bsda:container:Map ${this}flags
 }
 
+#
+# The destructor clears out the map.
+#
 bsda:opts:Flags.clean() {
 	$($this.getFlags).delete
 }
 
+#
+# Count the given flag.
+#
+# @param 1
+#	The flag to count
+#
 bsda:opts:Flags.add() {
 	local flags value
 	$this.getFlags flags
@@ -128,7 +228,25 @@ bsda:opts:Flags.add() {
 	$flags.[ "$1" ]= ${value}
 }
 
-
+#
+# Perform numerical comparison with a flag.
+#
+# This method takes a flag, a test-style numerical operator (like
+# -eq) and a numerical value.
+#
+# Uncounted flags compare -eq 0.
+#
+# @param 1
+#	The flag to check the count of
+# @param 2
+#	The numerical comparison operator
+# @param 3
+#	The numerical value
+# @retval 0
+#	The comparison statement is true
+# @retval 1
+#	The comparison statement is false
+#
 bsda:opts:Flags.check() {
 	local flags value
 	$this.getFlags flags
