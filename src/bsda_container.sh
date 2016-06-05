@@ -22,7 +22,7 @@ bsda:obj:createClass bsda:container:Array \
 	i:private:init   "The constructor" \
 	c:private:clean  "The destructor" \
 	r:public:count   "The number of elements the array contains" \
-	x:public:[ ]     "Random access operator to read/write values" \
+	x:public:[       "Random access operator to read/write values" \
 	x:public:push    "Push a new value to the end of the array" \
 	x:public:pop     "Pop the latest value from the end of the array" \
 	x:public:foreach "Call back with every value"
@@ -129,7 +129,7 @@ bsda:container:Array.foreach() {
 # @retval 2
 #	No valid read/write operator present
 #
-bsda:container:Array.[()] {
+bsda:container:Array.[() {
 	local i count
 	$this.getCount count
 	i=$(($1))
@@ -187,17 +187,23 @@ bsda:container:Array.serialiseDeep() {
 	bsda:container:Array.serialise "$@"
 }
 
+#
+# A key/value storage class.
+#
 bsda:obj:createClass bsda:container:Map \
-	i:private:init \
-	c:private:clean \
-	r:private:keys \
-	r:private:addCount \
-	r:private:rmKeys \
-	r:private:rmCount \
-	x:public:[ \
-	x:public:foreach \
-	x:public:getCount
+	i:private:init     "The constructor" \
+	c:private:clean    "The destructor" \
+	r:private:keys     "A list of key hashes" \
+	r:private:addCount "The number of keys added since last compression" \
+	r:private:rmKeys   "The keys removed since last compression" \
+	r:private:rmCount  "The number of keys removed since compression" \
+	x:public:[         "Random access operator" \
+	x:public:foreach   "Callback with a key/value pair" \
+	x:public:getCount  "Returns the number of stored key/value pairs"
 
+#
+# A helper function to roll out cached activities.
+#
 bsda:container:Map.compress() {
 	local keys count
 	$this.getRmCount count
@@ -217,6 +223,16 @@ bsda:container:Map.compress() {
 	fi
 }
 
+#
+# The constructor adds initial key/value pairs to the map.
+#
+# @param 1
+#	The first key
+# @param 2
+#	The first value
+# @param @
+#	More key/value pairs
+#
 bsda:container:Map.init() {
 	setvar ${this}keys
 	setvar ${this}addCount 0
@@ -228,6 +244,9 @@ bsda:container:Map.init() {
 	done
 }
 
+#
+# The destructor clears the key/value storage.
+#
 bsda:container:Map.clean() {
 	local key
 	for key in $($this.getKeys); do
@@ -236,6 +255,12 @@ bsda:container:Map.clean() {
 	done
 }
 
+#
+# A helper function that adds a new key to the storage.
+#
+# @param 1
+#	The key to add
+#
 bsda:container:Map.addKey() {
 	local keys count NL
 	NL='
@@ -253,6 +278,12 @@ bsda:container:Map.addKey() {
 	fi
 }
 
+#
+# A helper function that removes a key from the storage.
+#
+# @param 1
+#	The key to remove
+#
 bsda:container:Map.rmKey() {
 	local keys count NL
 	NL='
@@ -266,6 +297,29 @@ bsda:container:Map.rmKey() {
 	fi
 }
 
+#
+# The random access operator, allows access to every value by its key.
+#
+# It supports a read, delete and a write mode.
+#
+#	$map.[ monkey ]= "island" # Assign monkey => island
+#	$map.[ monkey ]           # Output island
+#	$map.[ monkey ] dance     # Assign island to dance
+#	$map.[ monkey ]x          # Delete monkey => island
+#
+# @param 1
+#	The key to access
+# @param 2
+#	Should be ] to read, ]= to write and ]x to delete
+# @param 3
+#	The value to assign for write access
+# @param &3
+#	The variable to assign the value to
+# @retval 0
+#	Operation completed
+# @retval 2
+#	No valid read/write operator present
+#
 bsda:container:Map.[() {
 	local key
 	key=$(/sbin/sha256 -qs "$1")
@@ -292,6 +346,12 @@ bsda:container:Map.[() {
 	return 0
 }
 
+#
+# Call back the given function with every key/value pair.
+#
+# @param 1
+#	The command to call
+#
 bsda:container:Map.foreach() {
 	$class.compress
 	local key keys
@@ -301,10 +361,22 @@ bsda:container:Map.foreach() {
 	done
 }
 
+#
+# A helper function that outputs the number of arguments it has.
+#
+# @param @
+#	A number of arguments
+#
 bsda:container:Map.argCount() {
 	echo $#
 }
 
+#
+# Returns the number of key/value pairs stored in the map.
+#
+# @param &1
+#	The variable to store the number to
+#
 bsda:container:Map.getCount() {
 	$class.compress
 	local keys
@@ -312,6 +384,12 @@ bsda:container:Map.getCount() {
 	$caller.setvar "$1" "$($class.argCount ${keys})"
 }
 
+#
+# Overload the serialiser.
+#
+# @parma &1
+#	The variable to write the serialised instance to
+#
 bsda:container:Map.serialise() {
 	$class.compress
 	local key keys serialised keyvar valvar
@@ -327,6 +405,14 @@ bsda:container:Map.serialise() {
 	$caller.setvar "$1" "$serialised"
 }
 
+#
+# Alias for bsda:container:Map.serialise().
+#
+# With this alias in place encountering a map during deep serialisation
+# causes it to be serialised. However this does not perform deep
+# serialisation, objects referenced by the map need to be serialised
+# manually.
+#
 bsda:container:Map.serialiseDeep() {
 	bsda:container:Map.serialise "$@"
 }
