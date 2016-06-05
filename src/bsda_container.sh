@@ -90,6 +90,24 @@ bsda:container:Array.[() {
 	return 0
 }
 
+bsda:container:Array.serialise() {
+	local i count serialised svar
+	$this.getCount count
+	serialised="${this}count=$((count))"
+	i=0
+	while [ $i -lt $count ]; do
+		bsda:obj:serialiseVar svar ${this}_val_$i
+		serialised="$serialised;$svar"
+		i=$((i + 1))
+	done
+	serialised="$serialised;$class.deserialise $this"
+	$caller.setvar "$1" "$serialised"
+}
+
+bsda:container:Array.serialiseDeep() {
+	bsda:container:Array.serialise "$@"
+}
+
 bsda:obj:createClass bsda:container:Map \
 	i:private:init \
 	c:private:clean \
@@ -126,7 +144,7 @@ bsda:container:Map.init() {
 	setvar ${this}rmKeys
 	setvar ${this}rmCount 0
 	while [ $# -gt 0 ]; do
-		$this[ "$1" ]= "$2"
+		$this.[ "$1" ]= "$2"
 		shift 2
 	done
 }
@@ -213,5 +231,24 @@ bsda:container:Map.getCount() {
 	local keys
 	$this.getKeys keys
 	$caller.setvar "$1" "$($class.argCount ${keys})"
+}
+
+bsda:container:Map.serialise() {
+	$class.compress
+	local key keys serialised keyvar valvar
+	$this.getKeys keys
+	bsda:obj:serialiseVar serialised ${this}keys
+	serialised="$serialised;${this}addCount=0;${this}rmKeys=;${this}rmCount=0"
+	for key in $keys; do
+		bsda:obj:serialiseVar keyvar ${this}_key_$key
+		bsda:obj:serialiseVar valvar ${this}_val_$key
+		serialised="$serialised;$keyvar;$valvar"
+	done
+	serialised="$serialised;$class.deserialise $this"
+	$caller.setvar "$1" "$serialised"
+}
+
+bsda:container:Map.serialiseDeep() {
+	bsda:container:Map.serialise "$@"
 }
 
