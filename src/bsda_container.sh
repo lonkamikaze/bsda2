@@ -4,17 +4,35 @@ readonly _bsda_container_=1
 
 . ${bsda_dir:-.}/bsda_obj.sh
 
-# Not serialisable!
+#
+# A package containing container classes.
+#
 
+#
+# An array class.
+#
+# This array class supports push()/pop(), random access.
+#
+# @warning
+#	If the array is serialised the values will be treated as data.
+#	I.e.  #	references are not followed up, even when calling
+#	serialiseDeep().
+#
 bsda:obj:createClass bsda:container:Array \
-	i:private:init \
-	c:private:clean \
-	r:public:count \
-	x:public:[ \
-	x:public:push \
-	x:public:pop \
-	x:public:foreach
+	i:private:init   "The constructor" \
+	c:private:clean  "The destructor" \
+	r:public:count   "The number of elements the array contains" \
+	x:public:[ ]     "Random access operator to read/write values" \
+	x:public:push    "Push a new value to the end of the array" \
+	x:public:pop     "Pop the latest value from the end of the array" \
+	x:public:foreach "Call back with every value"
 
+#
+# The constructor fills the array with initial values.
+#
+# @param @
+#	A list of values
+# 
 bsda:container:Array.init() {
 	setvar ${this}count 0
 	while [ $# -gt 0 ]; do
@@ -23,6 +41,9 @@ bsda:container:Array.init() {
 	done
 }
 
+#
+# The destructor wipes all values from memory.
+#
 bsda:container:Array.clean() {
 	local i count
 	$this.getCount count
@@ -33,6 +54,13 @@ bsda:container:Array.clean() {
 	done
 }
 
+#
+# Push onto the end of the array.
+#
+# @param *
+#	All arguments are concatenated with white space and pushed
+#	as a single value
+#
 bsda:container:Array.push() {
 	local count
 	$this.getCount count
@@ -40,6 +68,12 @@ bsda:container:Array.push() {
 	setvar ${this}count $((count + 1))
 }
 
+#
+# Pop the last value off the array and return it.
+#
+# @param &1
+#	The variable to return the value to
+#
 bsda:container:Array.pop() {
 	local count value
 	$this.getCount count
@@ -54,6 +88,12 @@ bsda:container:Array.pop() {
 	return 0
 }
 
+#
+# Call back the given function with every key/value pair.
+#
+# @param 1
+#	The command to call
+#
 bsda:container:Array.foreach() {
 	local key count
 	$this.getCount count
@@ -64,7 +104,32 @@ bsda:container:Array.foreach() {
 	done
 }
 
-bsda:container:Array.[() {
+#
+# The random access operator, allows access to every value by its key.
+#
+# It supports a read and a write mode.
+#
+#	$array.[ 2 ]= "monkey" # Assign monkey
+#	$array.[ 2 ]           # Output monkey
+#	$array.[ 2 ] island    # Assign monkey to island
+# 
+# @param 1
+#	The array key (index) to access
+# @param 2
+#	Should be ] to read or ]= to write
+# @param 3
+#	The value to assign for write access
+# @param &3
+#	The variable to assign the value to
+#
+# @retval 0
+#	Operation completed
+# @retval 1
+#	Read access attempt out of bounds
+# @retval 2
+#	No valid read/write operator present
+#
+bsda:container:Array.[()] {
 	local i count
 	$this.getCount count
 	i=$(($1))
@@ -90,6 +155,12 @@ bsda:container:Array.[() {
 	return 0
 }
 
+#
+# Overload the serialiser.
+#
+# @parma &1
+#	The variable to write the serialised instance to
+#
 bsda:container:Array.serialise() {
 	local i count serialised svar
 	$this.getCount count
@@ -104,6 +175,14 @@ bsda:container:Array.serialise() {
 	$caller.setvar "$1" "$serialised"
 }
 
+#
+# Alias for bsda:container:Array.serialise().
+#
+# With this alias in place encountering an array during deep serialisation
+# causes it to be serialised. However this does not perform deep
+# serialisation, objects referenced by the array need to be serialised
+# manually.
+#
 bsda:container:Array.serialiseDeep() {
 	bsda:container:Array.serialise "$@"
 }
