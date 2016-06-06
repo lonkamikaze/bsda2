@@ -114,7 +114,7 @@ following way:
 * -prefix=/usr/local
   The prefix that separates the files to be installed from the
   base system.
-* -datadir=$prefix/share/bsdadminscripts2
+* -datadir=$prefix/share/bsda2
   The data dir where shared code is installed.
 * -nodoc
   Set this to not install manual pages.
