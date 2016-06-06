@@ -3,6 +3,12 @@ readonly _pkg_options_=1
 
 . ${bsda_dir:-.}/bsda_opts.sh
 
+#
+# Appends pkg-info(8) like options to a bsda:opts:Options instance.
+#
+# @param 1
+#	The options to append to
+#
 pkg:options:append() { $1.append \
 PKG_ALL              -a --all              'Select all packages' \
 PKG_CASE_SENSITIVE   -C --case-sensitive   'Make pkg-name matching case sensitive' \
