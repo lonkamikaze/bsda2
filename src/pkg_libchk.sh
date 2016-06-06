@@ -4,6 +4,7 @@ readonly _pkg_libchk_=1
 . ${bsda_dir:-.}/bsda_tty.sh
 . ${bsda_dir:-.}/bsda_messaging.sh
 . ${bsda_dir:-.}/pkg_options.sh
+. ${bsda_dir:-.}/pkg_info.sh
 
 #
 # A simple object to pass job results through the FIFO.
@@ -74,9 +75,6 @@ pkg:libchk:Session.init() {
 
 	# Create the fifo
 	bsda:messaging:FifoMessenger ${this}messenger
-
-	# Generate a list of packages
-	$this.packages
 
 	# Perform checks
 	$this.run
@@ -157,9 +155,9 @@ pkg:libchk:Session.params() {
 			continue
 		;;
 		OPT_NOOPT)
-			local pkgs
-			$this.getPackages pkgs
-			setvar ${this}packages "$pkgs${pkgs:+$nl}$1"
+			# Discontinue argument processing when a
+			# noopt is encountered
+			break
 		;;
 		esac
 		shift
@@ -174,6 +172,9 @@ pkg:libchk:Session.params() {
 			"The parameters -v and -q may not be used at the same time."
 		exit 3
 	fi
+
+	# Use the remaining arguments to query for packages
+	$this.packages "$@"
 
 	$options.delete
 }
@@ -193,69 +194,28 @@ $(echo -n "$usage" | /usr/bin/sort -f)"
 # Take the list of requested packages and turn it into a list of package
 # names.
 #
-# The list of requested packages is created by the Session.param() method.
+# The resulting list of packages is stored in the packages attribute.
+#
+# @param @
+#	A list of package queries
 #
 pkg:libchk:Session.packages() {
-	local IFS pkgs dep req ret flags pkgargs
-	IFS='
-'
+	local pkginfo flags pkgs
 	$this.getFlags flags
+	pkg:info:Env pkginfo $flags
 
-	$this.getPackages pkgs
-	test -z "$pkgs" && $flags.add PKG_ALL
-
-	# Check all packages
-	if $flags.check PKG_ALL -ne 0; then
-		pkgs="-qa"
-	fi
-
-	# Get arguments for pkg-info
-	args=
-	if $flags.check PKG_CASE_SENSITIVE -ne 0; then
-		args="$args$IFS-C"
-	fi
-	if $flags.check PKG_GLOB -ne 0; then
-		args="$args$IFS-g"
-	fi
-	if $flags.check PKG_CASE_INSENSITIVE -ne 0; then
-		args="$args$IFS-i"
-	fi
-	if $flags.check PKG_REGEX -ne 0; then
-		args="$args$IFS-x"
-	fi
-	if $flags.check PKG_BY_ORIGIN -ne 0; then
-		args="$args$IFS-O"
-	fi
-	
-	# Get requested packages
-	if ! pkgs="$(/usr/sbin/pkg info -E $args $pkgs 2>&1)"; then
-		ret=$?
-		$($this.getTerm).stderr "$pkgs"
-		exit $ret
-	fi
-	pkgs="$(echo "$pkgs" | /usr/bin/awk '!a[$0]++')"
-	# Get dependencies if requested
-	if $flags.check PKG_DEPENDENCIES -ne 0; then
-		dep="$(/usr/sbin/pkg info -qd $pkgs)"
-		pkgs="$pkgs${dep:+$IFS}$dep"
-		pkgs="$(echo "$pkgs" | /usr/bin/awk '!a[$0]++')"
-	fi
-	# Get required by packages if requested
-	if $flags.check PKG_REQUIRED_BY -ne 0; then
-		req="$(/usr/sbin/pkg info -qr $pkgs)"
-		pkgs="$pkgs${req:+$IFS}$req"
-		pkgs="$(echo "$pkgs" | /usr/bin/awk '!a[$0]++')"
+	# Call pkg-info to acquire a list of packages
+	if ! $pkginfo.match pkgs "$@"; then
+		local errmsg errnum
+		$pkginfo.getErrmsg errmsg
+		$pkginfo.getErrnum errnum
+		$($this.getTerm).stderr "$errmsg"
+		exit $errnum
 	fi
 
-	# Origins are equally valid unique identifiers, so they can be
-	# used internally as well, so we do not have to convert for
-	# display.
-	if $flags.check PKG_ORIGIN -ne 0; then
-		pkgs="$(/usr/sbin/pkg info -qo $pkgs)"
-	fi
+	$pkginfo.delete
 
-	setvar ${this}packages "$pkgs"
-
+	# Verbose output
 	if $flags.check VERBOSE -ne 0; then
 		if $flags.check PKG_ALL -ne 0; then
 			$($this.getTerm).stderr "Checking all packages ..."
@@ -266,6 +226,8 @@ pkg:libchk:Session.packages() {
 			                        "------------------"
 		fi
 	fi
+
+	setvar ${this}packages "$pkgs"
 }
 
 #
@@ -399,8 +361,8 @@ pkg:libchk:Session.job() {
 	$this.getFlags flags
 	$flags.check NO_COMPAT -eq 0 && compat=1 || compat=
 
-	files="$(/usr/sbin/pkg info -ql "$1")"
-	        # The files of the package
+	# The files of the package
+	files="$(pkg:info:files $1)"
 
 	# Get misses
 	misses="$(/usr/bin/ldd $files 2> /dev/null | /usr/bin/awk "
