@@ -212,7 +212,7 @@ operator is given, public is assumed.
 - `private`: Only instances of the same class have access
 
 Namespaces are colon (the character `:`) seperated. E.g. the class
-`bsda:pkg:Index` has the namespace `bsd:pkg`.
+`bsda:pkg:Index` has the namespace `bsda:pkg`.
 
 The scope operator is added after the identifier type prefix. Only
 prefixes that declare methods can have a scope operator.
