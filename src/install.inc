@@ -11,9 +11,11 @@ buildflags.awk.1,0644,%%MAN%%/man1/buildflags.awk.1.gz
 buildflags.conf.1,0644,%%MAN%%/man1/buildflags.conf.1.gz
 buildflags.mk.1,0644,%%MAN%%/man1/buildflags.mk.1.gz
 head.awk,0755,%%DATADIR%%/head.awk
+pkg_info.sh,0644,%%DATADIR%%/pkg_info.sh
 pkg_libchk,0755,%%PREFIX%%/sbin/pkg_libchk
 pkg_libchk.1,0644,%%MAN%%/man1/pkg_libchk.1.gz
 pkg_libchk.sh,0644,%%DATADIR%%/pkg_libchk.sh
+pkg_options.sh,0644,%%DATADIR%%/pkg_options.sh
 "
 
 for parameter; {
