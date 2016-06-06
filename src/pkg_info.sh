@@ -1,0 +1,139 @@
+test -n "$_pkg_info_" && return 0
+readonly _pkg_info_=1
+
+. ${bsda_dir:-.}/bsda_obj.sh
+
+#
+# This package collects ways to query pkg-info(8).
+#
+# The pkg:info:Env class can be used to make complex queries.
+#
+# Simple wrappers are provided as static functions:
+#
+# - pkg:info:files()
+#
+
+#
+# An environment to make pkg-info(8) queries.
+#
+# An instance requires a bsda:opts:Flags instance, which can be used
+# to configure the behaviour of the queried information.
+#
+# The flags used are defined in pkg_options.sh.
+#
+bsda:obj:createClass pkg:info:Env \
+	r:private:flags "A reference to a bsda:opts:Flag instance" \
+	r:public:errmsg "Holds an error message in case of failure" \
+	r:public:errnum "The error number returned by pkg-info" \
+	i:private:init  "The constructor" \
+	x:public:match  "For the given query return a list of packages" \
+	x:public:files  "For the given packages list all installed files"
+
+#
+# The constructor initialises the reference to the bsda:opts:Flags instance.
+#
+# @param 1
+#	A pointer to a bsda:opts:Flags instances
+#
+pkg:info:Env.init() {
+	setvar ${this}flags "$1"
+}
+
+#
+# Take the list of requested packages and turn it into a list of package
+# names.
+#
+# This method is affected by the given flags as described in
+# pkg:options:append(). The PKG_ALL flag is set if no arguments have
+# been given.
+#
+# The PKG_DEPENDENCIES and PKG_REQUIRED_BY flags select the given packages
+# and their dependencies/requirements instead of just selecting the
+# dependencies/requirements of the packages.
+#
+# @param &1
+#	The variable to return the list of packages to
+# @param @
+#	The package queries
+#
+pkg:info:Env.match() {
+	local IFS retvar flags args pkgs ret dep req
+	IFS='
+'
+
+	retvar="$1"
+	shift
+	$this.getFlags flags
+
+	# Fall back to all packages if no queries are given
+	if [ $# -eq 0 ] && $flags.check PKG_ALL -eq 0; then
+		$flags.add PKG_ALL
+	fi
+
+	# Select command line arguments
+	args="-E"
+	if $flags.check PKG_ALL -ne 0; then
+		args="$args$IFS-aq"
+	fi
+	if $flags.check PKG_CASE_SENSITIVE -ne 0; then
+		args="$args$IFS-C"
+	fi
+	if $flags.check PKG_GLOB -ne 0; then
+		args="$args$IFS-g"
+	fi
+	if $flags.check PKG_CASE_INSENSITIVE -ne 0; then
+		args="$args$IFS-i"
+	fi
+	if $flags.check PKG_REGEX -ne 0; then
+		args="$args$IFS-x"
+	fi
+	if $flags.check PKG_BY_ORIGIN -ne 0; then
+		args="$args$IFS-O"
+	fi
+
+	# Get requested packages
+	pkgs="$(/usr/sbin/pkg info $args "$@" 2>&1)"
+	ret=$?
+	if [ $ret -ne 0 ]; then
+		setvar ${this}errmsg "$pkgs"
+		setvar ${this}errnum $ret
+		return $ret
+	fi
+	# Get related packages, unless all packages are selected any way
+	if $flags.check PKG_ALL -eq 0; then
+		# Get dependencies if requested
+		if $flags.check PKG_DEPENDENCIES -ne 0; then
+			dep="$(/usr/sbin/pkg info -qd $pkgs)"
+			pkgs="$pkgs${dep:+$IFS}$dep"
+			pkgs="$(echo "$pkgs" | /usr/bin/awk '!a[$0]++')"
+		fi
+		# Get required by packages if requested
+		if $flags.check PKG_REQUIRED_BY -ne 0; then
+			req="$(/usr/sbin/pkg info -qr $pkgs)"
+			pkgs="$pkgs${req:+$IFS}$req"
+			pkgs="$(echo "$pkgs" | /usr/bin/awk '!a[$0]++')"
+		fi
+	fi
+
+	# Origins are equally valid unique identifiers, so they can be
+	# used internally as well, so we do not have to convert for
+	# display.
+	if $flags.check PKG_ORIGIN -ne 0; then
+		pkgs="$(/usr/sbin/pkg info -qo $pkgs)"
+	fi
+
+	# Return the collected packages
+	$caller.setvar "$retvar" "$pkgs"
+	return 0
+}
+
+#
+# Puts the list of all files installed by the given packages on stdout.
+#
+# @param @
+#	A list of packages
+#
+pkg:info:files() {
+	/usr/sbin/pkg info -ql "$@"
+}
+
