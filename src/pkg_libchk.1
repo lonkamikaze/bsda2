@@ -1,4 +1,4 @@
-.Dd 29 May, 2016
+.Dd 6 June, 2016
 .Dt PKG_LIBCHK 1
 .Os
 .Sh NAME
@@ -6,9 +6,15 @@
 .Nd check packages for links against missing libraries
 .Sh SYNOPSIS
 .Nm
-.Op Fl acdhmnoqrv
-.Op Fl j Ar n
-.Op Ar packages
+.Op Fl cmnoqv
+.Op Fl j Ar jobs
+.Fl a
+.Nm
+.Op Fl CcdgimnOoqrvx
+.Op Fl j Ar jobs
+.Ar pkg-name
+.Nm
+.Fl h
 .Sh DESCRIPTION
 The
 .Nm
@@ -23,28 +29,43 @@ residing in %%PREFIX%%/lib/compat and its subfolders.
 The following options are available:
 .Bl -tag -width indent
 .It Fl a -all
-Check all packages. This is the default action in case no packages have been
-specified.
+Check all packages. This is the default action in case no
+.Ar pkg-name
+has been specified.
+.It Fl C -case-sensitive
+See
+.Xr pkg-info 8 .
 .It Fl c -clean
 Create clean output without status messages.
 .It Fl d -dependencies
 Also operate on the dependencies of the provided
-.Ar packages .
+.Ar pkg-name .
+.It Fl g -glob
+See
+.Xr pkg-info 8 .
 .It Fl h -help
 Displays the available options.
-.It Fl j Ar n Fl -jobs Ar n
-Specify the amount of parallel jobs the script will attempt run. The default is
-number of detected cores plus one.
-.It Fl m -mean
+.It Fl i -case-insensitive
+See
+.Xr pkg-info 8 .
+.It Fl j Ar jobs Fl -jobs Ar jobs
+Specify the amount of parallel
+.Ar jobs
+the script will attempt run. The default is number of detected cores
+plus one.
+.It Fl m -no-filter
 In this mode all the checks to detect false positives are turned off.
 .Pp
 It also causes indirect dependencies to be listed as missing dependencies.
 .It Fl n -no-compat
 This deactivates detecting compat libraries in %%PREFIX%%/lib/compat
 as missing libraries.
+.It Fl O -by-origin
+See
+.Xr pkg-info 8 .
 .It Fl o -origin
 Instead of the package name the package origin is printed.
-.It Fl q -raw
+.It Fl q -quiet
 Only print the names of affected packages. Do not print any details. This
 option is meant for machine readability.
 .Pp
@@ -57,8 +78,11 @@ This is a good idea when checking for the effects of a library update.
 Be verbose about missing dependencies. Instead of rejecting indirect
 dependencies print them.
 .Pp
-This option cannot be combined with raw output.
-.It Ar packages
+This option cannot be combined with quiet output.
+.It Fl x -regex
+See
+.Xr pkg-info 8 .
+.It Ar pkg-name
 Packages are package names or shell glob patterns matching these. Whatever
 works with
 .Xr pkg-info 8
@@ -70,7 +94,7 @@ To check all your packages run:
 pkg_libchk
 .Ed
 .Pp
-To create raw output for everything connected to gtk.
+To create plain output for everything connected to gtk.
 .Bd -literal -offset indent
 pkg_libchk -q \\*gtk\\*
 .Ed
@@ -97,8 +121,6 @@ The parameter
 .Fl j
 has been supplied without an acceptable number.
 .El
-.Sh COMPATIBILITY
-The script has been tested on FreeBSD 10.1-STABLE
 .Sh SEE ALSO
 .Xr pkg-info 8 ,
 .Xr ldd 1 ,
@@ -108,6 +130,6 @@ The script has been tested on FreeBSD 10.1-STABLE
 The
 .Nm
 script first appeared in the bsdadminscripts-4.0 collection. It was rewritten
-for the bsdadminscripts2 collection.
+for the bsda2 collection.
 .Sh AUTHOR
 Dominic Fandrey <kamikaze@bsdforen.de>
