@@ -2,7 +2,7 @@ test -n "$_pkg_libchk_" && return 0
 readonly _pkg_libchk_=1
 
 . ${bsda_dir:-.}/bsda_tty.sh
-. ${bsda_dir:-.}/bsda_messaging.sh
+. ${bsda_dir:-.}/bsda_fifo.sh
 . ${bsda_dir:-.}/pkg_options.sh
 . ${bsda_dir:-.}/pkg_info.sh
 
@@ -38,19 +38,19 @@ pkg:libchk:JobResult.init() {
 # The session object for pkg_libchk.
 #
 bsda:obj:createClass pkg:libchk:Session \
-	r:private:flags        "A bsda:opts:Flags flag store and counter" \
-	r:private:term         "The bsda:tty:Terminal instances for output" \
-	r:private:messenger    "The bsda:messaging:FifoMessenger instance" \
-	r:private:packages     "The list of packages to process" \
-	r:private:jobs         "The number of parallel jobs" \
-	i:public:init          "The constructor" \
-	c:public:clean         "The destructor" \
-	x:private:params       "Parse command line arguments" \
-	x:private:help         "Print usage message" \
-	x:private:packages     "Determine requested packages" \
-	x:private:run          "Fork library checks" \
-	x:private:print        "Print a serialised JobResult instance" \
-	x:private:job          "Perform library checks"
+	r:private:flags    "A bsda:opts:Flags flag store and counter" \
+	r:private:term     "The bsda:tty:Async instances for output" \
+	r:private:fifo     "A bsda:fifo:Fifo instance" \
+	r:private:packages "The list of packages to process" \
+	r:private:jobs     "The number of parallel jobs" \
+	i:public:init      "The constructor" \
+	c:public:clean     "The destructor" \
+	x:private:params   "Parse command line arguments" \
+	x:private:help     "Print usage message" \
+	x:private:packages "Determine requested packages" \
+	x:private:run      "Fork library checks" \
+	x:private:print    "Print a serialised JobResult instance" \
+	x:private:job      "Perform library checks"
 
 #
 # Constructor for a pkg_libchk session.
@@ -60,11 +60,10 @@ bsda:obj:createClass pkg:libchk:Session \
 #
 pkg:libchk:Session.init() {
 	# Setup terminal manager
-	bsda:tty:Terminal ${this}term
+	bsda:tty:Async ${this}term
 
 	# Set defaults
 	setvar ${this}jobs $(($(/sbin/sysctl -n hw.ncpu 2> /dev/null || echo 1) + 1))
-	setvar ${this}compat 1
 
 	# Read command line arguments
 	bsda:opts:Flags ${this}flags
@@ -74,7 +73,7 @@ pkg:libchk:Session.init() {
 	$($this.getTerm).use $(($($this.getJobs) + 1))
 
 	# Create the fifo
-	bsda:messaging:FifoMessenger ${this}messenger
+	bsda:fifo:Fifo ${this}fifo
 
 	# Perform checks
 	$this.run
@@ -85,7 +84,7 @@ pkg:libchk:Session.init() {
 #
 pkg:libchk:Session.clean() {
 	$($this.getFlags).delete
-	$($this.getMessenger).delete
+	$($this.getFifo).delete
 	$($this.getTerm).delete
 }
 
@@ -286,7 +285,7 @@ pkg:libchk:Session.print() {
 # Fork off missing library checks and collect results.
 #
 pkg:libchk:Session.run() {
-	local IFS pkg pkgs result maxjobs jobs term fmt count num
+	local IFS pkg pkgs result maxjobs jobs term fmt count num fifo
 
 	# Initialise dispatcher
 	IFS='
@@ -295,6 +294,7 @@ pkg:libchk:Session.run() {
 	$this.getTerm term
 	$this.getJobs maxjobs
 	$this.getPackages pkgs
+	$this.getFifo fifo
 	num=$(($(echo "$pkgs" | /usr/bin/wc -l)))
 	        # Total number of packages/jobs
 	count=0 # Completed jobs
@@ -310,7 +310,7 @@ pkg:libchk:Session.run() {
 		# Wait for jobs to complete
 		if [ $jobs -ge $maxjobs ]; then
 			# Blocking read
-			$($this.getMessenger).receiveLine result
+			$fifo.source read result
 			jobs=$((jobs - 1))
 			$this.print sline "$result"
 			count=$((count + 1))
@@ -318,14 +318,14 @@ pkg:libchk:Session.run() {
 		fi
 		# Select next package to process
 		pkg="${pkgs%%$IFS*}"
-		pkgs="${pkgs#$pkg}"
-		pkgs="${pkgs#$IFS}"
-		$term.line $sline "$pkg"
 		# Dispatch job
 		(
 			bsda:obj:fork
 			$this.job "$pkg" $sline
 		) &
+		$term.line $sline "$pkg"
+		pkgs="${pkgs#$pkg}"
+		pkgs="${pkgs#$IFS}"
 		jobs=$((jobs + 1))
 		sline=$((sline + 1))
 	done
@@ -336,13 +336,16 @@ pkg:libchk:Session.run() {
 	fmt="Waiting for %${#maxjobs}d job(s)"
 	while [ $jobs -gt 0 ]; do
 		# Blocking read
-		$($this.getMessenger).receiveLine result
+		$fifo.source read result
 		$this.print sline "$result"
 		$term.line $sline
 		jobs=$((jobs - 1))
 		count=$((count + 1))
 		$term.line 0 "$(printf "$fmt" $jobs)"
 	done
+
+	# Terminate async terminal
+	$term.deactivate
 }
 
 #
@@ -396,6 +399,6 @@ pkg:libchk:Session.job() {
 	}
 	# Create a JobResult, serialise it and send it back to the dispatcher
 	pkg:libchk:JobResult res "$1" "$messages" "$2"
-	$($this.getMessenger).send "$($res.serialise)"
+	$($this.getFifo).sink $res.serialise
 }
 
