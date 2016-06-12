@@ -16,12 +16,19 @@ readonly _bsda_fifo_=1
 # The sink() and source() methods are used like eval. The given command's
 # output (sink) or input (source) is redirected through the named pipe.
 #
+# E.g.:
+#
+#	bsda:fifo:Fifo fifo
+#	$fifo.sink echo "This is my line" &
+#	$fifo.source read -r line
+#	echo "$line"
+#
 bsda:obj:createClass bsda:fifo:Fifo \
 	r:private:desc  "The I/O file descriptor number" \
 	i:private:init  "Sets up the named pipe" \
 	c:private:clean "Releases the file descriptor" \
-	f:public:sink   "Use like eval to send" \
-	f:public:source "Use like eval to read"
+	x:public:sink   "Use like eval to send" \
+	x:public:source "Use like eval to read"
 
 #
 # The constructor sets up two-way communication.
@@ -40,6 +47,7 @@ bsda:fifo:Fifo.init() {
 	# Remove file system node for the named pipe
 	/bin/rm "$fifo"
 	setvar ${this}desc "$desc"
+	# Create sink() and source() methods
 	eval "
 	$this.sink() {
 		eval \"\$@\" >&$desc
@@ -62,6 +70,5 @@ bsda:fifo:Fifo.clean() {
 	eval "exec $desc<&-"
 	eval "exec $desc>&-"
 	bsda:obj:releaseDesc $desc
-	unset -f $this.sink $this.source
 }
 
