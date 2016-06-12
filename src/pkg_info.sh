@@ -137,3 +137,23 @@ pkg:info:files() {
 	/usr/sbin/pkg info -ql "$@"
 }
 
+#
+# Outputs a list of checksums for all the files of the given packages.
+#
+# The list is in the following format:
+#
+#	<file>:<checksum>
+#
+# Note that the <file> portion of the string may contain all kinds
+# of characters, including a colon.
+#
+# @param @
+#	A list of packages
+#
+pkg:info:checksums() {
+	/usr/sbin/pkg info -R "$@" | /usr/bin/awk '
+		/^files {/{f=1;next}
+		/^}/{f=0}
+		f{sub(/^ *"?/,"");sub(/"? = "/,":");sub(/";$/,"");print}'
+}
+
