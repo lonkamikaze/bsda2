@@ -1413,7 +1413,7 @@ bsda:obj:escape() {
 #
 bsda:obj:trap() {
 	trap bsda:obj:exit EXIT
-	trap "exit 1" HUP INT TERM
+	trap "trap - HUP INT TERM;exit 1" HUP INT TERM
 }
 
 #
