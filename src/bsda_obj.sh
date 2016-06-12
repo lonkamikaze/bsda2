@@ -1404,7 +1404,7 @@ bsda:obj:escape() {
 	/usr/bin/awk '
 	BEGIN {ORS="\${IFS}";printf "\""}
 	nl++ {print ""}
-	{gsub(/[\\\$\"]/, "\\\\&");printf("%s",$0)}
+	{gsub(/[\\\$"]/, "\\\\&");printf("%s",$0)}
 	END {printf "\""}'
 }
 
