@@ -11,41 +11,41 @@ readonly _bsda_tty_=1
 #
 # Tested on:
 #
-# | Terminal     | TERM
-# |--------------|--------
-# | xterm        | xterm
-# | console      | xterm
-# | rxvt-unicode | rxvt
-# | tmux         | screen
+# | Terminal     | TERM   |
+# |--------------|--------|
+# | xterm        | xterm  |
+# | console      | xterm  |
+# | rxvt-unicode | rxvt   |
+# | tmux         | screen |
 #
 
 #
 # A list of useful termcap(5) capabilities, used with tput(1):
 #
-# | Command            | Short    | Problems
-# |--------------------|----------|-----------------------
-# | save_cursor        | sc       |
-# | restore_cursor     | rc       |
-# | cursor_address     | cm #1 #2 |
-# | cursor_home        | ho       |
-# | columns            | co => #  |
-# | lines              | li => #  |
-# | clr_eol            | ce       |
-# | clr_eos            | cd       |
-# | delete_line        | dl       |
-# | parm_insert_line   | AL #1    |
-# | insert_line        | al       |
-# | cursor_invisible   | vi       |
-# | cursor_normal      | ve       |
-# | cursor_visible     | vs       |
-# | parm_down_cursor   | DO #1    | DO 0 glitches in tmux
-# | parm_up_cursor     | UP #1    | UP 0 glitches in tmux
-# | carriage_return    | cr       |
-# | newline            | nw       |
-# | cursor_down        | do       |
-# | cursor_up          | up       |
-# | eat_newline_glitch | xn       |
-# | init_tabs          | it => #  |
+# | Command            | Short    | Problems              |
+# |--------------------|----------|-----------------------|
+# | save_cursor        | sc       |                       |
+# | restore_cursor     | rc       |                       |
+# | cursor_address     | cm #1 #2 |                       |
+# | cursor_home        | ho       |                       |
+# | columns            | co => #  |                       |
+# | lines              | li => #  |                       |
+# | clr_eol            | ce       |                       |
+# | clr_eos            | cd       |                       |
+# | delete_line        | dl       |                       |
+# | parm_insert_line   | AL #1    |                       |
+# | insert_line        | al       |                       |
+# | cursor_invisible   | vi       |                       |
+# | cursor_normal      | ve       |                       |
+# | cursor_visible     | vs       |                       |
+# | parm_down_cursor   | DO #1    | DO 0 glitches in tmux |
+# | parm_up_cursor     | UP #1    | UP 0 glitches in tmux |
+# | carriage_return    | cr       |                       |
+# | newline            | nw       |                       |
+# | cursor_down        | do       |                       |
+# | cursor_up          | up       |                       |
+# | eat_newline_glitch | xn       |                       |
+# | init_tabs          | it => #  |                       |
 #
 
 #
