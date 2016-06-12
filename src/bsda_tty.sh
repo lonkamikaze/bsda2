@@ -51,6 +51,14 @@ readonly _bsda_tty_=1
 #
 # Provides asynchronous terminal output.
 #
+# This provides n status lines directly on the terminal, i.e. they
+# are not affected by redirecting stdout or stderr. It also provides
+# output on stdout and stderr without messing up the status lines.
+#
+# @warning
+#	Before terminating the daemon needs to be stopped by calling
+#	deactiave() or deleting the object.
+#
 bsda:obj:createClass bsda:tty:Async \
 	r:private:fifo      "The FIFO to communicate through" \
 	r:private:active    "Whether status line output is active" \
@@ -62,6 +70,12 @@ bsda:obj:createClass bsda:tty:Async \
 	x:public:stdout     "Print to stdout" \
 	x:public:stderr     "Print to stderr"
 
+#
+# Setup terminal control daemon.
+#
+# Sets up a bsda:tty:Async.daemon() instance that controls the terminal
+# and receives commands through a fifo.
+#
 bsda:tty:Async.init() {
 	bsda:fifo:Fifo ${this}fifo
 	setvar ${this}active
@@ -71,6 +85,9 @@ bsda:tty:Async.init() {
 	fi
 }
 
+#
+# Deactivate the daemon and remove the fifo.
+#
 bsda:tty:Async.clean() {
 	local fifo
 	$this.deactivate
@@ -78,6 +95,12 @@ bsda:tty:Async.clean() {
 	$fifo.delete
 }
 
+#
+# Sets the number of status lines to use.
+#
+# @param 1
+#	The number of lines
+#
 bsda:tty:Async.use() {
 	if eval "[ -z \"\$${this}active\" ]"; then
 		return
@@ -85,6 +108,14 @@ bsda:tty:Async.use() {
 	$($this.getFifo).sink "printf 'use%d\n' $(($1))"
 }
 
+#
+# Sets the status of a status line.
+#
+# @param 1
+#	The status line to set
+# @param 2
+#	The string to set the status line to
+#
 bsda:tty:Async.line() {
 	# Redefine into minimal function
 	if eval "[ -n \"\$${this}active\" ]"; then
@@ -105,6 +136,12 @@ bsda:tty:Async.line() {
 	fi
 }
 
+#
+# Disable status output and stop the daemon.
+#
+# Deactivating the daemon is not reversible, but the stdout() and
+# stderr() methods still produce synchronous output.
+#
 bsda:tty:Async.deactivate() {
 	if eval "[ -n \"\$${this}active\" ]"; then
 		setvar ${this}active
@@ -116,6 +153,12 @@ bsda:tty:Async.deactivate() {
 	fi
 }
 
+#
+# Output on stdout.
+#
+# @param 1
+#	The string to output
+#
 bsda:tty:Async.stdout() {
 	# Redefine into minimal function
 	if eval "[ -n \"\$${this}active\" ]"; then
@@ -133,6 +176,12 @@ bsda:tty:Async.stdout() {
 	fi
 }
 
+#
+# Output on stderr.
+#
+# @param 1
+#	The string to output
+#
 bsda:tty:Async.stderr() {
 	if eval "[ -n \"\$${this}active\" ]"; then
 		eval "$this.stderr() {
@@ -150,8 +199,18 @@ bsda:tty:Async.stderr() {
 }
 
 #
+# Updates the number of terminal columns and lines.
+#
+# This is called during daemon startup and use() is called.
+#
 # @param cols
+#	Set to the available number of columns
 # @param lines
+#	Set to the available number of lines
+# @param drawLines
+#	The number of status lines to actually draw
+# @param statusLines
+#	The number of status lines requested
 #
 bsda:tty:Async.daemon_winch() {
 	cols=$(/usr/bin/tput co 2> /dev/tty || echo 80)
@@ -162,10 +221,22 @@ bsda:tty:Async.daemon_winch() {
 }
 
 #
+# Initialises globals required in the daemon process.
+#
 # @param cols
+#	See bsda:tty:Async.daemon_winch()
 # @param lines
+#	See bsda:tty:Async.daemon_winch()
+# @param drawLines
+#	See bsda:tty:Async.daemon_winch()
 # @param fifo
+#	The FIFO the commands are coming from
 # @param statusLines
+#	The initial amount of status lines (0)
+# @param IFS
+#	Set to the newline
+# @param trapped
+#	Initially empty
 #
 bsda:tty:Async.daemon_startup() {
 	trapped=
@@ -180,23 +251,34 @@ bsda:tty:Async.daemon_startup() {
 }
 
 #
-# @param statusLines
+# Draw all the status lines.
+#
+# The caller is responsible for redirecting the output to /dev/tty.
+#
+# @param drawLines
+#	The number of status lines to draw
 # @param cols
+#	The number of columns available to draw
 # @param line0 line1 line...
+#	The status line buffers
 #
 bsda:tty:Async.daemon_drawlines() {
 	/usr/bin/tput vi cr
 	i=0
-	while [ $i -lt $((statusLines - 1)) ]; do
+	while [ $i -lt $((drawLines - 1)) ]; do
 		eval "printf '%.${cols}s\n' \"\$line$i\""
 		i=$((i + 1))
 	done
-	if [ $statusLines -gt 0 ]; then
+	if [ $drawLines -gt 0 ]; then
 		eval "printf '%.${cols}s\r' \"\$line$i\""
 	fi
 	/usr/bin/tput $($class.daemon_repeat $((statusLines - 1)) up) ve
 }
 
+#
+# Prints a string a given number of times.
+#
+# This can be used to generate repeated function arguments.
 #
 # @param 1
 #	Number of repetitions
@@ -212,10 +294,18 @@ bsda:tty:Async.daemon_repeat() {
 }
 
 #
+# Draw the given status line.
+#
+# This jumps to the given line and redraws it from the buffer.
+#
 # @param 1
-# @param statusLines
+#	The status line number to draw on
+# @param drawLines
+#	The number of status lines that may be drawn
 # @param cols
+#	The number of available columns
 # @param line0 line1 line...
+#	The status line buffers
 #
 bsda:tty:Async.daemon_drawline() {
 	if [ $1 -ge $drawLines -o $1 -lt 0 ]; then
@@ -227,8 +317,17 @@ bsda:tty:Async.daemon_drawline() {
 }
 
 #
+# Changes the number of status lines.
+#
+# Updates the number of desired status lines, sets the number of
+# actual status lines to draw and redraws the status.
+#
+# @param 1
+#	The requested number of status lines
 # @param statusLines
-# @param lines
+#	Set to the requested number
+# @param drawLines
+#	See bsda:tty:Async.daemon_winch()
 #
 bsda:tty:Async.daemon_use() {
 	statusLines=$(($1))
@@ -239,14 +338,22 @@ bsda:tty:Async.daemon_use() {
 }
 
 #
-# @param lines
+# Cleanup function.
+#
+# Clear the status lines, and turn the cursor visible.
 #
 bsda:tty:Async.daemon_deactivate() {
 	/usr/bin/tput cr cd ve > /dev/tty
 }
 
 #
-# @param lines
+# Print on stdout.
+#
+# Clears the status lines, prints the requested output and redraws the
+# status lines.
+#
+# @param 1
+#	A quoted, escaped string, such as bsda:obj:escape() produces
 #
 bsda:tty:Async.daemon_stdout() {
 	/usr/bin/tput cd > /dev/tty
@@ -254,6 +361,11 @@ bsda:tty:Async.daemon_stdout() {
 	$class.daemon_drawlines > /dev/tty
 }
 
+#
+# The output daemon.
+#
+# Receives and executes commands from the daemon.
+#
 bsda:tty:Async.daemon() {
 	$class.daemon_startup
 	while $fifo.source read -r cmd; do
