@@ -310,7 +310,7 @@ pkg:libchk:Session.run() {
 		# Wait for jobs to complete
 		if [ $jobs -ge $maxjobs ]; then
 			# Blocking read
-			$fifo.source read result
+			$fifo.source read -r result
 			jobs=$((jobs - 1))
 			$this.print sline "$result"
 			count=$((count + 1))
@@ -336,7 +336,7 @@ pkg:libchk:Session.run() {
 	fmt="Waiting for %${#maxjobs}d job(s)"
 	while [ $jobs -gt 0 ]; do
 		# Blocking read
-		$fifo.source read result
+		$fifo.source read -r result
 		$this.print sline "$result"
 		$term.line $sline
 		jobs=$((jobs - 1))
