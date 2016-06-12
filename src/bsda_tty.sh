@@ -370,7 +370,7 @@ bsda:tty:Async.daemon() {
 	$class.daemon_startup
 	while $fifo.source read -r cmd; do
 		# Delay signal handling while drawing
-		trap "trapped=1" HUP INT TERM
+		trap "trap - HUP INT TERM;trapped=1" HUP INT TERM
 		case "$cmd" in
 		line*)
 			eval "$cmd"
@@ -394,7 +394,7 @@ bsda:tty:Async.daemon() {
 		;;
 		esac
 		# Handle SIGINT and SIGTERM
-		trap "exit 1" HUP INT TERM
+		trap "trap - HUP INT TERM;exit 1" HUP INT TERM
 		if [ -n "$trapped" ]; then
 			exit 1
 		fi
