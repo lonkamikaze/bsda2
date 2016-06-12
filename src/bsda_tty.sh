@@ -86,35 +86,66 @@ bsda:tty:Async.use() {
 }
 
 bsda:tty:Async.line() {
-	if eval "[ -z \"\$${this}active\" ]"; then
-		return
-	fi
-	local NL
-	NL='
+	# Redefine into minimal function
+	if eval "[ -n \"\$${this}active\" ]"; then
+		eval "$this.line() {
+			local NL
+			NL='
 '
-	$($this.getFifo).sink "printf 'line%d=%s\n' $(($1)) '$(echo "${2%%$NL*}" | bsda:obj:escape)'"
+			$($this.getFifo).sink \"printf 'line%d=%s\n' \$((\$1)) '\$(echo \"\${2%%\$NL*}\" | bsda:obj:escape)'\"
+		}"
+	else
+		eval "$this.line() {
+			:
+		}"
+	fi
+	# Call the redefined function
+	if [ -n "$*" ]; then
+		$this.line "$@"
+	fi
 }
 
 bsda:tty:Async.deactivate() {
 	if eval "[ -n \"\$${this}active\" ]"; then
 		setvar ${this}active
 		$($this.getFifo).sink echo exit
+		# Reset self-optimising functions
+		bsda:tty:Async.line
+		bsda:tty:Async.stdout
+		bsda:tty:Async.stderr
 	fi
 }
 
 bsda:tty:Async.stdout() {
+	# Redefine into minimal function
 	if eval "[ -n \"\$${this}active\" ]"; then
-		$($this.getFifo).sink "printf 'stdout%s\n' '$(echo "$1" | bsda:obj:escape)'"
+		eval "$this.stdout() {
+			$($this.getFifo).sink \"echo 'stdout\$(echo \"\$1\" | bsda:obj:escape)'\"
+		}"
 	else
-		echo "$1"
+		eval "$this.stdout() {
+			echo \"\$1\"
+		}"
+	fi
+	# Call the redefined function
+	if [ -n "$*" ]; then
+		$this.stdout "$@"
 	fi
 }
 
 bsda:tty:Async.stderr() {
 	if eval "[ -n \"\$${this}active\" ]"; then
-		$($this.getFifo).sink "printf 'stderr%s\n' '$(echo "$1" | bsda:obj:escape)'"
+		eval "$this.stderr() {
+			$($this.getFifo).sink \"echo 'stderr\$(echo \"\$1\" | bsda:obj:escape)'\"
+		}"
 	else
-		echo "$1" >&2
+		eval "$this.stderr() {
+			echo \"\$1\"
+		}"
+	fi
+	# Call the redefined function
+	if [ -n "$*" ]; then
+		$this.stderr "$@"
 	fi
 }
 
@@ -124,8 +155,10 @@ bsda:tty:Async.stderr() {
 #
 bsda:tty:Async.daemon_winch() {
 	cols=$(/usr/bin/tput co 2> /dev/tty || echo 80)
-	/usr/bin/tput xn || cols=$((cols - 1))
+	/usr/bin/tput xn 2> /dev/tty || cols=$((cols - 1))
 	lines=$(/usr/bin/tput li 2> /dev/tty || echo 24)
+	# Use at most half of the available terminal space
+	drawLines=$((statusLines < (lines / 2) ? statusLines : (lines / 2)))
 }
 
 #
@@ -135,9 +168,9 @@ bsda:tty:Async.daemon_winch() {
 # @param statusLines
 #
 bsda:tty:Async.daemon_startup() {
-	trap $class.daemon_deactivate EXIT
-	trap "$class.daemon_deactivate;exit" INT TERM
-	trap $class.daemon_winch WINCH
+	trapped=
+	trap "$class.daemon_deactivate" EXIT
+	trap "exit 1" HUP INT TERM
 	$class.daemon_winch
 	$this.getFifo fifo
 	statusLines=0
@@ -185,7 +218,7 @@ bsda:tty:Async.daemon_repeat() {
 # @param line0 line1 line...
 #
 bsda:tty:Async.daemon_drawline() {
-	if [ $1 -ge $statusLines -o $1 -lt 0 ]; then
+	if [ $1 -ge $drawLines -o $1 -lt 0 ]; then
 		return
 	fi
 	/usr/bin/tput vi cr $($class.daemon_repeat $1 do)
@@ -198,8 +231,10 @@ bsda:tty:Async.daemon_drawline() {
 # @param lines
 #
 bsda:tty:Async.daemon_use() {
-	statusLines=$((lines / 2 > $1 ? $1 : lines / 2))
-	/usr/bin/tput $($class.daemon_repeat $lines al) > /dev/tty
+	statusLines=$(($1))
+	# Update drawLines
+	$class.daemon_winch
+	/usr/bin/tput cd > /dev/tty
 	$class.daemon_drawlines > /dev/tty
 }
 
@@ -207,43 +242,50 @@ bsda:tty:Async.daemon_use() {
 # @param lines
 #
 bsda:tty:Async.daemon_deactivate() {
-	/usr/bin/tput $($class.daemon_repeat $lines al) ve > /dev/tty
+	/usr/bin/tput cr cd ve > /dev/tty
 }
 
 #
 # @param lines
 #
 bsda:tty:Async.daemon_stdout() {
-	/usr/bin/tput $($class.daemon_repeat $statusLines al) > /dev/tty
+	/usr/bin/tput cd > /dev/tty
 	eval "echo $1"
 	$class.daemon_drawlines > /dev/tty
 }
 
 bsda:tty:Async.daemon() {
 	$class.daemon_startup
-	while $fifo.source read cmd; do
-	case "$cmd" in
-	line*)
-		eval "$cmd"
-		cmd="${cmd#line}"
-		$class.daemon_drawline ${cmd%%=*} > /dev/tty
-	;;
-	stdout*)
-		$class.daemon_stdout "${cmd#stdout}"
-	;;
-	stderr*)
-		$class.daemon_stdout "${cmd#stderr}" >&2
-	;;
-	use*)
-		$class.daemon_use "${cmd#use}"
-	;;
-	exit)
-		exit
-	;;
-	*)
-		echo "XXX $cmd"
-	;;
-	esac
+	while $fifo.source read -r cmd; do
+		# Delay signal handling while drawing
+		trap "trapped=1" HUP INT TERM
+		case "$cmd" in
+		line*)
+			eval "$cmd"
+			cmd="${cmd#line}"
+			$class.daemon_drawline ${cmd%%=*} > /dev/tty
+		;;
+		stdout*)
+			$class.daemon_stdout "${cmd#stdout}"
+		;;
+		stderr*)
+			$class.daemon_stdout "${cmd#stderr}" >&2
+		;;
+		use*)
+			$class.daemon_use "${cmd#use}"
+		;;
+		exit)
+			exit 0
+		;;
+		*)
+			$class.daemon_stdout "bsda:tty:Async.daemon: WARNING: Illegal command received: $(echo "$cmd" | bsda:obj:escape)" >&2
+		;;
+		esac
+		# Handle SIGINT and SIGTERM
+		trap "exit 1" HUP INT TERM
+		if [ -n "$trapped" ]; then
+			exit 1
+		fi
 	done
 }
 
