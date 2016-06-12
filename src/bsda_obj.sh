@@ -237,7 +237,7 @@ bsda:obj:createClass() {
 			;;
 			i:*)
 				if [ -n "$init" ]; then
-					echo "bsda:obj:createClasss: ERROR: More than one init method was supplied!" 1>&2
+					echo "bsda:obj:createClass: ERROR: More than one init method was supplied!" 1>&2
 					return 1
 				fi
 				methods="$methods${arg#i:}$IFS"
@@ -245,7 +245,7 @@ bsda:obj:createClass() {
 			;;
 			c:*)
 				if [ -n "$clean" ]; then
-					echo "bsda:obj:createClasss: ERROR: More than one cleanup method was supplied!" 1>&2
+					echo "bsda:obj:createClass: ERROR: More than one cleanup method was supplied!" 1>&2
 					return 2
 				fi
 				methods="$methods${arg#c:}$IFS"
@@ -333,7 +333,7 @@ bsda:obj:createClass() {
 			;;
 			*)
 				# Everything else is not accepted.
-				echo "bsda:obj:createClasss: ERROR: Unknown scope operator \"${method%:*}\"!" 1>&2
+				echo "bsda:obj:createClass: ERROR: Unknown scope operator \"${method%:*}\"!" 1>&2
 				return 3
 			;;
 		esac
@@ -344,7 +344,7 @@ bsda:obj:createClass() {
 	superClean=
 	for parent in $extends; do
 		if ! $parent.isClass; then
-			echo "bsda:obj:createClasss: ERROR: Extending \"$parent\" failed, not a class!" 1>&2
+			echo "bsda:obj:createClass: ERROR: Extending \"$parent\" failed, not a class!" 1>&2
 			return 4
 		fi
 
@@ -410,7 +410,7 @@ bsda:obj:createClass() {
 	# Manage implements.
 	for interface in $implements; do
 		if ! $interface.isInterface; then
-			echo "bsda:obj:createClasss: ERROR: Implementing \"$interface\" failed, not an interface!" 1>&2
+			echo "bsda:obj:createClass: ERROR: Implementing \"$interface\" failed, not an interface!" 1>&2
 			return 5
 		fi
 
