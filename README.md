@@ -121,3 +121,10 @@ following way:
 
 Be aware that install.sh and deinstall.sh have to be called with the same
 parameters.
+
+LICENSE
+-------
+
+For those who care about this stuff, this project is available under
+the [ISC license](LICENSE.md).
+
