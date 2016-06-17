@@ -343,9 +343,6 @@ pkg:libchk:Session.run() {
 		count=$((count + 1))
 		$term.line 0 "$(printf "$fmt" $jobs)"
 	done
-
-	# Terminate async terminal
-	$term.deactivate
 }
 
 #
