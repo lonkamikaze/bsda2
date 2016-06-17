@@ -219,6 +219,9 @@ pkg:libchk:Session.packages() {
 		if $flags.check PKG_ALL -ne 0; then
 			$($this.getTerm).stderr "Checking all packages ..."
 		else
+			local IFS
+			IFS='
+'
 			$($this.getTerm).stderr "Checking packages:" \
 			                        "------------------" \
 			                        "$pkgs" \
