@@ -55,10 +55,6 @@ readonly _bsda_tty_=1
 # are not affected by redirecting stdout or stderr. It also provides
 # output on stdout and stderr without messing up the status lines.
 #
-# @warning
-#	Before terminating the daemon needs to be stopped by calling
-#	deactiave() or deleting the object.
-#
 bsda:obj:createClass bsda:tty:Async \
 	r:private:fifo      "The FIFO to communicate through" \
 	r:private:active    "Whether status line output is active" \
@@ -156,18 +152,23 @@ bsda:tty:Async.deactivate() {
 #
 # Output on stdout.
 #
-# @param 1
-#	The string to output
+# @param IFS
+#	The first character in IFS is used to join multiple arguments,
+#	if unset a single space is used
+# @param *
+#	The strings to output
 #
 bsda:tty:Async.stdout() {
 	# Redefine into minimal function
 	if eval "[ -n \"\$${this}active\" ]"; then
 		eval "$this.stdout() {
-			$($this.getFifo).sink \"echo 'stdout\$(echo \"\$1\" | bsda:obj:escape)'\"
+			local str
+			str=\"\$(echo \"\$*\" | bsda:obj:escape)\"
+			$($this.getFifo).sink \"echo \\\"stdout\\\$str\\\"\"
 		}"
 	else
 		eval "$this.stdout() {
-			echo \"\$1\"
+			echo \"\$*\"
 		}"
 	fi
 	# Call the redefined function
@@ -179,17 +180,22 @@ bsda:tty:Async.stdout() {
 #
 # Output on stderr.
 #
-# @param 1
-#	The string to output
+# @param IFS
+#	The first character in IFS is used to join multiple arguments,
+#	if unset a single space is used
+# @param *
+#	The strings to output
 #
 bsda:tty:Async.stderr() {
 	if eval "[ -n \"\$${this}active\" ]"; then
 		eval "$this.stderr() {
-			$($this.getFifo).sink \"echo 'stderr\$(echo \"\$1\" | bsda:obj:escape)'\"
+			local str
+			str=\"\$(echo \"\$*\" | bsda:obj:escape)\"
+			$($this.getFifo).sink \"echo \\\"stderr\\\$str\\\"\"
 		}"
 	else
 		eval "$this.stderr() {
-			echo \"\$1\"
+			echo \"\$*\"
 		}"
 	fi
 	# Call the redefined function
