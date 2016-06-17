@@ -1464,13 +1464,13 @@ bsda:obj:detach() {
 # This function calls all delete functions of objects having a cleanup
 # method.
 #
+# Objects spawning processes are responsible for killing them in their
+# destructor.
+#
 # @param bsda_obj_freeOnExit
 #	The list of objects to call
 #
 bsda:obj:exit() {
-	# Wait for children to terminate first to ensure they do not use
-	# resources that are about to be freed.
-	wait
 	local nl obj
 	nl='
 '
@@ -1484,6 +1484,8 @@ bsda:obj:exit() {
 			bsda_obj_freeOnExit="$head$tail"
 		fi
 	done
+	# Wait if any children stick around.
+	wait
 }
 
 #
