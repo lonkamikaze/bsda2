@@ -224,6 +224,7 @@ bsda:tty:Async.daemon_winch() {
 	lines=$(/usr/bin/tput li 2> /dev/tty || echo 24)
 	# Use at most half of the available terminal space
 	drawLines=$((statusLines < (lines / 2) ? statusLines : (lines / 2)))
+	$class.daemon_drawlines > /dev/tty
 }
 
 #
@@ -245,11 +246,12 @@ bsda:tty:Async.daemon_winch() {
 #	Initially empty
 #
 bsda:tty:Async.daemon_startup() {
-	trapped=
 	trap "$class.daemon_deactivate" EXIT
-	trap "exit 1" HUP INT TERM
 	$class.daemon_winch
 	$this.getFifo fifo
+	# Handle signals
+	trap "trap '' HUP INT TERM;$fifo.sink echo exit" HUP INT TERM
+	#trap "trap '' WINCH;$fifo.sink echo winch" WINCH
 	statusLines=0
 	IFS='
 '
@@ -269,7 +271,7 @@ bsda:tty:Async.daemon_startup() {
 #	The status line buffers
 #
 bsda:tty:Async.daemon_drawlines() {
-	/usr/bin/tput vi cr
+	/usr/bin/tput vi cr cd
 	i=0
 	while [ $i -lt $((drawLines - 1)) ]; do
 		eval "printf '%.${cols}s\n' \"\$line$i\""
@@ -339,8 +341,6 @@ bsda:tty:Async.daemon_use() {
 	statusLines=$(($1))
 	# Update drawLines
 	$class.daemon_winch
-	/usr/bin/tput cd > /dev/tty
-	$class.daemon_drawlines > /dev/tty
 }
 
 #
@@ -375,8 +375,6 @@ bsda:tty:Async.daemon_stdout() {
 bsda:tty:Async.daemon() {
 	$class.daemon_startup
 	while $fifo.source read -r cmd; do
-		# Delay signal handling while drawing
-		trap "trap - HUP INT TERM;trapped=1" HUP INT TERM
 		case "$cmd" in
 		line*)
 			eval "$cmd"
@@ -395,15 +393,14 @@ bsda:tty:Async.daemon() {
 		exit)
 			exit 0
 		;;
+		winch)
+			$class.daemon_winch
+			trap "trap '' WINCH;$fifo.sink echo winch" WINCH
+		;;
 		*)
 			$class.daemon_stdout "bsda:tty:Async.daemon: WARNING: Illegal command received: $(echo "$cmd" | bsda:obj:escape)" >&2
 		;;
 		esac
-		# Handle SIGINT and SIGTERM
-		trap "trap - HUP INT TERM;exit 1" HUP INT TERM
-		if [ -n "$trapped" ]; then
-			exit 1
-		fi
 	done
 }
 
