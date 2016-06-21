@@ -224,7 +224,6 @@ bsda:tty:Async.daemon_winch() {
 	lines=$(/usr/bin/tput li 2> /dev/tty || echo 24)
 	# Use at most half of the available terminal space
 	drawLines=$((statusLines < (lines / 2) ? statusLines : (lines / 2)))
-	$class.daemon_drawlines > /dev/tty
 }
 
 #
@@ -404,11 +403,6 @@ bsda:tty:Async.daemon() {
 		;;
 		winch)
 			trap "trap '' WINCH;$fifo.sink echo winch" WINCH
-			# Window size changes mess up the cursor position,
-			# including save_cursor and restore_cursor. So there
-			# really is no alternative to starting over with a
-			# clean slate.
-			/usr/bin/tput cl > /dev/tty
 			$class.daemon_winch
 		;;
 		*)
