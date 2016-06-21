@@ -251,7 +251,7 @@ bsda:tty:Async.daemon_startup() {
 	$this.getFifo fifo
 	# Handle signals
 	trap "trap '' HUP INT TERM;$fifo.sink echo exit" HUP INT TERM
-	#trap "trap '' WINCH;$fifo.sink echo winch" WINCH
+	trap "trap '' WINCH;$fifo.sink echo winch" WINCH
 	statusLines=0
 	IFS='
 '
@@ -374,7 +374,16 @@ bsda:tty:Async.daemon_stdout() {
 #
 bsda:tty:Async.daemon() {
 	$class.daemon_startup
-	while $fifo.source read -r cmd; do
+	while true; do
+		$fifo.source read -r cmd
+		retval=$?
+		if [ $retval -gt 128 ]; then
+			# Retry read if interrupted by a signal
+			continue
+		elif [ $retval -ne 0 ]; then
+			$class.daemon_stdout "bsda:tty:Async.daemon: ERROR: Read from pipe returned: $retval" >&2
+			exit $retval $retval
+		fi
 		case "$cmd" in
 		line*)
 			eval "$cmd"
@@ -394,8 +403,13 @@ bsda:tty:Async.daemon() {
 			exit 0
 		;;
 		winch)
-			$class.daemon_winch
 			trap "trap '' WINCH;$fifo.sink echo winch" WINCH
+			# Window size changes mess up the cursor position,
+			# including save_cursor and restore_cursor. So there
+			# really is no alternative to starting over with a
+			# clean slate.
+			/usr/bin/tput cl > /dev/tty
+			$class.daemon_winch
 		;;
 		*)
 			$class.daemon_stdout "bsda:tty:Async.daemon: WARNING: Illegal command received: $(echo "$cmd" | bsda:obj:escape)" >&2
