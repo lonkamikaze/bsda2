@@ -86,10 +86,8 @@ bsda:tty:Async.init() {
 # Deactivate the daemon and remove the fifo.
 #
 bsda:tty:Async.clean() {
-	local fifo
 	$this.deactivate
-	$this.getFifo fifo
-	$fifo.delete
+	$($this.getFifo).delete
 }
 
 #
