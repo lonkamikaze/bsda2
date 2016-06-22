@@ -101,7 +101,7 @@ bsda:tty:Async.use() {
 	if eval "[ -z \"\$${this}active\" ]"; then
 		return
 	fi
-	$($this.getFifo).sink "printf 'use%d\n' $(($1))"
+	$($this.getFifo).sink "printf 'use %d\n' $(($1))"
 }
 
 #
@@ -116,10 +116,12 @@ bsda:tty:Async.line() {
 	# Redefine into minimal function
 	if eval "[ -n \"\$${this}active\" ]"; then
 		eval "$this.line() {
-			local NL
+			local NL str line
 			NL='
 '
-			$($this.getFifo).sink \"printf 'line%d=%s\n' \$((\$1)) '\$(echo \"\${2%%\$NL*}\" | bsda:obj:escape)'\"
+			str=\"\$(echo -n \"\${2%%\$NL*}\" | bsda:obj:escape)\"
+			line=\$((\$1))
+			$($this.getFifo).sink 'echo \"line\$line \$str\"'
 		}"
 	else
 		eval "$this.line() {
@@ -164,7 +166,7 @@ bsda:tty:Async.stdout() {
 		eval "$this.stdout() {
 			local str
 			str=\"\$(echo \"\$*\" | bsda:obj:escape)\"
-			$($this.getFifo).sink \"echo \\\"stdout\\\$str\\\"\"
+			$($this.getFifo).sink 'echo \"stdout \$str\"'
 		}"
 	else
 		eval "$this.stdout() {
@@ -191,7 +193,7 @@ bsda:tty:Async.stderr() {
 		eval "$this.stderr() {
 			local str
 			str=\"\$(echo \"\$*\" | bsda:obj:escape)\"
-			$($this.getFifo).sink \"echo \\\"stderr\\\$str\\\"\"
+			$($this.getFifo).sink 'echo \"stderr \$str\"'
 		}"
 	else
 		eval "$this.stderr() {
@@ -252,7 +254,7 @@ bsda:tty:Async.daemon_startup() {
 	trap "trap '' HUP INT TERM;$fifo.sink echo exit" HUP INT TERM
 	trap "trap '' WINCH;$fifo.sink echo winch" WINCH
 	statusLines=0
-	IFS='
+	IFS=' 	
 '
 	readonly fifo IFS
 }
@@ -362,7 +364,7 @@ bsda:tty:Async.daemon_deactivate() {
 #
 bsda:tty:Async.daemon_stdout() {
 	/usr/bin/tput cd > /dev/tty
-	eval "echo $1"
+	echo "$1"
 	$class.daemon_drawlines > /dev/tty
 }
 
@@ -374,29 +376,29 @@ bsda:tty:Async.daemon_stdout() {
 bsda:tty:Async.daemon() {
 	$class.daemon_startup
 	while true; do
-		$fifo.source read -r cmd
+		$fifo.source read -r cmd arg
 		retval=$?
 		if [ $retval -gt 128 ]; then
 			# Retry read if interrupted by a signal
 			continue
 		elif [ $retval -ne 0 ]; then
 			$class.daemon_stdout "bsda:tty:Async.daemon: ERROR: Read from pipe returned: $retval" >&2
-			exit $retval $retval
+			exit $retval
 		fi
+		arg="$(printf "$arg")" # Deserialise
 		case "$cmd" in
 		line*)
-			eval "$cmd"
-			cmd="${cmd#line}"
-			$class.daemon_drawline ${cmd%%=*} > /dev/tty
+			setvar "$cmd" "$arg"
+			$class.daemon_drawline ${cmd#line} > /dev/tty
 		;;
-		stdout*)
-			$class.daemon_stdout "${cmd#stdout}"
+		stdout)
+			$class.daemon_stdout "$arg"
 		;;
-		stderr*)
-			$class.daemon_stdout "${cmd#stderr}" >&2
+		stderr)
+			$class.daemon_stdout "$arg" >&2
 		;;
-		use*)
-			$class.daemon_use "${cmd#use}"
+		use)
+			$class.daemon_use "$arg"
 		;;
 		exit)
 			exit 0

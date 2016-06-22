@@ -1391,21 +1391,19 @@ bsda:obj:callerSetvar() {
 #
 bsda:obj:serialiseVar() {
 	if [ -n "$1" ]; then
-		setvar "$1" "$2=$(eval "echo \"\$$2\"" | bsda:obj:escape)"
+		setvar "$1" "$2=\"\$(printf '$(eval "echo \"\$$2\"" | bsda:obj:escape)')\""
 	else
-		echo "$2=$(eval "echo \"\$$2\"" | bsda:obj:escape)"
+		echo "$2=\"\$(printf '$(eval "echo \"\$$2\"" | bsda:obj:escape)')\""
 	fi
 }
 
 #
 # Escapes strings on stdin for serialisation.
 #
+# The printf command can be used for deserialisation.
+#
 bsda:obj:escape() {
-	/usr/bin/awk '
-	BEGIN {ORS="\${IFS}";printf "\""}
-	nl++ {print ""}
-	{gsub(/[\\\$"]/, "\\\\&");printf("%s",$0)}
-	END {printf "\""}'
+	/usr/bin/vis -woe"'%\$\"-"
 }
 
 #
