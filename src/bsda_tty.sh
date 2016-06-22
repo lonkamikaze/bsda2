@@ -73,9 +73,10 @@ bsda:obj:createClass bsda:tty:Async \
 # and receives commands through a fifo.
 #
 bsda:tty:Async.init() {
-	bsda:fifo:Fifo ${this}fifo
 	setvar ${this}active
+	setvar ${this}fifo
 	if [ -w /dev/tty ]; then
+		bsda:fifo:Fifo ${this}fifo || return
 		setvar ${this}active 1
 		$class.daemon &
 	fi
