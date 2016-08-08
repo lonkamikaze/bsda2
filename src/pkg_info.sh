@@ -25,6 +25,7 @@ bsda:obj:createClass pkg:info:Env \
 	r:private:flags "A reference to a bsda:opts:Flag instance" \
 	r:public:errmsg "Holds an error message in case of failure" \
 	r:public:errnum "The error number returned by pkg-info" \
+	r:public:warn   "Warning messages from the last pkg-info call" \
 	i:private:init  "The constructor" \
 	x:public:match  "For the given query return a list of packages" \
 	x:public:files  "For the given packages list all installed files"
@@ -94,22 +95,28 @@ pkg:info:Env.match() {
 	# Get requested packages
 	pkgs="$(/usr/sbin/pkg info $args "$@" 2>&1)"
 	ret=$?
+	# Bail on error.
 	if [ $ret -ne 0 ]; then
 		setvar ${this}errmsg "$pkgs"
 		setvar ${this}errnum $ret
 		return $ret
 	fi
+	# Remove and record warnings.
+	if [ -n "$pkgs" -a -z "${pkgs##*pkg: Warning:*}" ]; then
+		setvar ${this}warn "$(echo "$pkgs" | /usr/bin/grep '^pkg: Warning:')"
+		pkgs="$(echo "$pkgs" | /usr/bin/grep -v '^pkg: Warning:')"
+	fi
 	# Get related packages, unless all packages are selected any way
 	if $flags.check PKG_ALL -eq 0; then
 		# Get dependencies if requested
 		if $flags.check PKG_DEPENDENCIES -ne 0; then
-			dep="$(/usr/sbin/pkg info -qd $pkgs)"
+			dep="$(/usr/sbin/pkg info -qd $pkgs 2> /dev/null)"
 			pkgs="$pkgs${dep:+$IFS}$dep"
 			pkgs="$(echo "$pkgs" | /usr/bin/awk '!a[$0]++')"
 		fi
 		# Get required by packages if requested
 		if $flags.check PKG_REQUIRED_BY -ne 0; then
-			req="$(/usr/sbin/pkg info -qr $pkgs)"
+			req="$(/usr/sbin/pkg info -qr $pkgs 2> /dev/null)"
 			pkgs="$pkgs${req:+$IFS}$req"
 			pkgs="$(echo "$pkgs" | /usr/bin/awk '!a[$0]++')"
 		fi
@@ -119,7 +126,7 @@ pkg:info:Env.match() {
 	# used internally as well, so we do not have to convert for
 	# display.
 	if $flags.check PKG_ORIGIN -ne 0; then
-		pkgs="$(/usr/sbin/pkg info -qo $pkgs)"
+		pkgs="$(/usr/sbin/pkg info -qo $pkgs 2> /dev/null)"
 	fi
 
 	# Return the collected packages
@@ -134,7 +141,7 @@ pkg:info:Env.match() {
 #	A list of packages
 #
 pkg:info:files() {
-	/usr/sbin/pkg info -ql "$@"
+	/usr/sbin/pkg info -ql "$@" 2>&1
 }
 
 #
@@ -147,7 +154,7 @@ pkg:info:files() {
 #	A list of packages
 #
 pkg:info:checksums() {
-	/usr/sbin/pkg info -R "$@" | /usr/bin/awk "
+	/usr/sbin/pkg info -R "$@" 2>&1 | /usr/bin/awk "
 		/^files {/{f=1;next}
 		/^}/{f=0}
 		f{sub(/\";\$/,\"\");sub(/.*\"/,\"\");printf(\"'%s'\n\",\$0)}"
