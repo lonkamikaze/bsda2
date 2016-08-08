@@ -199,7 +199,7 @@ $(echo -n "$usage" | /usr/bin/sort -f)"
 #	A list of package queries
 #
 pkg:libchk:Session.packages() {
-	local pkginfo flags pkgs
+	local pkginfo flags pkgs warn
 	$this.getFlags flags
 	pkg:info:Env pkginfo $flags
 
@@ -210,6 +210,11 @@ pkg:libchk:Session.packages() {
 		$pkginfo.getErrnum errnum
 		$($this.getTerm).stderr "$errmsg"
 		exit $errnum
+	fi
+
+	$pkginfo.getWarn warn
+	if [ -n "$warn" ]; then
+		$($this.getTerm).stderr "$warn"
 	fi
 
 	$pkginfo.delete
