@@ -58,6 +58,7 @@ readonly _bsda_tty_=1
 bsda:obj:createClass bsda:tty:Async \
 	r:private:fifo      "The FIFO to communicate through" \
 	r:private:active    "Whether status line output is active" \
+	r:private:dpid      "The PID of the daemon process" \
 	i:private:init      "Set up asynchronous output process" \
 	c:private:clean     "Terminate the output process" \
 	x:public:use        "Set number of status lines" \
@@ -79,6 +80,7 @@ bsda:tty:Async.init() {
 		bsda:fifo:Fifo ${this}fifo || return
 		setvar ${this}active 1
 		$class.daemon &
+		setvar ${this}dpid $!
 	fi
 }
 
@@ -147,6 +149,8 @@ bsda:tty:Async.deactivate() {
 		bsda:tty:Async.line
 		bsda:tty:Async.stdout
 		bsda:tty:Async.stderr
+		# Wait for daemon to exit
+		wait $($this.getDpid)
 	fi
 }
 
