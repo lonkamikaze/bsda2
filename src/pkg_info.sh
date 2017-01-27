@@ -160,3 +160,12 @@ pkg:info:checksums() {
 		f{sub(/\";\$/,\"\");sub(/.*\"/,\"\");printf(\"'%s'\n\",\$0)}"
 }
 
+#
+# Outputs the origins of the given packages.
+#
+# @param @
+#	A list of packages
+#
+pkg:info:origins() {
+	/usr/sbin/pkg info -qo "$@"
+}
