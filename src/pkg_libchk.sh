@@ -7,7 +7,7 @@ readonly _pkg_libchk_=1
 . ${bsda_dir:-.}/pkg_info.sh
 
 #
-# A simple object to pass job results through the FIFO.
+# A simple class to pass job results through the FIFO.
 #
 # The misses attribute is a list in the format:
 #	file "|" library "|" ("[direct]" | "[indirect]")
@@ -35,7 +35,7 @@ pkg:libchk:JobResult.init() {
 }
 
 #
-# The session object for pkg_libchk.
+# The session class for pkg_libchk.
 #
 bsda:obj:createClass pkg:libchk:Session \
 	r:private:flags    "A bsda:opts:Flags flag store and counter" \
