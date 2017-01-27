@@ -107,12 +107,12 @@ bsda:opts:Options.getopt() {
 	$this.getLong lopt
 	$this.getIdent ident
 	# Check argument against short option
-	if [ -n "$sopt" -a -z "${1##${sopt}}" ]; then
+	if [ -n "$sopt" ] && [ -z "${1##${sopt}}" ]; then
 		$caller.setvar "$retvar" "$ident"
 		return 0
 	fi
 	# Check argument against long option
-	if [ -n "$lopt" -a -z "${1##${lopt}}" ]; then
+	if [ -n "$lopt" ] && [ -z "${1##${lopt}}" ]; then
 		$caller.setvar "$retvar" "$ident"
 		return 0
 	fi
@@ -124,15 +124,15 @@ bsda:opts:Options.getopt() {
 		return 0
 	fi
 	# No options left
-	if [ -n "$1" -a -z "${1##-?}" ]; then
+	if [ -n "$1" ] && [ -z "${1##-?}" ]; then
 		$caller.setvar "$retvar" OPT_UNKNOWN
 		return 0
 	fi
-	if [ -n "$1" -a -z "${1##--*}" ]; then
+	if [ -n "$1" ] && [ -z "${1##--*}" ]; then
 		$caller.setvar "$retvar" OPT_UNKNOWN
 		return 0
 	fi
-	if [ -n "$1" -a -z "${1##-*}" ]; then
+	if [ -n "$1" ] && [ -z "${1##-*}" ]; then
 		$caller.setvar "$retvar" OPT_SPLIT
 		return 0
 	fi

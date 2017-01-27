@@ -102,7 +102,7 @@ pkg:info:Env.match() {
 		return $ret
 	fi
 	# Remove and record warnings.
-	if [ -n "$pkgs" -a -z "${pkgs##*pkg: Warning:*}" ]; then
+	if [ -n "$pkgs" ] && [ -z "${pkgs##*pkg: Warning:*}" ]; then
 		setvar ${this}warn "$(echo "$pkgs" | /usr/bin/grep '^pkg: Warning:')"
 		pkgs="$(echo "$pkgs" | /usr/bin/grep -v '^pkg: Warning:')"
 	fi

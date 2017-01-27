@@ -404,8 +404,8 @@ bsda:obj:createClass() {
 
 
 	# Get the super methods, first class wins.
-	test -z "$init" -a -n "$superInit" && init="$superInit"
-	test -z "$clean" -a -n "$superClean" && clean="$superClean"
+	[ -z "$init" ] && [ -n "$superInit" ] && init="$superInit"
+	[ -z "$clean" ] && [ -n "$superClean" ] && clean="$superClean"
 
 	# Manage implements.
 	for interface in $implements; do
