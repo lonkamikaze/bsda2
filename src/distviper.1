@@ -1,0 +1,121 @@
+.Dd 27 January, 2017
+.Dt DISTVIPER 1
+.Os
+.Sh NAME
+.Nm distviper
+.Nd wipe outdated files from the FreeBSD ports distdir
+.Sh SYNOPSIS
+.Nm
+.Op Fl dhinqv
+.Op Ar keep
+.Sh DESCRIPTION
+The
+.Nm
+script removes outdated files within
+.Li DISTDIR
+of the
+.Xr ports 7 .
+To achieve this it reads distinfo files from the
+.Li PORTSDIR
+and creates a list of files to keep if they should be encountered.
+.Ss ARGUMENTS
+The following argument types can be given.
+.Bl -tag -width indent
+.It Ar keep
+Chooses which kind of files are kept:
+.Bl -tag -nested -width indent -compact
+.It Li all , Li thorough
+Keep files required for any port in the ports tree. The
+.Ar thorough
+alias exists for compatibility with the original bsdadminscripts.
+.It Li installed
+Keep files required for any currently installed port.
+.It Li fast
+This is the same as calling
+.Nm
+with the
+.Fl n
+flag and the
+.Ar installed
+argument. It exists for compatibility with the original bsdadminscripts.
+.El
+.El
+.Ss OPTIONS
+The following options are supported:
+.Bl -tag -width indent
+.It Fl d -demo
+The program is run in demo mode. The program acts as if it would operate
+normally, but does not remove any files.
+.It Fl h -help
+Displays the available options.
+.It Fl i -interactvie
+This option prompts for confirmation before deleting a file.
+It is ignored in demo mode.
+.It Fl n -no-checksum
+Turn off checksum validation for files to keep. Much faster, but also
+risks leaving invalid files in
+.Li DISTDIR .
+.It Fl q -quiet
+Supresses all output except for interactive prompts.
+.It Fl v -verbose
+Makes the script talkative about what is currently going on.
+.It Ar keep
+There are currently two modes available. By default the thorough mode is
+selected, which scans all distinfo files. The fast mode only scans distinfo
+files for installed ports.
+.El
+.Sh ENVIRONMENT
+The following environment variables are supported:
+.Bl -tag -width indent
+.It Ev PORTSDIR
+The location of the ports tree, e.g.
+.Pa /usr/ports .
+.It Ev DISTDIR
+The location of the distribution files, e.g.
+.Pa /usr/ports/distfiles .
+.El
+.Pp
+The variables are collected running:
+.Bd -literal -offset indent
+make -f/usr/share/mk/bsd.port.mk -VPORTSDIR -VDISTDIR
+.Ed
+.Sh EXAMPLES
+Delete any distfile not referenced by the current ports tree:
+.Bd -literal -offset indent
+distviper
+.Ed
+.Pp
+The demo mode can be used to check which files would be removed:
+.Bd -literal -offset indent
+distviper -d
+.Ed
+.Pp
+Avoid expensive operations, i.e. only keep files for installed ports
+and do not perform checksum validation:
+.Bd -literal -offset indent
+distviper fast
+.Ed
+.Pp
+Only keep files for installed ports, and ask for confirmation:
+.Bd -literal -offset indent
+distviper -i installed
+.Ed
+.Pp
+.Sh EXIT CODES
+.Bl -tag -width indent
+.It 1
+An unknown parameter has been supplied.
+.It 2
+An unknown mode command has been supplied.
+.It 3
+More than one mode commands have been supplied.
+.El
+.Sh SEE ALSO
+.Xr ports 7
+.Sh HISTORY
+The
+.Nm
+script first appeared in the bsdadminscripts-5.0 collection. It was rewritten
+for the bsda2 collection.
+.Sh AUTHOR
+Dominic Fandrey <kamikaze@bsdforen.de>
