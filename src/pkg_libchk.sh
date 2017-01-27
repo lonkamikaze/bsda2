@@ -142,8 +142,7 @@ pkg:libchk:Session.params() {
 			fi
 		;;
 		OPT_UNKNOWN)
-			$($this.getTerm).stderr \
-				"Unknown parameter \"$1\"."
+			$($this.getTerm).stderr "Unknown parameter \"$1\"."
 			exit 2
 		;;
 		OPT_SPLIT)

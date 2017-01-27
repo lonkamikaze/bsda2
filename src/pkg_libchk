@@ -10,4 +10,3 @@ readonly bsda_dir
 
 . ${bsda_dir:-.}/${prefix}.sh
 ${namespace}:Session session "$@"
-
