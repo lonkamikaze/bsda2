@@ -5,20 +5,29 @@ readonly _distviper_=1
 . ${bsda_dir:-.}/bsda_opts.sh
 . ${bsda_dir:-.}/pkg_info.sh
 
+#
+# The session class for distviper.
+#
 bsda:obj:createClass distviper:Session \
-	r:private:flags \
-	r:private:term \
-	r:private:keep \
-	r:private:portsdir \
-	r:private:distdir \
-	i:private:init \
-	c:private:clean \
-	x:private:params \
-	x:private:help \
-	x:private:status \
-	x:private:getMakeVar \
-	x:private:run
+	r:private:flags      "The flags collection" \
+	r:private:term       "The terminal controller" \
+	r:private:keep       "The kind of files to keep" \
+	r:private:portsdir   "The PORTSDIR" \
+	r:private:distdir    "The DISTDIR" \
+	i:private:init       "The constructor" \
+	c:private:clean      "The destructor" \
+	x:private:params     "Process command line arguments" \
+	x:private:help       "Print usage message" \
+	x:private:status     "Print status" \
+	x:private:getMakeVar "Retrieve variables from make" \
+	x:private:run        "Select files and delete them"
 
+#
+# Set up the session and run it.
+#
+# @param @
+#	Command line arguments
+#
 distviper:Session.init() {
 	# Setup terminal manager
 	bsda:tty:Async ${this}term
@@ -34,11 +43,22 @@ distviper:Session.init() {
 	$this.run
 }
 
+#
+# The destructor.
+#
+# Clean up the flags and the terminal controller.
+#
 distviper:Session.clean() {
 	$($this.getFlags).delete
 	$($this.getTerm).delete
 }
 
+#
+# Parse command line arguments.
+#
+# @param @
+#	The command line arguments
+#
 distviper:Session.params() {
 	local options flags option term
 
@@ -119,6 +139,12 @@ distviper:Session.params() {
 	esac
 }
 
+#
+# Print usage message.
+#
+# @param &1
+#	A reference to a bsda:opts:Options instance
+#
 distviper:Session.help() {
 	local usage
 	$1.usage usage "\t%.2s, %-18s  %s\n"
@@ -127,6 +153,15 @@ $(echo -n "$usage" | /usr/bin/sort -f)"
 	exit 0
 }
 
+#
+# Puts a message on the terminal.
+#
+# In verbose mode it is printed on stdout, otherwise the status line
+# is updated.
+#
+# @param 1
+#	The status message
+#
 distviper:Session.status() {
 	local term
 	$this.getTerm term
@@ -137,6 +172,16 @@ distviper:Session.status() {
 	fi
 }
 
+#
+# Pull a variable from make.
+#
+# Return a variable from /usr/share/mk/bsd.port.mk.
+#
+# @param &1
+#	The variable to return the value to
+# @param 2
+#	The name of the make variable to get
+#
 distviper:Session.getMakeVar() {
 	local term value
 	$this.getTerm term
@@ -153,6 +198,12 @@ distviper:Session.getMakeVar() {
 	$caller.setvar $1 "$value"
 }
 
+#
+# A static method retrieve file|chksum pairs.
+#
+# @param @
+#	The folders to search for distinfo files
+#
 distviper:Session.run_find() {
 	/usr/bin/find "$@" -name distinfo -exec cat '{}' + \
 	| /usr/bin/awk '
@@ -167,19 +218,40 @@ distviper:Session.run_find() {
 		}' | /usr/bin/sort
 }
 
+#
+# Static method outputting file|chksum pairs for all ports.
+#
+# @param portsdir
+#	The PORTSDIR
+#
 distviper:Session.run_find_all() {
 	$class.run_find "$portsdir"
 }
 
+#
+# Static method outputting file|chksum pairs for installed ports.
+#
+# @param portsdir
+#	The PORTSDIR
+#
 distviper:Session.run_find_installed() {
 	cd "$portsdir"
 	$class.run_find $(pkg:info:origins)
 }
 
+#
+# Static method outputting the present distfiles.
+#
+# @param distdir
+#	The DISTDIR
+#
 distviper:Session.run_find_present() {
 	/usr/bin/find -s "$distdir" -type f | /usr/bin/sed "s|^$distdir/||"
 }
 
+#
+# Select and delete obsolete distfiles.
+#
 distviper:Session.run() {
 	local IFS term flags keep portsdir distdir keepSums keepFiles
 	IFS='
