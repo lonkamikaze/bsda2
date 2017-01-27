@@ -1,6 +1,6 @@
 files="
 bsda_container.sh,0644,%%DATADIR%%/bsda_container.sh
-bsda_messaging.sh,0644,%%DATADIR%%/bsda_messaging.sh
+bsda_fifo.sh,0644,%%DATADIR%%/bsda_fifo.sh
 bsda_obj.sh,0644,%%DATADIR%%/bsda_obj.sh
 bsda_opts.sh,0644,%%DATADIR%%/bsda_opts.sh
 bsda_tty.sh,0644,%%DATADIR%%/bsda_tty.sh
