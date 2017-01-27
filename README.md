@@ -12,8 +12,11 @@ BSD Administration Scripts II
 I started this long overdue overhaul of the BSD Administration Scripts
 at the 31C3 (Hamburg, 2014).
 
-It provides a recode of pkg_libchk, and a cleaned up version of
-the buildflags toolset.
+It provides a recode of pkg_libchk, distviper and a cleaned up version
+of the buildflags toolset.
+
+All other contents of the original bsdadminscripts can be considered
+obsolete.
 
 pkg_libchk
 ----------
@@ -26,6 +29,12 @@ What sets its apart from other such tools or pkg-check, is that it makes
 a decent job of avoiding false positives.
 
 The recode is also 6 times faster than the old script.
+
+distviper
+---------
+
+The distviper tool removes obsolete files from `/usr/ports/distfiles`
+(or wherever `DISTDIR` points).
 
 buildflags
 ----------
