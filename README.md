@@ -35,53 +35,57 @@ on the current location in the file system.
 
 A `buildflags.conf` may look like this:
 
-	/usr/ports/*{
-		WRKDIRPREFIX=/tmp/obj
-	
-		# Porting
-		DEVELOPER
-		.sinclude "${HOME}/mk/makeplist.mk"
-	
-		# Clustering
-		USE_DISTCC
-		USE_CCACHE
-	
-		# Common settings that are applied to all ports in hope to do some good
-		TEX_DEFAULT=texlive
-		PAPERSIZE=a4
-	
-		# Problems with ccache/distcc
-		*/audio/cmus             {!USE_CCACHE !USE_DISTCC}
-		*/archivers/lzip         {!USE_CCACHE !USE_DISTCC}
-	}
-
-It results in the following `make` output:
-
-	.if ${.CURDIR:M/usr/ports/*}
+~~~
+/usr/ports/*{
 	WRKDIRPREFIX=/tmp/obj
-	
+
 	# Porting
-	DEVELOPER=              yes
+	DEVELOPER
 	.sinclude "${HOME}/mk/makeplist.mk"
-	
+
 	# Clustering
-	USE_DISTCC=             yes
-	USE_CCACHE=             yes
-	
+	USE_DISTCC
+	USE_CCACHE
+
 	# Common settings that are applied to all ports in hope to do some good
 	TEX_DEFAULT=texlive
 	PAPERSIZE=a4
-	
+
 	# Problems with ccache/distcc
-	.if ${.CURDIR:M*/audio/cmus}
-	.undef USE_CCACHE
-	.undef USE_DISTCC
-	.endif # */audio/cmus
-	.if ${.CURDIR:M*/archivers/lzip}
-	.undef USE_CCACHE
-	.undef USE_DISTCC
-	.endif # */archivers/lzip
-	.endif # /usr/ports/*
+	*/audio/cmus             {!USE_CCACHE !USE_DISTCC}
+	*/archivers/lzip         {!USE_CCACHE !USE_DISTCC}
+}
+~~~
+
+It results in the following `make` output:
+
+~~~
+.if ${.CURDIR:M/usr/ports/*}
+WRKDIRPREFIX=/tmp/obj
+
+# Porting
+DEVELOPER=              yes
+.sinclude "${HOME}/mk/makeplist.mk"
+
+# Clustering
+USE_DISTCC=             yes
+USE_CCACHE=             yes
+
+# Common settings that are applied to all ports in hope to do some good
+TEX_DEFAULT=texlive
+PAPERSIZE=a4
+
+# Problems with ccache/distcc
+.if ${.CURDIR:M*/audio/cmus}
+.undef USE_CCACHE
+.undef USE_DISTCC
+.endif # */audio/cmus
+.if ${.CURDIR:M*/archivers/lzip}
+.undef USE_CCACHE
+.undef USE_DISTCC
+.endif # */archivers/lzip
+.endif # /usr/ports/*
+~~~
 
 [bsda:obj](bsda_obj.md)
 -----------------------
