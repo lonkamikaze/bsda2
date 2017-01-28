@@ -111,7 +111,7 @@ It was presented at EuroBSDCon 2010.
 Install
 -------
 
-To install the scripts go into the src/ directory and run the command:
+To install the scripts run `install.sh`:
 
 	./install.sh
 
@@ -120,24 +120,25 @@ following way:
 
 	-parameter=value
 
-* -destidr=
+* `-destidr=`
   This is prepended to prefix and can be used to install into a
   jail/chroot, other mounted systems etc. It does not affect
   where installed scripts assume they are.
-* -prefix=/usr/local
+* `-prefix=/usr/local`
   The prefix that separates the files to be installed from the
   base system.
-* -datadir=$prefix/share/bsda2
+* `-datadir=$prefix/share/bsda2`
   The data dir where shared code is installed.
-* -nodoc
-  Set this to not install manual pages.
+* `-docsdir=$prefix/share/doc/bsda2`
+  The location to install markdown documentation files.
+* `-nodoc`
+  Set this to not install manual pages and markdown documentation.
 
-Be aware that install.sh and deinstall.sh have to be called with the same
-parameters.
+Be aware that `install.sh` and `deinstall.sh` have to be called with the same
+arguments to install/deinstall the same files.
 
 LICENSE
 -------
 
 For those who care about this stuff, this project is available under
 the [ISC license](LICENSE.md).
-
