@@ -18,6 +18,9 @@ src/pkg_libchk,0755,%%PREFIX%%/sbin/pkg_libchk
 src/pkg_libchk.1,0644,%%MAN%%/man1/pkg_libchk.1.gz
 src/pkg_libchk.sh,0644,%%DATADIR%%/pkg_libchk.sh
 src/pkg_options.sh,0644,%%DATADIR%%/pkg_options.sh
+bsda_obj.md,0644,%%DOCSDIR%%/bsda_obj.md
+LICENSE.md,0644,%%DOCSDIR%%/LICENSE.md
+README.md,0644,%%DOCSDIR%%/README.md
 "
 
 IFS='
@@ -25,14 +28,14 @@ IFS='
 
 for parameter in "$@"; {
 	case "${parameter%%=*}" in
-	-destdir | -prefix | -datadir)
+	-destdir | -prefix | -datadir | -docsdir)
 		value="${parameter#*=}"
 		parameter="${parameter%%=*}"
 		parameter="${parameter#-}"
 		eval "$parameter='$value'"
 		;;
 	-nodoc)
-		files="$(echo "$files" | grep -v '%%MAN%%')"
+		files="$(echo "$files" | grep -vF "%%MAN%%${IFS}%%DOCSDIR%%")"
 		;;
 	*)
 		echo "Unknown parameter '$parameter'." 1>&2
@@ -44,6 +47,7 @@ for parameter in "$@"; {
 : ${destdir=}
 : ${prefix=/usr/local}
 : ${datadir=$prefix/share/bsda2}
+: ${docsdir=$prefix/share/doc/bsda2}
 
 # If set, destdir should end with a /
 destdir=${destdir:+${destdir%/}/}
@@ -51,6 +55,7 @@ destdir=${destdir:+${destdir%/}/}
 replace="
 %%PREFIX%%,$prefix
 %%DATADIR%%,$datadir
+%%DOCSDIR%%,$docsdir
 %%MAN%%,$prefix/man
 "
 

@@ -9,3 +9,4 @@ for file in $files; {
 	rm "$target"
 }
 test -n "$datadir" && rmdir "$destdir$datadir"
+test -n "$datadir" && rmdir "$destdir$docsdir"
