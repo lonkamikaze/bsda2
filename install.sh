@@ -16,5 +16,3 @@ for file in $files; {
 	test "${target%.gz}" != "$target" && gzip -f9 "${target%.gz}"
 	chmod "$mode" "$target"
 }
-
-

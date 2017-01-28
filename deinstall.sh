@@ -4,8 +4,8 @@
 
 for file in $files; {
 	test -z "$file" && continue
-	target="${file##*,}"
+	target="${destdir}${file##*,}"
 	echo "deleting: $target"
 	rm "$target"
 }
-
+test -n "$datadir" && rmdir "$destdir$datadir"
