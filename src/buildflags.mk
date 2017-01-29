@@ -8,7 +8,7 @@ BUILDFLAGS_DISTCC?=    %%PREFIX%%/bin/distcc
 BUILDFLAGS_CCACHE?=    %%PREFIX%%/bin/ccache
 
 # Parse configurations
-.if exists(${BUILDFLAGS_CONF}) && exists(${BUILDFLAGS_USER)
+.if exists(${BUILDFLAGS_CONF}) && exists(${BUILDFLAGS_USER})
 BUILDFLAGS!=           test    "${BUILDFLAGS_TMP}" -nt "${BUILDFLAGS_CONF}" \
                             -a "${BUILDFLAGS_TMP}" -nt "${BUILDFLAGS_USER}" \
                        || "${BUILDFLAGS_PARSER}" "${BUILDFLAGS_USER}" \
