@@ -28,7 +28,7 @@ IFS='
 
 for parameter in "$@"; {
 	case "${parameter%%=*}" in
-	-destdir | -prefix | -datadir | -docsdir)
+	-destdir | -prefix | -datadir | -docsdir | -tmp)
 		value="${parameter#*=}"
 		parameter="${parameter%%=*}"
 		parameter="${parameter#-}"
@@ -48,6 +48,7 @@ for parameter in "$@"; {
 : ${prefix=/usr/local}
 : ${datadir=$prefix/share/bsda2}
 : ${docsdir=$prefix/share/doc/bsda2}
+: ${tmp=/tmp}
 
 # If set, destdir should end with a /
 destdir=${destdir:+${destdir%/}/}
@@ -57,6 +58,7 @@ replace="
 %%DATADIR%%,$datadir
 %%DOCSDIR%%,$docsdir
 %%MAN%%,$prefix/man
+%%TMP%%,$tmp
 "
 
 replace_cmd="sed -e '/#HACK/,/#hack/d'"
@@ -81,4 +83,3 @@ for substitution in $replace; {
 }
 
 files="$(echo "$files" | eval "$replace_cmd")"
-
