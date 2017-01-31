@@ -10,10 +10,7 @@ readonly _pkg_query_=1
 #	The packages to select
 #
 pkg:query:select() {
-	local fmt
-	fmt="$1"
-	shift
-	/usr/sbin/pkg query "$fmt" "$@"
+	/usr/sbin/pkg query "$@"
 }
 
 #
