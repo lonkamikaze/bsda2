@@ -145,22 +145,6 @@ pkg:info:files() {
 }
 
 #
-# Outputs a list of checksums for all the files of the given packages.
-#
-# The checksums are single quoted so that empty checksums count during
-# parameter expansion.
-#
-# @param @
-#	A list of packages
-#
-pkg:info:checksums() {
-	/usr/sbin/pkg info -R "$@" 2>&1 | /usr/bin/awk "
-		/^files {/{f=1;next}
-		/^}/{f=0}
-		f{sub(/\";\$/,\"\");sub(/.*\"/,\"\");printf(\"'%s'\n\",\$0)}"
-}
-
-#
 # Outputs the origins of the given packages.
 #
 # @param @
