@@ -1,5 +1,6 @@
 files="
 src/bsda_container.sh,0644,%%DATADIR%%/bsda_container.sh
+src/bsda_dialog.sh,0644,%%DATADIR%%/bsda_dialog.sh
 src/bsda_fifo.sh,0644,%%DATADIR%%/bsda_fifo.sh
 src/bsda_obj.sh,0644,%%DATADIR%%/bsda_obj.sh
 src/bsda_opts.sh,0644,%%DATADIR%%/bsda_opts.sh
@@ -18,6 +19,10 @@ src/pkg_libchk,0755,%%PREFIX%%/sbin/pkg_libchk
 src/pkg_libchk.1,0644,%%MAN%%/man1/pkg_libchk.1.gz
 src/pkg_libchk.sh,0644,%%DATADIR%%/pkg_libchk.sh
 src/pkg_options.sh,0644,%%DATADIR%%/pkg_options.sh
+src/pkg_query.sh,0644,%%DATADIR%%/pkg_query.sh
+src/pkg_trim,0755,%%PREFIX%%/sbin/pkg_trim
+src/pkg_trim.8,0644,%%MAN%%/man8/pkg_trim.8.gz
+src/pkg_trim.sh,0644,%%DATADIR%%/pkg_trim.sh
 bsda_obj.md,0644,%%DOCSDIR%%/bsda_obj.md
 LICENSE.md,0644,%%DOCSDIR%%/LICENSE.md
 README.md,0644,%%DOCSDIR%%/README.md
