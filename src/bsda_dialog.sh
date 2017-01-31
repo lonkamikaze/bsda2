@@ -3,17 +3,35 @@ readonly _bsda_dialog_=1
 
 . ${bsda_dir:-.}/bsda_obj.sh
 
-bsda:obj:createClass bsda:dialog:Dialog \
-	r:private:desc \
-	r:private:args \
-	i:private:init \
-	c:private:clean \
-	x:private:call \
-	x:public:setArgs \
-	x:public:checklist \
-	x:public:menu \
-	x:public:msgbox
+#
+# Provides a slim wrapper around dialog(1).
+#
 
+#
+# A slim wrapper around dialog(1).
+#
+bsda:obj:createClass bsda:dialog:Dialog \
+	r:private:desc     "A file descriptor used when calling dialog(1)" \
+	r:private:args     "Additional arguments to dialog(1)" \
+	i:private:init     "The constructor" \
+	c:private:clean    "The destructor" \
+	x:private:call     "Perform a call to dialog(1)" \
+	x:public:setArgs   "Set additional arguments to dialog(1)" \
+	x:public:checklist "Call dialog --checklist" \
+	x:public:menu      "Call dialog --menu" \
+	x:public:msgbox    "Call dialog --msgbox"
+
+#
+# The constructor.
+#
+# Sets up a file descriptor to route dialog's use of stdout around
+# the variable assignment that catches the output of dialog.
+#
+# Construction fails if no more file descriptors are available.
+#
+# @param @
+#	Additional arguments to dialog, see dialog(1)
+#
 bsda:dialog:Dialog.init() {
 	local desc
 	bsda:obj:getDesc desc || return
@@ -22,6 +40,11 @@ bsda:dialog:Dialog.init() {
 	$this.setArgs "$@"
 }
 
+#
+# The destructor.
+#
+# Closes and releases the file descriptor.
+#
 bsda:dialog:Dialog.clean() {
 	local desc
 	$this.getDesc desc
@@ -29,6 +52,16 @@ bsda:dialog:Dialog.clean() {
 	bsda:obj:releaseDesc "$desc"
 }
 
+#
+# Perform a call to dialog(1) catching and returning its output.
+#
+# @param &1
+#	The variable to return the output to
+# @param @
+#	The arguments to the dialog call
+# @return
+#	See dialog(1)
+#
 bsda:dialog:Dialog.call() {
 	local ret result
 	result="$(
@@ -42,6 +75,12 @@ bsda:dialog:Dialog.call() {
 	return $ret
 }
 
+#
+# Set additional arguments to dialog(1).
+#
+# @param @
+#	Arguments to use for following dialog(1) calls
+#
 bsda:dialog:Dialog.setArgs() {
 	local IFS
 	IFS='
@@ -49,6 +88,18 @@ bsda:dialog:Dialog.setArgs() {
 	setvar ${this}args "$*"
 }
 
+#
+# Creates a checklist.
+#
+# @param &1
+#	The variable to return dialog's output to
+# @param 2
+#	The checklist label
+# @param @
+#	[ tag item status ] …
+# @return
+#	See dialog(1)
+#
 bsda:dialog:Dialog.checklist() {
 	local retvar text result
 	retvar="$1"
@@ -60,6 +111,18 @@ bsda:dialog:Dialog.checklist() {
 	return $ret
 }
 
+#
+# Creates a menu.
+#
+# @param &1
+#	The variable to return dialog's output to
+# @param 2
+#	The menu label
+# @param @
+#	[ tag item ] …
+# @return
+#	See dialog(1)
+#
 bsda:dialog:Dialog.menu() {
 	local retvar text result
 	retvar="$1"
@@ -71,6 +134,14 @@ bsda:dialog:Dialog.menu() {
 	return $ret
 }
 
+#
+# Creates a msgbox.
+#
+# @param &1
+#	The variable to return dialog's output to
+# @param 2
+#	The text
+#
 bsda:dialog:Dialog.msgbox() {
 	$class.call "$1" --msgbox "$2" 0 0
 }
