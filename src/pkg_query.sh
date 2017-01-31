@@ -2,11 +2,15 @@ test -n "$_pkg_query_" && return 0
 readonly _pkg_query_=1
 
 #
+# Provides wrappers around pkg-query(8).
+#
+
+#
 # Return info for the given packages.
 #
 # @param 1
 #	The format string
-# @param *
+# @param @
 #	The packages to select
 #
 pkg:query:select() {
@@ -38,7 +42,7 @@ pkg:query:auto() {
 #
 # @param 1
 #	The format string
-# @param *
+# @param @
 #	The packages to get dependencies of
 #
 pkg:query:depends() {
