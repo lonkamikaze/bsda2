@@ -4,8 +4,10 @@ readonly _bsda_dialog_=1
 . ${bsda_dir:-.}/bsda_obj.sh
 
 bsda:obj:createClass bsda:dialog:Dialog \
+	r:private:desc \
 	r:private:args \
 	i:private:init \
+	c:private:clean \
 	x:private:call \
 	x:public:setArgs \
 	x:public:checklist \
@@ -13,18 +15,28 @@ bsda:obj:createClass bsda:dialog:Dialog \
 	x:public:msgbox
 
 bsda:dialog:Dialog.init() {
-	test -w /dev/tty || return
+	local desc
+	bsda:obj:getDesc desc || return
+	setvar ${this}desc "$desc"
+	eval "exec $desc>&1"
 	$this.setArgs "$@"
+}
+
+bsda:dialog:Dialog.clean() {
+	local desc
+	$this.getDesc desc
+	eval "exec $desc>&-"
+	bsda:obj:releaseDesc "$desc"
 }
 
 bsda:dialog:Dialog.call() {
 	local ret result
 	result="$(
 		$this.getArgs args
+		$this.getDesc desc
 		shift
 		(/usr/bin/dialog $args --backtitle "${0##*/}" "$@" \
-		                 > /dev/tty ) 2>&1
-	)"
+		                 >&$desc ) 2>&1)"
 	ret=$?
 	$caller.setvar "$1" "$result"
 	return $ret
