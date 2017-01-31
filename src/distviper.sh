@@ -147,7 +147,7 @@ distviper:Session.params() {
 #
 distviper:Session.help() {
 	local usage
-	$1.usage usage "\t%.2s, %-18s  %s\n"
+	$1.usage usage "\t%.2s, %-13s  %s\n"
 	$($this.getTerm).stdout "usage: distviper [-dhinqv] [keep]
 $(echo -n "$usage" | /usr/bin/sort -f)"
 	exit 0
