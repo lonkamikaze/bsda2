@@ -262,7 +262,7 @@ distviper:Session.run() {
 	$this.getPortsdir portsdir
 	$this.getDistdir distdir
 
-	$this.status "Creating a list of $keep distfiles and their checksums"
+	$this.status "Creating a list of $keep distfiles"
 	keepSums="$($class.run_find_$keep)"
 	$this.status "Extracting a list of $keep distfiles"
 	keepFiles="$(echo "$keepSums" | /usr/bin/sed 's/|.*//')"
