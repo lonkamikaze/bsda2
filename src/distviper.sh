@@ -297,8 +297,13 @@ distviper:Session.run() {
 	local rmcmd rmflags
 	rmcmd=/bin/rm
 	rmflags="-f"
-	$flags.check QUIET -eq 0       && rmflags="$rmflags$IFS-v"
-	$flags.check INTERACTIVE -ne 0 && rmflags="$rmflags$IFS-i"
+	if $flags.check INTERACTIVE -eq 0; then
+		# !interactive && !quiet => -v
+		$flags.check QUIET -eq 0 && rmflags="$rmflags$IFS-v"
+	else
+		# interactive => -i
+		rmflags="$rmflags$IFS-i"
+	fi
 
 	if $flags.check DEMO -ne 0; then
 		rmcmd=echo
