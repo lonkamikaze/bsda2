@@ -310,7 +310,6 @@ The following variable names may not be used in a method:
 
 - `_return`
 - `_var`
-- `_setvars`
 
 A method must always be named `<class>.<method>`. So a valid implementation
 for a method named `bar` and a class named `foo` would look like this:
