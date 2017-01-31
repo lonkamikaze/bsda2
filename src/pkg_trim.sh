@@ -6,15 +6,28 @@ readonly _pkg_trim_=1
 . ${bsda_dir:-.}/bsda_container.sh
 . ${bsda_dir:-.}/bsda_opts.sh
 
-bsda:obj:createClass pkg:trim:Session \
-	r:private:dialog \
-	r:private:flags \
-	i:private:init \
-	c:private:clean \
-	x:private:help \
-	x:private:params \
-	x:private:run
+#
+# A dialog(1) driven script to get rid of unwanted leaf packages.
+#
 
+#
+# The session class for pkg_trim.
+#
+bsda:obj:createClass pkg:trim:Session \
+	r:private:dialog "A bsda:dialog:Dialog instance" \
+	r:private:flags  "A bsda:opts:Flags instance" \
+	i:private:init   "The constructor" \
+	c:private:clean  "The destructor" \
+	x:private:help   "Print usage and exit" \
+	x:private:params "Handle command line arguments" \
+	x:private:run    "Perform package selection and processing"
+
+#
+# The session constructor.
+#
+# @param @
+#	The command line arguments
+#
 pkg:trim:Session.init() {
 	bsda:dialog:Dialog ${this}dialog || return
 	bsda:opts:Flags ${this}flags
@@ -23,11 +36,20 @@ pkg:trim:Session.init() {
 	$this.run
 }
 
+#
+# The destructor for this session.
+#
 pkg:trim:Session.clean() {
 	$($this.getFlags).delete
 	$($this.getDialog).delete
 }
 
+#
+# Print usage and exit.
+#
+# @param 1
+#	A reference to a bsda:opts:Options instance
+#
 pkg:trim:Session.help() {
 	local usage
 	$1.usage usage "\t%.2s, %-8s  %s\n"
@@ -36,6 +58,12 @@ $(echo -n "$usage" | /usr/bin/sort -f)"
 	exit 0
 }
 
+#
+# Process command line arguments.
+#
+# @param @
+#	The command line arguments
+#
 pkg:trim:Session.params() {
 	local options flags
 	$this.getFlags flags
@@ -72,6 +100,21 @@ pkg:trim:Session.params() {
 	$options.delete
 }
 
+#
+# Static function called by pkg:trim:Session.run().
+#
+# This function makes changes within the context of the caller.
+#
+# @param showstack,checkedstack
+#	Updated with the context of the last dialog call
+# @param show,checked,shown,allchecked,undo
+#	Setup for the next dialog call
+# @param dialog,unlist,auto
+#	Used by pkg:trim:Session.run_review()
+# @return
+#	May fail if the selection process is completed and
+#	pkg:strim:Session.run_review() fails
+#
 pkg:trim:Session.run_proceed() {
 	$showstack.push "$show"
 	$checkedstack.push "$checked"
@@ -85,6 +128,16 @@ pkg:trim:Session.run_proceed() {
 	fi
 }
 
+#
+# Static function called by pkg:trim:Session.run().
+#
+# This function makes changes within the context of the caller.
+#
+# @param showstack,checkedstack
+#	Used to restore the context of the previous dialog call
+# @param show,checked,shown,allchecked,undo
+#	Restored to match the previous dialog call
+#
 pkg:trim:Session.run_rollback() {
 	$showstack.pop show
 	$checkedstack.pop checked
@@ -94,6 +147,25 @@ pkg:trim:Session.run_rollback() {
 	undo=1
 }
 
+#
+# Static function called by pkg:trim:Session.run_proceed().
+#
+# This function makes changes within the context of the caller.
+#
+# @param dialog
+#	The bsda:dialog:Dialog instance to use
+# @param unlist
+#	Set to a list of packages that were unchecked even though
+#	their autoremove flag is set
+# @param shown,allchecked,auto
+#	Used to setup unlist
+# @param tuples
+#	Used for display
+# @param showstack,checkedstack,show,checked,undo
+#	Used by pkg:trim:Session.run_rollback()
+# @return
+#	May return any unhandled failure of dialog(1)
+#
 pkg:trim:Session.run_review() {
 	local selected
 	$dialog.setArgs --extra-button --extra-label Back
@@ -122,14 +194,36 @@ pkg:trim:Session.run_review() {
 	esac
 }
 
+#
+# Perform package selection and processing.
+#
+# The following process is performed:
+#
+# 1. Package selection
+#    1. Start with a list of leaf packages
+#    2. Show a dialog to select packages
+#    3. Create a list of new leaf packages
+#    4. Unless empty go back to 1.2.
+#    5. Ask for confirmation of the selection
+# 2. Ask what to do, delete or mark for autoremove
+# 3. Perform delete or mark for autoremove
+#
+# @return
+#	May return any unhandled failure of dialog(1)
+#
 pkg:trim:Session.run() {
 	local IFS flags ret fmt dialog auto
 	IFS='
 '
 	$this.getFlags flags
+
+	# Use name-version packages unless PKG_ORIGIN is set
 	fmt="%n-%v"
 	$flags.check PKG_ORIGIN -ne 0 && fmt="%o"
+
+	# Get the dialog
 	$this.getDialog dialog
+	# List of packages with their autoremove flag set
 	readonly auto="$(pkg:query:auto "$fmt")"
 
 	local show shown allchecked
@@ -138,7 +232,7 @@ pkg:trim:Session.run() {
 	shown=
 	allchecked=
 
-	# Get packages freed up by all the selected packages
+	# Select packages until no new leaves show up
 	local undo unlist showstack checkedstack text checked count tuples
 	undo=
 	unlist=
@@ -201,6 +295,7 @@ pkg:trim:Session.run() {
 	             Autoremove "Mark selected packages for 'pkg autoremove'" \
 	             Delete     "Perform 'pkg delete' with selected packages" \
 	|| return
+	# Perform action
 	yes=
 	$flags.check PKG_YES -ne 0 && yes=-y
 	case "$action" in
