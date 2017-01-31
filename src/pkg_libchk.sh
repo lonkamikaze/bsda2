@@ -101,7 +101,7 @@ pkg:libchk:Session.params() {
 	pkg:options:append $options
 	$options.append \
 	CLEAN     -c  --clean     'Turn off progress output' \
-	HELP      -h  --help      'Display the list of commands' \
+	HELP      -h  --help      'Display the list of command arguments' \
 	JOBS      -j* --jobs      'Number of parallel jobs' \
 	NO_FILTER -m  --no-filter 'Do not perform false positive filtering' \
 	NO_COMPAT -n  --no-compat 'Do not report compat dependencies' \

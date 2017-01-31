@@ -66,7 +66,7 @@ distviper:Session.params() {
 
 	bsda:opts:Options options \
 	DEMO        -d --demo        'Just print what would have been done' \
-	HELP        -h --help        'Display the list of commands' \
+	HELP        -h --help        'Display the list of command arguments' \
 	INTERACTIVE -i --interactive 'Ask for confirmation before deleting' \
 	NOCHKSUM    -n --no-checksum 'Skip checksum checks' \
 	QUIET       -q --quiet       'Do not print anything' \
