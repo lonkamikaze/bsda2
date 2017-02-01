@@ -19,8 +19,22 @@ Other members of the original bsdadminscripts are not provided, because
 they have become obsolete due to changes in the FreeBSD operating
 system.
 
-pkg_libchk
-----------
+TOC
+---
+
+1. [Tools](#tools)
+   1. [pkg_libchk](#pkg_libchk)
+   2. [pkg_trim](#pkg_trim)
+   3. [distviper](#distviper)
+   4. [buildflags](#buildflags)
+2. [bsda:obj](#bsdaobj)
+3. [Install](#install)
+3. [LICENSE](#license)
+
+Tools
+-----
+
+### pkg_libchk
 
 The pkg_libchk tool provides the means to find packages that need to be
 rebuild/reinstalled, because they have been linked to a library that
@@ -31,8 +45,7 @@ a decent job of avoiding false positives.
 
 The recode is also 6 times faster than the old script.
 
-pkg_trim
---------
+### pkg_trim
 
 The pkg_trim tool provides a convenient means to get rid of (no longer
 required) packages.
@@ -41,14 +54,12 @@ It presents leaf packages (packages that are not required by other
 packages) in a checklist and offers the option to delete them or
 mark them for later removal with `pkg autoremove`.
 
-distviper
----------
+### distviper
 
 The distviper tool removes obsolete files from `/usr/ports/distfiles`
 (or wherever `DISTDIR` points).
 
-buildflags
-----------
+### buildflags
 
 Buildflags provides a configuration wrapper to set `make` flags  depending
 on the current location in the file system.
