@@ -48,42 +48,42 @@ Finally, during the [31C3][5] I rewrote `pkg_libchk` on a whim and revived
 TABLE OF CONTENTS
 -----------------
 
-1. DEFINING CLASSES
-   1. Basic Class Creation
-   2. Inheritance
-   3. Access Scope
-   4. Interfaces
-2. IMPLEMENTING METHODS
-   1. Regular Methods
-   2. Special Methods
-3. CONSTRUCTOR
-4. RESET
-5. DESTRUCTOR
-6. COPY
-7. GET
-8. SET
-9. TYPE CHECKS
-    1. Object Type Checks
-    2. Primitive Type Checks
-10. SERIALISE
-    1. Serialising
-    2. Deserialising
-    3. Filtering
-11. REFLECTION & REFACTORING
-    1. Attributes
-    2. Methods
-    3. Parent Classes and Interfaces
-12. FORKING PROCESSES
-    1. Creating Child Processes
-    2. Detaching from the Execution Context
-13. GARBAGE COLLECTION
-14. FILE DESCRIPTORS
-15. COMPATIBILITY
-    1. POSIX
-    2. bash - local
-    3. bash - setvar
-    4. bash - Command Substitution Variable Scope
-    5. bash - alias
+1. [DEFINING CLASSES](#1-defining-classes)
+   1. [Basic Class Creation](#1-1-basic-class-creation)
+   2. [Inheritance](#1-2-inheritance)
+   3. [Access Scope](#1-3-access-scope)
+   4. [Interfaces](#1-4-interfaces)
+2. [IMPLEMENTING METHODS](#2-implementing-methods)
+   1. [Regular Methods](#2-1-regular-methods)
+   2. [Special Methods](#2-2-special-methods)
+3. [CONSTRUCTOR](#3-constructor)
+4. [RESET](#4-reset)
+5. [DESTRUCTOR](#5-destructor)
+6. [COPY](#6-copy)
+7. [GET](#7-get)
+8. [SET](#8-set)
+9. [TYPE CHECKS](#9-type-checks)
+    1. [Object Type Checks](#9-1-object-type-checks)
+    2. [Primitive Type Checks](#9-2-primitive-type-checks)
+10. [SERIALISE](#10-serialise)
+    1. [Serialising](#10-1-serialising)
+    2. [Deserialising](#10-2-deserialising)
+    3. [Filtering](#10-3-filtering)
+11. [REFLECTION & REFACTORING](#11-reflection-refactoring)
+    1. [Attributes](#11-1-attributes)
+    2. [Methods](#11-2-methods)
+    3. [Parent Classes and Interfaces](#11-3-parent-classes-and-interfaces)
+12. [FORKING PROCESSES](#12-forking-processes)
+    1. [Creating Child Processes](#12-1-creating-child-processes)
+    2. [Detaching from the Execution Context](#12-2-detaching-from-the-execution-context)
+13. [GARBAGE COLLECTION](#13-garbage-collection)
+14. [FILE DESCRIPTORS](#14-file-descriptors)
+15. [COMPATIBILITY](#15-compatibility)
+    1. [POSIX](#15-1-posix)
+    2. [bash - local](#15-2-bash-local)
+    3. [bash - setvar](#15-3-bash-setvar)
+    4. [bash - Command Substitution Variable Scope](#15-4-bash-command-substitution-variable-scope)
+    5. [bash - alias](#15-5-bash-alias)
 
 
 
