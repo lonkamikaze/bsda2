@@ -65,7 +65,7 @@ TABLE OF CONTENTS
 9. TYPE CHECKS
     1. Object Type Checks
     2. Primitive Type Checks
-10. SERIALIZE
+10. SERIALISE
     1. Serialising
     2. Deserialising
     3. Filtering
@@ -245,7 +245,7 @@ It is possible to widen the scope of a method by redeclaring it.
 Implementations of generic solutions normally require the classes using them
 to conform to a certain interface (e.g. in a listener and notify pattern).
 
-Technically this can be realized with inheritance, but this is often a dirty
+Technically this can be realised with inheritance, but this is often a dirty
 solution, especially when conformance to several interfaces is required.
 
 To circumvent the consistency problems imposed by multiple inheritance the
@@ -397,7 +397,7 @@ first one, which is the variable the constructor stores the object
 reference in. It can also be called directly (e.g. after a call to the
 `reset()` method).
 
-The purpose of an init method is to initialize attributes during class
+The purpose of an init method is to initialise attributes during class
 creation. If the current class is derived from another class it might
 be a good idea to call the init method of the parent class. This is
 done by calling `$class.superInit()`.
@@ -633,11 +633,11 @@ in the code:
 
 
 
-## 10. SERIALIZE
+## 10. SERIALISE
 
 This documents the process of serialisation and deserialisation.
 Serialization is the process of turning data structures into string
-representations. Serialized objects can be stored in a file and reloaded
+representations. Serialised objects can be stored in a file and reloaded
 at a later time. They can be passed on to other processess, through a file
 or a pipe. They can even be transmitted over a network through nc(1).
 
@@ -678,7 +678,7 @@ This example loads the object `$configuration` from a file and restores it.
 After the last line the `$configuration` object can be used exactly like
 in the previous session.
 
-Serialized data is executable shell code that can be fed to eval, however
+Serialised data is executable shell code that can be fed to eval, however
 the `bsda:obj:deserialise()` function should always be used to ensure that
 deserialisation happens in a controlled environment.
 
