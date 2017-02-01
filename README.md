@@ -13,10 +13,11 @@ I started this long overdue overhaul of the BSD Administration Scripts
 at the 31C3 (Hamburg, 2014).
 
 It provides a recode of pkg_libchk, distviper and a cleaned up version
-of the buildflags toolset.
+of the buildflags toolset. The first tool exclusive to bsda2 is pkg_trim.
 
-All other contents of the original bsdadminscripts can be considered
-obsolete.
+Other members of the original bsdadminscripts are not provided, because
+they have become obsolete due to changes in the FreeBSD operating
+system.
 
 pkg_libchk
 ----------
@@ -29,6 +30,16 @@ What sets its apart from other such tools or pkg-check, is that it makes
 a decent job of avoiding false positives.
 
 The recode is also 6 times faster than the old script.
+
+pkg_trim
+--------
+
+The pkg_trim tool provides a convenient means to get rid of (no longer
+required) packages.
+
+It presents leaf packages (packages that are not required by other
+packages) in a checklist and offers the option to delete them or
+mark them for later removal with `pkg autoremove`.
 
 distviper
 ---------

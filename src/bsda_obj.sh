@@ -507,7 +507,7 @@ bsda:obj:createClass() {
 	# Create constructor.
 	eval "
 		$class() {
-			local _return this class
+			local this class
 			class=$class
 
 			eval \"
@@ -521,21 +521,24 @@ bsda:obj:createClass() {
 			# Create method instances.
 			$bsda_obj_namespace:createMethods $class $classPrefix \$this \"$methods\"
 
-			# Return the object reference.
-			if [ -n \"\$1\" ]; then
-				setvar \"\$1\" \$this
-			else
-				echo \$this
-			fi
-
 			${clean:+
 				bsda_obj_freeOnExit=\"\$bsda_obj_freeOnExit\$this$IFS\"
 			}
 
 			# If this object construction is part of a copy() call,
 			# this constructor is done.
-			test -n \"\$bsda_obj_doCopy\" && return 0
+			if [ -n \"\$bsda_obj_doCopy\" ]; then
+				# Return the object reference.
+				if [ -n \"\$1\" ]; then
+					setvar \"\$1\" \$this
+				else
+					echo \$this
+				fi
+				return 0
+			fi
 
+			local _return _var
+			_var=\"\$1\"
 			${init:+
 				# Cast the reference variable from the parameters.
 				shift
@@ -543,11 +546,18 @@ bsda:obj:createClass() {
 				$init \"\$@\"
 				_return=\$?
 				# Destroy the object on failure.
-				test \$_return -ne 0 && \$this.delete
-				return \$_return
+				if [ \$_return -ne 0 ]; then
+					\$this.delete
+					return \$_return
+				fi
 			}
 
-			# Only if no init method is given.
+			# Return the object reference.
+			if [ -n \"\$_var\" ]; then
+				setvar \"\$_var\" \$this
+			else
+				echo \$this
+			fi
 			return 0
 		}
 	"

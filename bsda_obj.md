@@ -310,7 +310,6 @@ The following variable names may not be used in a method:
 
 - `_return`
 - `_var`
-- `_setvars`
 
 A method must always be named `<class>.<method>`. So a valid implementation
 for a method named `bar` and a class named `foo` would look like this:
@@ -417,7 +416,7 @@ method fails.
 
 ## 3. CONSTRUCTOR
 
-This block documents the use of a constructor created by the
+This section documents the use of a constructor created by the
 `bsda:obj:createClass()` function below.
 
 The name of the class acts as the name of the constructor. The first
@@ -455,7 +454,7 @@ Return values:
 
 ## 4. RESET
 
-This block documents the use of a resetter created by the
+This section documents the use of a resetter created by the
 `bsda:obj:createClass()` function below.
 
 The resetter first calls the cleanup method with all parameters, if one
@@ -489,7 +488,7 @@ Return values:
 
 ## 5. DESTRUCTOR
 
-This block documents the use of a destructor created by the
+This section documents the use of a destructor created by the
 `bsda:obj:createClass()` function below.
 
 The destructor calls a cleanup method with all parameters, if
@@ -539,7 +538,7 @@ The objects in this list can be deleted by calling:
 
 ## 6. COPY
 
-This block documents the use of a copy method created by the
+This section documents the use of a copy method created by the
 `bsda:obj:createClass()` function below.
 
 The copy method creates a new object of the same type and copies all
@@ -555,7 +554,7 @@ variable `foobar`. The new object will be referenced by the variable
 
 ## 7. GET
 
-This block documents the use of a getter method created by the
+This section documents the use of a getter method created by the
 `bsda:obj:createClass()` function below.
 
 A getter method either outputs an attribute value to stdout or stores it
@@ -576,7 +575,7 @@ Arguments:
 
 ## 8. SET
 
-This block documents the use of a setter method created by the
+This section documents the use of a setter method created by the
 `bsda:obj:createClass()` function below.
 
 A setter method stores a value in an attribute.
@@ -600,7 +599,7 @@ This framework supplies basic type checking facilities.
 
 ### 9.1. Object Type Checks
 
-This block documents the use of the static type checking method created
+This section documents the use of the static type checking method created
 by the `bsda:obj:createClass()` and `bsda:obj:createInterface()` function below.
 
 The type checking method `isInstance()` takes an argument string and checks

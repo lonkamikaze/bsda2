@@ -1,0 +1,43 @@
+.Dd 1 February, 2017
+.Dt PKG_TRIM 8
+.Os
+.Sh NAME
+.Nm pkg_trim
+.Nd select and remove unwanted leaf packages
+.Sh SYNOPSIS
+.Nm
+.Op Fl hoy
+.Sh DESCRIPTION
+The
+.Nm
+script performs dialog driven selection of leaf packages. After completing 
+selection, the user is asked to either update the autoremove flags
+of the selected packages or delete them immediately.
+.Sh OPTIONS
+The following options are supported:
+.Bl -tag -width indent
+.It Fl h -help
+Displays the available options.
+.It Fl o -origin
+List package origins instead of names.
+.It Fl y -yes
+Assume yes when calling
+.Xr pkg-set 8
+or
+.Xr pkg-delete 8 .
+.El
+.Sh DIAGNOSTICS
+During package selection the script may exit with the exit status
+returned by
+.Xr dialog 1 .
+During package processing the script may exit with the exit status
+returned by
+.Xr pkg-set 8
+or
+.Xr pkg-delete 8 .
+.Sh HISTORY
+The
+.Nm
+script first appeared in bsda2-0.1.
+.Sh SEE ALSO
+.Xr dialog 1 , pkg-query 8 , pkg-set 8 , pkg-delete 8
