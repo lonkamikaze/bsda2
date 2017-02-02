@@ -1,4 +1,4 @@
-Copyright © 2006 - 2016 Dominic Fandrey <kami@freebsd.org>
+Copyright © 2006 - 2017 Dominic Fandrey <kami@freebsd.org>
 
 Permission to use, copy, modify, and distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
