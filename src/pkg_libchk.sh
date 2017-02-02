@@ -98,6 +98,7 @@ pkg:libchk:Session.params() {
 	local options flags nl option
 
 	bsda:opts:Options options
+	$caller.delete $options
 	pkg:options:append $options
 	$options.append \
 	CLEAN     -c  --clean     'Turn off progress output' \
@@ -173,8 +174,6 @@ pkg:libchk:Session.params() {
 
 	# Use the remaining arguments to query for packages
 	$this.packages "$@"
-
-	$options.delete
 }
 
 #
@@ -201,6 +200,7 @@ pkg:libchk:Session.packages() {
 	local pkginfo flags pkgs warn
 	$this.getFlags flags
 	pkg:info:Env pkginfo $flags
+	$caller.delete $pkginfo
 
 	# Call pkg-info to acquire a list of packages
 	if ! $pkginfo.match pkgs "$@"; then
@@ -215,8 +215,6 @@ pkg:libchk:Session.packages() {
 	if [ -n "$warn" ]; then
 		$($this.getTerm).stderr "$warn"
 	fi
-
-	$pkginfo.delete
 
 	# Verbose output
 	if $flags.check VERBOSE -ne 0; then
