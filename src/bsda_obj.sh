@@ -542,9 +542,12 @@ bsda:obj:createClass() {
 			${init:+
 				# Cast the reference variable from the parameters.
 				shift
+				local caller
+				bsda:obj:callerSetup
 				# Call the init method.
 				$init \"\$@\"
 				_return=\$?
+				bsda:obj:callerFinish
 				# Destroy the object on failure.
 				if [ \$_return -ne 0 ]; then
 					\$this.delete
