@@ -303,6 +303,7 @@ The following methods are offered by the caller:
 | Method      | Description
 |-------------|--------------------------------------------------------------
 | `setvar`    | Sets a variable in the caller context
+| `delete`    | Deletes the given objects when returning to the caller
 | `getObject` | Returns a reference to the calling object
 | `getClass`  | Returns the name of the calling class
 
@@ -310,6 +311,8 @@ The following variable names may not be used in a method:
 
 - `_return`
 - `_var`
+- `_setvars`
+- `_delete`
 
 A method must always be named `<class>.<method>`. So a valid implementation
 for a method named `bar` and a class named `foo` would look like this:
@@ -384,6 +387,52 @@ caller context.
 If a method uses no local variables (which is only sensible in very rare
 cases), the regular shell builtin setvar can be used to overwrite variables
 in the caller context to reduce overhead.
+
+The shell offers `local` to create variables that *disappear* when
+returning from a function. Similarly bsda:obj offers the deletion
+of objects when returning to the caller via the `$caller.delete`
+method.
+
+This way it is safe to use temporary objects and return from anywhere
+within the method, without bothering with a single point of exit
+that takes care of deleting everything.
+
+The following complete example defines the classes `Foo` and `Bar`.
+`Bar` uses a temporary of Foo:
+
+~~~ bash
+. ./bsda_obj.sh
+
+bsda:obj:createClass Foo \
+	i:private:init \
+	c:private:clean \
+	x:public:use
+Foo.init() { echo "Constructing Foo instance"; }
+Foo.clean() { echo "Deleting Foo instance"; }
+Foo.use() { echo "Using Foo instance"; }
+
+bsda:obj:createClass Bar \
+	i:private:init
+Bar.init() {
+	local foo
+	Foo foo
+	$caller.delete $foo
+	$foo.use
+}
+
+Bar bar
+echo Exiting
+~~~
+
+Note that `foo` can still be used after making it temporary by calling
+`$caller.delete`. Hence the script produces the following output:
+
+~~~
+Constructing Foo instance
+Using Foo instance
+Deleting Foo instance
+Exiting
+~~~
 
 ### 2.2. Special Methods
 
