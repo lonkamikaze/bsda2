@@ -86,9 +86,7 @@ bsda:opts:Options.init() {
 bsda:opts:Options.clean() {
 	local next
 	$this.getNext next
-	if [ -n "$next" ]; then
-		$next.delete
-	fi
+	$next.delete
 }
 
 #
