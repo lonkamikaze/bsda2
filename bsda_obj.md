@@ -104,48 +104,60 @@ methods. This section describes the first step.
 
 In order to create classes this framework has to be loaded:
 
-	. ./bsda_obj.sh
+~~~ bash
+. ./bsda_obj.sh
+~~~
 
 ### 1.1. Basic Class Creation
 
 Creating a class does not require more than a class name:
 
-	bsda:obj:createClass MyClass
+~~~ bash
+bsda:obj:createClass MyClass
+~~~
 
 After the previous line the class can be used to create objects,
 and all the reserved methods are available:
 
-	MyClass myObject
-	$myObject.delete
+~~~ bash
+MyClass myObject
+$myObject.delete
+~~~
 
 It is possible to create classes as simple data structures, that do not
 require the programmer to write any methods to function:
 
-	bsda:obj:createClass MyPoint2D \
-		w:name \
-		w:x \
-		w:y
+~~~ bash
+bsda:obj:createClass MyPoint2D \
+	w:name \
+	w:x \
+	w:y
+~~~
 
 Instances of the MyPoint2D class now offer the `getName()` and `setName()`,
 `getX()` and `setX()`, `getY()` and `setY()` methods:
 
-	MyPoint2D point
-	$point.setName "upper left corner"
-	$point.setX 0
-	$point.setY 0
+~~~ bash
+MyPoint2D point
+$point.setName "upper left corner"
+$point.setX 0
+$point.setY 0
+~~~
 
 It might be a good idea to add an init method to the class in order to
 assign values:
 
-	bsda:obj:createClass MyConstPoint2D \
-		i:init \
-		r:name \
-		r:x \
-		r:y
-	
-	MyConstPoint2D.init() {
-		[ ... assign values, maybe even check types ... ]
-	}
+~~~ bash
+bsda:obj:createClass MyConstPoint2D \
+	i:init \
+	r:name \
+	r:x \
+	r:y
+
+MyConstPoint2D.init() {
+	[ … assign values, maybe even check types … ]
+}
+~~~
 
 * **NOTE**
   The init method can have an arbitrary name.
@@ -154,26 +166,30 @@ Note that the attributes were now created with `r:`, this means they only
 have get methods, no set methods. All the values are now assigned during
 object creation by the init method:
 
-	MyConstPoint2D corner "upper right corner" 640 0
+~~~ bash
+MyConstPoint2D corner "upper right corner" 640 0
+~~~
 
 ### 1.2. Inheritance
 
 If a similar class is required there is no reason to start anew, the
 previous class can be extended:
 
-	bsda:obj:createClass MyConstPoint3D extends:MyConstPoint2D \
-		i:init \
-		r:z
-	
-	MyConstPoint3D.init() {
-		# Call the init method of the parent class.
-		$class.superInit "$1" "$2" "$3" || return 1
-		# Check whether the given coordinate is an integer.
-		bsda:obj:isInt "$4" || return 1
-		setvar ${this}z "$4"
-	}
+~~~ bash
+bsda:obj:createClass MyConstPoint3D extends:MyConstPoint2D \
+	i:init \
+	r:z
 
-The init method is explicitely stated in the class declaration just for the
+MyConstPoint3D.init() {
+	# Call the init method of the parent class.
+	$class.superInit "$1" "$2" "$3" || return 1
+	# Check whether the given coordinate is an integer.
+	bsda:obj:isInt "$4" || return 1
+	setvar ${this}z "$4"
+}
+~~~
+
+The init method is explicitly stated in the class declaration just for the
 sake of readability, though not a requirement for overloading inherited
 methods, this is considered good style.
 
@@ -220,10 +236,12 @@ Namespaces are colon (the character `:`) seperated. E.g. the class
 The scope operator is added after the identifier type prefix. Only
 prefixes that declare methods can have a scope operator.
 
-	bsda:obj:createClass myNs:Person \
-		i:private:init \
-		w:private:familyName \
-		w:private:firstName
+~~~ bash
+bsda:obj:createClass myNs:Person \
+	i:private:init \
+	w:private:familyName \
+	w:private:firstName
+~~~
 
 * **NOTE**
   The constructor is always public. Declaring a scope for an init method
@@ -232,12 +250,14 @@ prefixes that declare methods can have a scope operator.
 Now the getters and setters for both `familyName` and `firstName` are private.
 It is possible to widen the scope of a method by redeclaring it.
 
-	bsda:obj:createClass myNs:Person \
-		i:private:init \
-		w:private:familyName \
-		x:public:getFamilyName \
-		w:private:firstName \
-		x:public:getFirstName
+~~~ bash
+bsda:obj:createClass myNs:Person \
+	i:private:init \
+	w:private:familyName \
+	x:public:getFamilyName \
+	w:private:firstName \
+	x:public:getFirstName
+~~~
 
 * **NOTE**
   When methods are inherited the widest declared scope always wins, no
@@ -254,8 +274,10 @@ solution, especially when conformance to several interfaces is required.
 To circumvent the consistency problems imposed by multiple inheritance the
 `bsda:obj:createInterface()` method allows the creation of interfaces:
 
-	bsda:obj:createInterface Listener \
-		x:notify
+~~~ bash
+bsda:obj:createInterface Listener \
+	x:notify
+~~~
 
 * **NOTE**
   Methods defined by an interface are always public, so there is no
@@ -266,21 +288,25 @@ To circumvent the consistency problems imposed by multiple inheritance the
 Every class conforming to the interface has to implement the methods defined
 by the interface:
 
-	bsda:obj:createClass Display implements:Listener \
-		[ ... additional method and attribute definitions ... ]
+~~~ bash
+bsda:obj:createClass Display implements:Listener \
+	[ … additional method and attribute definitions … ]
 
-	Display.notify() {
-		[ ... ]
-	}
+Display.notify() {
+	[ … ]
+}
+~~~
 
 Interfaces can also extend other interfaces.
 
 To check whether an object is derived from a class conforming to an
 interface the static isInstance method can be use:
 
-	if ! Listener.isInstance $object; then
-		[ ... ]
-	fi
+~~~ bash
+if ! Listener.isInstance $object; then
+	[ … ]
+fi
+~~~
 
 
 
@@ -320,8 +346,10 @@ The following variable names may not be used in a method:
 A method must always be named `<class>.<method>`. So a valid implementation
 for a method named `bar` and a class named `foo` would look like this:
 
-	foo.bar() {
-	}
+~~~ bash
+foo.bar() {
+}
+~~~
 
 The object reference is always available in the variable `this`, which
 performs the same function as `self` in python or `this` in Java.
@@ -330,30 +358,33 @@ performs the same function as `self` in python or `this` in Java.
 
 Attributes are resolved as `<objectId><attribute>`, the following example
 shows how to read an attribute, manipulate it and write the new value.
-Directly operating on attributes is not possible.
 
-	foo.bar() {
-		local count
-		# Get counter value.
-		bsda:obj:getVar count ${this}count
-		# Increase counter value copy.
-		count=$((count + 1))
-		# Store the counter value.
-		setvar ${this}count $count
-	}
+~~~ bash
+foo.bar() {
+	local count
+	# Get counter value.
+	bsda:obj:getVar count ${this}count
+	# Increase counter value copy.
+	count=$((count + 1))
+	# Store the counter value.
+	setvar ${this}count $count
+}
+~~~
 
 The following example does the same with getters and setters. Getters and
-setters are documented in chapter 7 and 8.
+setters are documented in sections [7](#7-get) and [8](#8-set).
 
-	foo.bar() {
-		local count
-		# Get counter value.
-		$this.getCount count
-		# Increase counter value copy.
-		count=$((count + 1))
-		# Store the counter value.
-		$this.setCount $count
-	}
+~~~ bash
+foo.bar() {
+	local count
+	# Get counter value.
+	$this.getCount count
+	# Increase counter value copy.
+	count=$((count + 1))
+	# Store the counter value.
+	$this.setCount "$count"
+}
+~~~
 
 #### 2.1.2. Returning Data
 
@@ -370,22 +401,26 @@ The following method illustrates this, the attribute count is fetched
 and returned to the caller through the variable named in `$1`.
 Afterwards the attribute is incremented:
 
-	foo.countInc() {
-		local count
-		# Get counter value.
-		$this.getCount count
-		$caller.setvar $1 $count
-		# Increase counter value copy.
-		count=$((count + 1))
-		# Store the counter value.
-		$this.setCount $count
-	}
+~~~ bash
+foo.countInc() {
+	local count
+	# Get counter value.
+	$this.getCount count
+	$caller.setvar "$1" "$count"
+	# Increase counter value copy.
+	count=$((count + 1))
+	# Store the counter value.
+	$this.setCount "$count"
+}
+~~~
 
 This is how a call could look like:
 
-	local count
-	$obj.countInc count
-	echo "The current count is $count."
+~~~ bash
+local count
+$obj.countInc count
+echo "The current count is $count."
+~~~
 
 Note that both the method and the caller use the local variable count, yet by
 using `$caller.setvar` the method is still able to overwrite count in the
@@ -487,11 +522,15 @@ implementing lists.
 The following example shows how to create an object of the type `foo:bar`,
 by calling the `foo:bar` constructor:
 
-	foo:bar foobar
+~~~ bash
+foo:bar foobar
+~~~
 
 The following example shows how to use a method belonging to the object:
 
-	$foobar.copy foobarCopy
+~~~ bash
+$foobar.copy foobarCopy
+~~~
 
 Arguments:
 
@@ -526,7 +565,9 @@ methods in that case.
 
 The following example shows how to reset an object referenced by `foobar`.
 
-	$foobar.reset
+~~~ bash
+$foobar.reset
+~~~
 
 Arguments:
 
@@ -559,7 +600,9 @@ attributes from memory.
 The following example illustrates the use of the destructor on an object
 that is referenced by the variable `foobar`.
 
-	$foobar.delete
+~~~ bash
+$foobar.delete
+~~~
 
 Arguments:
 
@@ -578,18 +621,24 @@ Certain data structures may need to dispose of entire lists of objects,
 especially within their destructor. This can be done by iterating through
 the list or delegating that task to the `bsda:obj:delete[]()` function:
 
-	bsda:obj:delete[] $($this.getChildren)
+~~~ bash
+bsda:obj:delete[] $($this.getChildren)
+~~~
 
 Using the shell input field separator logic, this can be used for different
 list formats. E.g. a list in the following format:
 
-	<obj0>,<obj1>,<obj2>,
+~~~ bash
+<obj0>,<obj1>,<obj2>,
+~~~
 
 The objects in this list can be deleted by calling:
 
-	local IFS
-	IFS=','
-	bsda:obj:delete[] $($this.getCSChildren)
+~~~ bash
+local IFS
+IFS=','
+bsda:obj:delete[] $($this.getCSChildren)
+~~~
 
 
 
@@ -605,7 +654,9 @@ The following exampe depicts the copying of an object referenced by the
 variable `foobar`. The new object will be referenced by the variable
 `foobarCopy`.
 
-	$foobar.copy foobarCopy
+~~~ bash
+$foobar.copy foobarCopy
+~~~
 
 
 
@@ -620,7 +671,9 @@ in a variable, named by the first parameter.
 The following example shows how to get the attribute `value` from the object
 referenced by `foobar` and store it in the variable `value`.
 
-	$foobar.getValue value
+~~~ bash
+$foobar.getValue value
+~~~
 
 Arguments:
 
@@ -640,7 +693,9 @@ A setter method stores a value in an attribute.
 This example shows how to store the value 5 in the attribute `value` of
 the object referenced by `foobar`.
 
-	$foobar.setValue 5
+~~~ bash
+$foobar.setValue 5
+~~~
 
 Arguments:
 
@@ -665,11 +720,13 @@ whether it is a reference to an object of this class.
 This example shows how to check whether the object `foobar` is an instance
 of the class `foo:bar`.
 
-	if foo:bar.isInstance $foobar; then
-		...
-	else
-		...
-	fi
+~~~ bash
+if foo:bar.isInstance $foobar; then
+	…
+else
+	…
+fi
+~~~
 
 Arguments:
 
@@ -705,11 +762,15 @@ or a pipe. They can even be transmitted over a network through nc(1).
 The following example serialises the object `$foobar` and stores the string
 the variable serialised.
 
-	$foobar.serialise serialised
+~~~ bash
+$foobar.serialise serialised
+~~~
 
 The next example saves the object `$configuration` in a file.
 
-	$configuration.serialise > ~/.myconfig
+~~~ bash
+$configuration.serialise > ~/.myconfig
+~~~
 
 If `$configuration` references other objects it will fail to access them
 if deserialised in a new context.
@@ -717,7 +778,9 @@ This is what the `serialiseDeep()` method is good for. It serialises entire
 data structures recursively and is the right choice in many use cases.
 It is used in exactly the same way as the serialise method.
 
-	$configuration.serialiseDeep > ~/.myconfig
+~~~ bash
+$configuration.serialiseDeep > ~/.myconfig
+~~~
 
 Arguments:
 
@@ -729,8 +792,10 @@ Arguments:
 
 This example loads the object `$configuration` from a file and restores it.
 
-	# Deserialise the data and get the object reference.
-	bsda:obj:deserialise configuration < ~/.myconfig
+~~~ bash
+# Deserialise the data and get the object reference.
+bsda:obj:deserialise configuration < ~/.myconfig
+~~~
 
 After the last line the `$configuration` object can be used exactly like
 in the previous session.
@@ -752,7 +817,9 @@ Sometimes a lot of serialised data has to be deserialised that contains
 stale objects. For such cases the serialised data can be filtered to contain
 only the last occurance of each object.
 
-	bsda:obj:serialisedUniq serialised "$serialised"
+~~~ bash
+bsda:obj:serialisedUniq serialised "$serialised"
+~~~
 
 | Argument | Description
 |----------|------------------------------------------------------------
@@ -774,7 +841,9 @@ methods and attributes for itself.
 
 Each class offers the static method `getAttributes()`:
 
-	<classname>.getAttributes attributes
+~~~ bash
+<classname>.getAttributes attributes
+~~~
 
 The variable attributes then contains a list of all attributes an instance
 of this class has. The list is newline separated.
@@ -783,22 +852,28 @@ Every attribute of an instance can directly be accessed, bypassing the scope
 checks (object is an instance of the class the list attributes was
 determined from):
 
-	for attribute in $attributes; do
-		echo $attribute:
-		# Print the attribute value
-		bsda:obj:getVar $object$attribute
-	done
+~~~ bash
+for attribute in $attributes; do
+	echo $attribute:
+	# Print the attribute value
+	bsda:obj:getVar $object$attribute
+done
+~~~
 
 ### 11.2. Methods
 
 Each class also offers the static method `getMethods()`:
 
-	<classname>.getMethods methods
+~~~ bash
+<classname>.getMethods methods
+~~~
 
 The methods variable in the example then contains a list of methods in the
 format:
 
-	("private" | "protected" | "public") + ":" + <methodname>
+~~~ bash
+("private" | "protected" | "public") + ":" + <methodname>
+~~~
 
 The methods are newline separated.
 
@@ -807,27 +882,31 @@ remain the same. To access a private or protected method of an unrelated
 object, the class and identity of the caller can be faked by rewriting the
 class and this special variables:
 
-	# Preserve context
-	local tmpThis tmpClass
-	tmpThis="$this"
-	tmpClass="$class"
+~~~ bash
+# Preserve context
+local tmpThis tmpClass
+tmpThis="$this"
+tmpClass="$class"
 
-	# Call forbidden method
-	this=$object
-	class=<objectclass>
-	$object.<methodname>
+# Call forbidden method
+this=$object
+class=<objectclass>
+$object.<methodname>
 
-	# Restore context
-	this=$tmpThis
-	class=$tmpClass
+# Restore context
+this=$tmpThis
+class=$tmpClass
+~~~
 
 ### 11.3. Parent Classes and Interfaces
 
 Each class knows its parents and interfaces and reveals them through the
 static `getParents()` and `getInterfaces()` methods:
 
-	<classname>.getInterfaces interfaces
-	<classname>.getParents parents
+~~~ bash
+<classname>.getInterfaces interfaces
+<classname>.getParents parents
+~~~
 
 The variables interfaces and parents contain newline separated lists of
 interface and class names after the preceding commands.
@@ -840,13 +919,17 @@ Every inheriting/implementing class adds a pattern for itself to the
 recognition pattern of each class and interface it extends and implements.
 This pattern can be accessed through the class prefix:
 
-	<classname>.getPrefix prefix
-	bsda:obj:getVar patterns ${prefix}instancePatterns
+~~~ bash
+<classname>.getPrefix prefix
+bsda:obj:getVar patterns ${prefix}instancePatterns
+~~~
 
 The class prefix can also be used to access the code for the access scope
 checks. This can be abused to deactivate theses checks for a certain class:
 
-	unset ${prefix}public ${prefix}protected ${prefix}private
+~~~ bash
+unset ${prefix}public ${prefix}protected ${prefix}private
+~~~
 
 
 
@@ -859,7 +942,7 @@ keep each other up to date.
 When a process is forked, both processes retain the same state, which can
 lead to multiple processes generating objects with identical IDs.
 
-Additionall garbage collection needs to be reinitialised in the forked
+Additional garbage collection needs to be reinitialised in the forked
 process to ensure all acquired resources are freed when the process
 terminates.
 
@@ -871,10 +954,12 @@ up traps for `SIGINT`, `SIGTERM` and the `EXIT` handler.
 
 The following example illustrates its use.
 
-	(
-		bsda:obj:fork
-		# Do something ...
-	) &
+~~~ bash
+(
+	bsda:obj:fork
+	# Do something …
+) &
+~~~
 
 The `bsda:obj:fork()` call must not be omitted or non-memory resources may
 be freed while still in use.
@@ -890,7 +975,9 @@ a given command in a forked process. The responsibility to free resources
 upon termination is passed on to the forked process, while the original
 process terminates, omitting garbage collection:
 
-	bsda:obj:detach $this.daemon
+~~~ bash
+bsda:obj:detach $this.daemon
+~~~
 
 
 
@@ -922,14 +1009,16 @@ In order to manage them effectively the `bsda:obj:getDesc()` function provides
 a descriptor number and `bsda:obj:releaseDesc()` allows returning one into
 the pool of available numbers.
 
-	local fd
-	bsda:obj:getDesc fd || return 1
-	# Open file descriptor
-	eval "exec $fd> \"\$outfile\""
-	[ ... ]
-	# Close file descriptor
-	eval "exec $fd>&-"
-	bsda:obj:releaseDesc $fd
+~~~ bash
+local fd
+bsda:obj:getDesc fd || return 1
+# Open file descriptor
+eval "exec $fd> \"\$outfile\""
+[ … ]
+# Close file descriptor
+eval "exec $fd>&-"
+bsda:obj:releaseDesc $fd
+~~~
 
 Arguments to `bsda:obj:getDesc()`:
 
@@ -1032,8 +1121,10 @@ temporary variables.
 The following code will output `ab` when executed by _FreeBSD's_ `sh` and `aa`
 when executed with `bash`:
 
-	test=a
-	echo $test$(test=b)$test
+~~~ bash
+test=a
+echo $test$(test=b)$test
+~~~
 
 ### 15.5. bash - alias
 
