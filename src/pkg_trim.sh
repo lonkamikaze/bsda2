@@ -3,7 +3,6 @@ readonly _pkg_trim_=1
 
 . ${bsda_dir:-.}/bsda_dialog.sh
 . ${bsda_dir:-.}/pkg_query.sh
-. ${bsda_dir:-.}/bsda_container.sh
 . ${bsda_dir:-.}/bsda_opts.sh
 
 #
@@ -11,16 +10,505 @@ readonly _pkg_trim_=1
 #
 
 #
+# Provides states for package selection to facilitate undo and redo.
+#
+# This is a two-way linked list, managed by StateManager.
+#
+# The only methods it offers are allShow(), allFlipped() and allChecked(),
+# each of which return the accumulated values from this state back
+# to the first state.
+#
+bsda:obj:createClass pkg:trim:State \
+	r:public:prev       "Link to the previous state" \
+	r:public:next       "Link to the next state" \
+	r:public:show       "The packages to show for selection" \
+	r:public:flipped    "The packages that changed state" \
+	r:public:checked    "The checked packages" \
+	c:private:clean     "The destructor" \
+	x:private:all       "Helper function to accumulate attributes" \
+	x:public:allShow    "Return all shown packages up to this state" \
+	x:public:allFlipped "Return all flipped packages up to this state" \
+	x:public:allChecked "Return all checked packages up to this state"
+
+#
+# Recursively delete the tail of the linked list.
+#
+pkg:trim:State.clean() {
+	$($this.getNext).delete
+}
+
+#
+# A helper function that provides an accumulated value.
+#
+# This function iterates from this state to the first state and accumulates
+# the given attribute.
+#
+# @param &1
+#	The variable to return the value to
+# @param 2
+#	The name of the state attribute to accumulate
+#
+pkg:trim:State.all() {
+	local IFS state result val
+	IFS='
+'
+	result=
+	state=$this
+	while [ -n "$state" ]; do
+		eval "val=\"\$${state}$2\""
+		result="$val${val:+${result:+$IFS}}$result"
+		$state.getPrev state
+	done
+	$caller.setvar "$1" "$result"
+}
+
+#
+# Accumulates all shown packages from this state back to the first
+# state.
+#
+# @param &1
+#	The variable to return the accumulated packages to
+#
+pkg:trim:State.allShow() {
+	$class.all "$1" show
+}
+
+#
+# Accumulates all flipped packages from this state back to the first
+# state.
+#
+# @param &1
+#	The variable to return the accumulated packages to
+#
+pkg:trim:State.allFlipped() {
+	$class.all "$1" flipped
+}
+
+#
+# Accumulates all checked packages from this state back to the first
+# state.
+#
+# @param &1
+#	The variable to return the accumulated packages to
+#
+pkg:trim:State.allChecked() {
+	$class.all "$1" checked
+}
+
+#
+# Manages states and provides access to the accumulated state.
+#
+# It provides the following functionality:
+#
+# - It encapsulates use of pkg:query:* and avoids redundant access
+#   by caching
+# - It allows tracking of progress through isComplete() and isFirst()
+# - It provides data for interactive use with checklist() and review()
+# - It provides commit() to apply user selection to the current state
+# - It provides prev() and next() to perform undo, redo and progress
+#   to subsequently freed up packages
+# - It provides the flipped(), checked() and unchecked() methods to
+#   acquire the accumulated state
+#
+bsda:obj:createClass pkg:trim:StateManager \
+	r:private:pkgcached "A list of cached packages" \
+	r:private:pkgcache  "A cache with all queried pkg information" \
+	r:private:first     "The first state" \
+	r:private:state     "The current state" \
+	r:private:fmt       "The format string" \
+	x:private:cache     "Updates information in the cache" \
+	i:private:init      "Initialiase first state with leaf packages" \
+	c:private:clean     "Remove the state list" \
+	x:public:isComplete "Returns whether selection process is complete" \
+	x:public:isFirst    "Returns whether this is the first state" \
+	x:public:checklist  "Returns tuples for dialog(1) --checklist" \
+	x:public:review     "Returns tuples for dialog(1) --menu" \
+	x:public:commit     "Commits checked packages to the current state" \
+	x:public:next       "Generates the next state" \
+	x:public:prev       "Return to the previous state" \
+	x:public:flipped    "All the packages changed" \
+	x:public:checked    "All the packages checked" \
+	x:public:unchecked  "All the packages changed to unchecked"
+
+#
+# Adds new packages to the package cache.
+#
+# The actual package cache is in the pkgcache attribute and contains
+# tuples with the package, comment and autoremove flag separated
+# by the pipe '|' character. Each tuple is on its own line.
+#
+# The pkgcached attribute is a newline separated list of the cached
+# packages.
+#
+# Cached packages always resemble the system state of the packages,
+# so cached packages are not changed and never requeried from the
+# system.
+#
+pkg:trim:StateManager.cache() {
+	# Get the packages that need to be in the cache
+	local state show
+	$this.getState state
+	$state.getShow show
+	if [ -z "$show" ]; then
+		# No packages, that means nothing needs to be cached
+		return 0
+	fi
+
+	# Determine which packages are not cached
+	local IFS cached uncached
+	IFS='
+'
+	$this.getPkgcached cached
+	uncached="$(echo "$show" | /usr/bin/grep -vFx "$cached")"
+	if [ -z "$uncached" ]; then
+		# All packages are cached
+		return 0
+	fi
+
+	# Query packages and append to the cache
+	local fmt pkgs cache
+	$this.getFmt fmt
+	$this.getPkgcache cache
+	pkgs="$(pkg:query:select "$fmt|%c|%a" $uncached)"
+	setvar ${this}pkgcache "$cache${cache:+${pkgs:+$IFS}}$pkgs"
+	setvar ${this}pkgcached "$cached${cached:+${uncached:+$IFS}}$uncached"
+}
+
+#
+# Initialise state manager.
+#
+# Initialises the first state to show all leaf packages.
+#
+# @param 1
+#	The format string for a package identifier, defaults to "%n-%v"
+#
+pkg:trim:StateManager.init() {
+	local fmt state
+	fmt="${1:-%n-%v}"
+	setvar ${this}fmt "$fmt"
+	pkg:trim:State state
+	setvar ${this}first $state
+	setvar ${this}state $state
+	# Initialise first state
+	setvar ${state}show "$(pkg:query:leaves "$fmt")"
+}
+
+#
+# Delete the linked list of states.
+#
+pkg:trim:StateManager.clean() {
+	$($this.getFirst).delete
+}
+
+#
+# Determines if package collection is complete.
+#
+# This depends on whether the current state has any packages left
+# to display.
+#
+# @retval 0
+#	Package selection is complete
+# @retval 1
+#	Package selection is not complete
+#
+pkg:trim:StateManager.isComplete() {
+	local state show
+	$this.getState state
+	$state.getShow show
+	test -z "$show"
+}
+
+#
+# Determines if this is the first state.
+#
+# If this is the case, prev() may not be called.
+#
+# @retval 0
+#	The current state is the first in the list
+# @retval 1
+#	The current state is not the first in the list
+#
+pkg:trim:StateManager.isFirst() {
+	local first state
+	$this.getFirst first
+	$this.getState state
+	test $first = $state
+}
+
+#
+# A static function used to repack IFS delimited arguments.
+#
+# This function packs all arguments into a pipe '|' delimited string,
+# output on stdout.
+#
+# @param @
+#	The arguments to pack
+#
+pkg:trim:StateManager._join() {
+	local IFS
+	IFS='|'
+	echo "$*"
+}
+
+#
+# A static filter converting cached packages to checklist format.
+#
+# Expects the contents of the cache on its standard input.
+#
+# @param 1
+#	All packages to show
+# @param 2
+#	All the packages that should show a different state from
+#	the cached state
+#
+pkg:trim:StateManager.checklist_filter() {
+	/usr/bin/awk -F\| -vSHOW="$($class._join $1)" \
+	                  -vFLIP="$($class._join $2)" '
+	BEGIN {
+		cnt = split(SHOW, a)
+		for (i = 1; i <= cnt; ++i) {
+			ASHOW[a[i]]
+		}
+		cnt = split(FLIP, a)
+		for (i = 1; i <= cnt; ++i) {
+			AFLIP[a[i]]
+		}
+	}
+	$1 in AFLIP {$3 = !$3}
+	$1 in ASHOW {print($1 "\n" $2 "\n" ($3 ? "on" : "off"))}'
+}
+
+#
+# Produce dialog(1) --checklist style tuples with packages.
+#
+# This outputs all the packages the current state is supposed to
+# show.
+#
+# @param &1
+#	The variable to return the tuples to, the items are newline
+#	separated
+#
+pkg:trim:StateManager.checklist() {
+	# Put all packages into cache
+	$this.cache
+
+	local state show cache flipped tuples
+	$this.getState state
+	$state.getShow show
+	$state.getFlipped flipped
+	$this.getPkgcache cache
+	tuples="$(echo "$cache" | /usr/bin/sort -t\| -k1 \
+	          | $class.checklist_filter "$show" "$flipped")"
+	$caller.setvar "$1" "$tuples"
+}
+
+#
+# A static filter converting cached packages to menu format.
+#
+# Expects the contents of the cache on its standard input.
+#
+# @param 1
+#	All checked packages
+# @param 2
+#	All packages changed to unchecked
+#
+pkg:trim:StateManager.review_filter() {
+	/usr/bin/awk -F\| -vCHECK="$($class._join $1)" \
+	                  -vUNCHECK="$($class._join $2)" '
+	BEGIN {
+		cnt = split(CHECK, a)
+		for (i = 1; i <= cnt; ++i) {
+			ACHECK[a[i]]
+		}
+		cnt = split(UNCHECK, a)
+		for (i = 1; i <= cnt; ++i) {
+			AUNCHECK[a[i]]
+		}
+	}
+	$1 in ACHECK {print(" [*] " $1 "\n" $2)}
+	$1 in AUNCHECK {print(" [ ] " $1 "\n" $2)}'
+}
+
+#
+# Produce dialog(1) --menu style tuples with packages for selection
+# review.
+#
+# This produces the accumulated checked packages and the changed
+# packages.
+#
+# @param &1
+#	The variable to return the tuples to, the items are newline
+#	separated
+#
+pkg:trim:StateManager.review() {
+	local checked unchecked cache tuples
+	$this.checked checked
+	$this.unchecked unchecked
+	$this.getPkgcache cache
+	tuples="$(echo "$cache" | /usr/bin/sort -t\| -k1 \
+	          | $class.review_filter "$checked" "$unchecked")"
+	$caller.setvar "$1" "$tuples"
+}
+
+#
+# A static filter converting cached packages to a list of packages
+# that have changed their state.
+#
+# Expects the contents of the cache on its standard input.
+#
+# @param 1
+#	The list of packages that was displayed
+# @param 2
+#	The list of packages that was checked
+#
+pkg:trim:StateManager.commit_filter() {
+	/usr/bin/awk -F\| -vSHOW="$($class._join $1)" \
+	                  -vCHECK="$($class._join $2)" '
+	BEGIN {
+		cnt = split(SHOW, a)
+		for (i = 1; i <= cnt; ++i) {
+			ASHOW[a[i]]
+		}
+		cnt = split(CHECK, a)
+		for (i = 1; i <= cnt; ++i) {
+			ACHECK[a[i]]
+		}
+	}
+	($1 in ASHOW) && (!$3 == ($1 in ACHECK)) {print $1}'
+}
+
+#
+# Commits the checked packages to the current state.
+#
+# This removes the tail of states if any changes were made to the
+# current one.
+#
+# @param 1
+#	The checked packages for this state
+#
+pkg:trim:StateManager.commit() {
+	# Check for redo
+	local state next checked
+	$this.getState state
+	$state.getNext next
+	if [ -n "$next" ]; then
+		# This state already has a follower
+		$state.getChecked checked
+		if [ "$checked" == "$1" ]; then
+			# No changes, reuse the next state
+			return 0
+		fi
+		# Clean up tail that is no longer consistent with
+		# this state
+		$next.delete
+		unset ${state}next next
+	fi
+
+	# Determine packages that do not have the cached state
+	local show cache flipped
+	$state.getShow show
+	$this.getPkgcache cache
+	flipped="$(echo "$cache" | $class.commit_filter "$show" "$1")"
+
+	# Update the current state
+	setvar ${state}flipped "$flipped"
+	setvar ${state}checked "$1"
+}
+
+#
+# Move to the next state.
+#
+# In case a next state already exists it is used. This may happen
+# if the current state was reached via prev(), but no changes were
+# made.
+#
+pkg:trim:StateManager.next() {
+	# Move forward if no changes have been committed
+	local state next
+	$this.getState state
+	$state.getNext next
+	if [ -n "$next" ]; then
+		setvar ${this}state $next
+		return 0
+	fi
+
+	# Create and move to the next state
+	pkg:trim:State next
+	setvar ${next}prev $state
+	setvar ${state}next $next
+	setvar ${this}state $next
+
+	# Initialise next state
+	local fmt shown checked
+	$this.getFmt fmt
+	$state.allShow shown
+	$state.allChecked checked
+	setvar ${next}show "$(pkg:query:required_only_by "$fmt" $checked \
+	                      | /usr/bin/grep -vFx "$shown")"
+}
+
+#
+# Move to the previous state.
+#
+pkg:trim:StateManager.prev() {
+	local state
+	$this.getState state
+	$state.getPrev ${this}state
+}
+
+#
+# Returns the changed packages accumulated up to the current state.
+#
+# @param &1
+#	The variable to return the packages to
+#
+pkg:trim:StateManager.flipped() {
+	local state flipped
+	$this.getState state
+	$state.allFlipped flipped
+	$caller.setvar "$1" "$flipped"
+}
+
+#
+# Returns the checked packages accumulated up to the current state.
+#
+# @param &1
+#	The variable to return the packages to
+#
+pkg:trim:StateManager.checked() {
+	local state checked
+	$this.getState state
+	$state.allChecked checked
+	$caller.setvar "$1" "$checked"
+}
+
+#
+# Returns the packages changed to unchecked accumulated up to the
+# current state.
+#
+# @param &1
+#	The variable to return the packages to
+#
+pkg:trim:StateManager.unchecked() {
+	local state checked flipped unchecked
+	$this.getState state
+	$state.allChecked checked
+	$state.allFlipped flipped
+	unchecked="$(echo "$flipped" | /usr/bin/grep -vFx "$checked")"
+	$caller.setvar "$1" "$unchecked"
+}
+
+#
 # The session class for pkg_trim.
 #
 bsda:obj:createClass pkg:trim:Session \
-	r:private:dialog "A bsda:dialog:Dialog instance" \
-	r:private:flags  "A bsda:opts:Flags instance" \
-	i:private:init   "The constructor" \
-	c:private:clean  "The destructor" \
-	x:private:help   "Print usage and exit" \
-	x:private:params "Handle command line arguments" \
-	x:private:run    "Perform package selection and processing"
+	r:private:flags     "A bsda:opts:Flags instance" \
+	i:private:init      "The constructor" \
+	c:private:clean     "The destructor" \
+	x:private:help      "Print usage and exit" \
+	x:private:params    "Handle command line arguments" \
+	x:private:runReview "Review package selection" \
+	x:private:run       "Perform package selection and processing"
 
 #
 # The session constructor.
@@ -29,7 +517,6 @@ bsda:obj:createClass pkg:trim:Session \
 #	The command line arguments
 #
 pkg:trim:Session.init() {
-	bsda:dialog:Dialog ${this}dialog || return
 	bsda:opts:Flags ${this}flags
 
 	$this.params "$@"
@@ -41,7 +528,6 @@ pkg:trim:Session.init() {
 #
 pkg:trim:Session.clean() {
 	$($this.getFlags).delete
-	$($this.getDialog).delete
 }
 
 #
@@ -101,92 +587,29 @@ pkg:trim:Session.params() {
 }
 
 #
-# Static function called by pkg:trim:Session.run().
+# Opens a review dialog that lets the user look at all the affected
+# packages.
 #
-# This function makes changes within the context of the caller.
+# @param 1
+#	The StateManager instance
+# @param 2
+#	The Dialog instance
 #
-# @param showstack,checkedstack
-#	Updated with the context of the last dialog call
-# @param show,checked,shown,allchecked,undo
-#	Setup for the next dialog call
-# @param dialog,unlist,auto
-#	Used by pkg:trim:Session.run_review()
-# @return
-#	May fail if the selection process is completed and
-#	pkg:strim:Session.run_review() fails
-#
-pkg:trim:Session.run_proceed() {
-	$showstack.push "$show"
-	$checkedstack.push "$checked"
-	shown="$shown$IFS$show"
-	allchecked="$allchecked${checked:+$IFS$checked}"
-	show="$(pkg:query:required_only_by "$fmt" $allchecked \
-	        | /usr/bin/grep -vFx "$shown")"
-	undo=
-	if [ -z "$show" ]; then
-		$class.run_review || return
-	fi
-}
-
-#
-# Static function called by pkg:trim:Session.run().
-#
-# This function makes changes within the context of the caller.
-#
-# @param showstack,checkedstack
-#	Used to restore the context of the previous dialog call
-# @param show,checked,shown,allchecked,undo
-#	Restored to match the previous dialog call
-#
-pkg:trim:Session.run_rollback() {
-	$showstack.pop show
-	$checkedstack.pop checked
-	shown="${shown%$IFS$show}"
-	allchecked="${allchecked%$checked}"
-	allchecked="${allchecked%$IFS}"
-	undo=1
-}
-
-#
-# Static function called by pkg:trim:Session.run_proceed().
-#
-# This function makes changes within the context of the caller.
-#
-# @param dialog
-#	The bsda:dialog:Dialog instance to use
-# @param unlist
-#	Set to a list of packages that were unchecked even though
-#	their autoremove flag is set
-# @param shown,allchecked,auto
-#	Used to setup unlist
-# @param tuples
-#	Used for display
-# @param showstack,checkedstack,show,checked,undo
-#	Used by pkg:trim:Session.run_rollback()
-# @return
-#	May return any unhandled failure of dialog(1)
-#
-pkg:trim:Session.run_review() {
-	local selected
-	$dialog.setArgs --extra-button --extra-label Back
-	unlist="$(echo "$shown" | /usr/bin/grep -vFx "$allchecked" \
-	          | /usr/bin/grep -Fx "$auto" )"
-	tuples="$( (
-		enlist="$(echo "$allchecked" | /usr/bin/sort)"
-		test -n "$enlist" && pkg:query:select " [*]|$fmt|%c" $enlist
-		test -n "$unlist" && pkg:query:select " [ ]|$fmt|%c" $unlist
-	) | /usr/bin/sort -t\| -k2 | /usr/bin/sed "s/|/ /;s/|/\\$IFS/" )"
+pkg:trim:Session.runReview() {
+	local tuples dummy ret
+	$2.setArgs --extra-button --extra-label Back
+	$1.review tuples
 	if [ -z "$tuples" ]; then
-		$dialog.msgbox selected "You have neither selected nor unchecked any packages."
+		$2.msgbox dummy "You have neither selected nor unchecked any packages."
 	else
-		$dialog.menu selected "Confirm package selection" $tuples
+		$2.menu dummy "Confirm package selection" $tuples
 	fi
 	ret=$?
 	case $ret in
 	0) # OK
 	;;
 	3) # Back
-		$class.run_rollback || return
+		$1.prev
 	;;
 	*) # Cancel/ESC
 		return $ret
@@ -200,11 +623,6 @@ pkg:trim:Session.run_review() {
 # The following process is performed:
 #
 # 1. Package selection
-#    1. Start with a list of leaf packages
-#    2. Show a dialog to select packages
-#    3. Create a list of new leaf packages
-#    4. Unless empty go back to 1.2.
-#    5. Ask for confirmation of the selection
 # 2. Ask what to do, delete or mark for autoremove
 # 3. Perform delete or mark for autoremove
 #
@@ -212,7 +630,7 @@ pkg:trim:Session.run_review() {
 #	May return any unhandled failure of dialog(1)
 #
 pkg:trim:Session.run() {
-	local IFS flags ret fmt dialog auto
+	local IFS flags ret fmt dialog
 	IFS='
 '
 	$this.getFlags flags
@@ -221,43 +639,19 @@ pkg:trim:Session.run() {
 	fmt="%n-%v"
 	$flags.check PKG_ORIGIN -ne 0 && fmt="%o"
 
-	# Get the dialog
-	$this.getDialog dialog
-	# List of packages with their autoremove flag set
-	readonly auto="$(pkg:query:auto "$fmt")"
+	# Setup the dialog
+	bsda:dialog:Dialog dialog
+	$caller.delete $dialog
 
-	local show shown allchecked
-	# Start with leaf packages
-	show="$(pkg:query:leaves "$fmt")"
-	shown=
-	allchecked=
+	#
+	# Stage 1) Package Selection
+	#
 
-	# Select packages until no new leaves show up
-	local undo unlist showstack checkedstack text checked count tuples
-	undo=
-	unlist=
-	bsda:container:Array showstack
-	bsda:container:Array checkedstack
-	while [ -n "$show" ]; do
-		# Generate dialog checklist tuples
-		tuples="$( (
-			if [ -z "$undo" ]; then
-				# First time these packages are shown, use
-				# the autoremove flag
-				pkg:query:select "$fmt|%c|%a" $show \
-				| /usr/bin/sed 's/|0$/|off/;s/|1$/|on/'
-			else
-				# Restore checked status from last run
-				off="$(echo "$show" | /usr/bin/grep -vFx "$checked")"
-				test -n "$checked" \
-				&& pkg:query:select "$fmt|%c|on" $checked
-				test -n "$off" \
-				&& pkg:query:select "$fmt|%c|off" $off
-			fi
-		) | /usr/bin/sort | /usr/bin/sed "s/|/\\$IFS/g" )"
-		# Configure dialog
-		$showstack.getCount count
-		if [ $((count)) -eq 0 ]; then
+	local state text tuples
+	pkg:trim:StateManager state "$fmt"
+	$caller.delete $state
+	while ! $state.isComplete; do
+		if $state.isFirst; then
 			text="Select leaf packages to remove"
 			$dialog.setArgs
 		else
@@ -265,26 +659,38 @@ pkg:trim:Session.run() {
 			$dialog.setArgs --extra-button --extra-label Back
 		fi
 		# Call dialog checklist
+		$state.checklist tuples
 		$dialog.checklist checked "$text" $tuples
 		ret=$?
+		$state.commit "$checked"
 		case $ret in
 		0) # OK
 			# Proceed to new packages
-			$class.run_proceed || return
+			$state.next
+			if $state.isComplete; then
+				$this.runReview "$state" "$dialog" || return
+			fi
 			;;
 		3) # Back
 			# Rollback
-			$class.run_rollback || return
+			$state.prev
 			;;
 		*) # Cancel/ESC
 			return $ret
 		esac
 	done
-	$showstack.delete
-	$checkedstack.delete
+
+	#
+	# Stage 2) Processing
+	#
+
+	local flipped checked unchecked
+	$state.flipped flipped
+	$state.checked checked
+	$state.unchecked unchecked
 
 	# Nothing to do, leave
-	if [ -z "$allchecked" ] && [ -z "$unlist" ]; then
+	if [ -z "$checked$unchecked" ]; then
 		return 0
 	fi
 
@@ -298,22 +704,22 @@ pkg:trim:Session.run() {
 	# Perform action
 	yes=
 	$flags.check PKG_YES -ne 0 && yes=-y
+	# Always remove autoremove flag from unchecked packages
+	if [ -n "$unchecked" ]; then
+		/usr/sbin/pkg set $yes -A0 $unchecked || return
+	fi
+	# Delete or set autoremove flag
 	case "$action" in
 	Autoremove)
-		enlist="$(echo "$allchecked" | /usr/bin/grep -vFx "$auto" )"
-		if [ -n "$unlist" ]; then
-			/usr/sbin/pkg set $yes -A0 $unlist || return
-		fi
-		if [ -n "$enlist" ]; then
-			/usr/sbin/pkg set $yes -A1 $enlist || return
+		# Only want changed packages
+		checked="$(echo "$flipped" | /usr/bin/grep -Fx "$checked")"
+		if [ -n "$checked" ]; then
+			/usr/sbin/pkg set $yes -A1 $checked || return
 		fi
 	;;
 	Delete)
-		if [ -n "$unlist" ]; then
-			/usr/sbin/pkg set $yes -A0 $unlist || return
-		fi
-		if [ -n "$allchecked" ]; then
-			/usr/sbin/pkg delete $yes $allchecked || return
+		if [ -n "$checked" ]; then
+			/usr/sbin/pkg delete $yes $checked || return
 		fi
 	;;
 	esac
