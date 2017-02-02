@@ -55,6 +55,9 @@ TABLE OF CONTENTS
    4. [Interfaces](#1-4-interfaces)
 2. [IMPLEMENTING METHODS](#2-implementing-methods)
    1. [Regular Methods](#2-1-regular-methods)
+      1. [Accessing Attributes](#2-1-1-accessing-attributes)
+      2. [Returning Data](#2-1-2-returning-data)
+      3. [Temporary Objects](#2-1-3-temporary-objects)
    2. [Special Methods](#2-2-special-methods)
 3. [CONSTRUCTOR](#3-constructor)
 4. [RESET](#4-reset)
@@ -323,6 +326,8 @@ for a method named `bar` and a class named `foo` would look like this:
 The object reference is always available in the variable `this`, which
 performs the same function as `self` in python or `this` in Java.
 
+#### 2.1.1. Accessing Attributes
+
 Attributes are resolved as `<objectId><attribute>`, the following example
 shows how to read an attribute, manipulate it and write the new value.
 Directly operating on attributes is not possible.
@@ -349,6 +354,8 @@ setters are documented in chapter 7 and 8.
 		# Store the counter value.
 		$this.setCount $count
 	}
+
+#### 2.1.2. Returning Data
 
 To return data into the calling context `$caller.setvar` is used. It
 provides the possibility to overwrite variables in the caller context
@@ -387,6 +394,8 @@ caller context.
 If a method uses no local variables (which is only sensible in very rare
 cases), the regular shell builtin setvar can be used to overwrite variables
 in the caller context to reduce overhead.
+
+#### 2.1.3. Temporary Objects
 
 The shell offers `local` to create variables that *disappear* when
 returning from a function. Similarly bsda:obj offers the deletion
