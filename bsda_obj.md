@@ -437,12 +437,11 @@ Exiting
 ### 2.2. Special Methods
 
 There are two special kinds of methods available, init and cleanup methods.
-These methods are special, because they are called implicitely, the first
+These methods are special, because they are called implicitly, the first
 when an object is created, the second when it is reset or deleted.
 
-The init method is special because the `$caller.setvar()` method is not
-available. It is called by the constructor with all values apart from the
-first one, which is the variable the constructor stores the object
+The init method is called by the constructor with all arguments apart
+from the first one, which is the variable the constructor stores the object
 reference in. It can also be called directly (e.g. after a call to the
 `reset()` method).
 
@@ -454,8 +453,8 @@ done by calling `$class.superInit()`.
 If the init method fails (returns a value > 0) the constructor immediately
 destroys the object.
 
-The cleanup method is called implicitely by the `delete()` and `reset()`
-methods. Unlike the init method it has all the posibilities of an
+The cleanup method is called implicitly by the `delete()` and `reset()`
+methods. Unlike the init method it has all the possibilities of an
 ordinary method.
 
 Both the `delete()` and `reset()` methods do not proceed if the cleanup
