@@ -1307,6 +1307,11 @@ bsda:obj:callerSetup() {
 			bsda:obj:callerSetvar \"\$@\"
 		}
 
+		# Delete the given object when returning to the caller.
+		$caller.delete() {
+			${caller}_delete=\"\$1.delete;\${${caller}_delete}\"
+		}
+
 		# Create a function that returns the object ID of the caller.
 		$caller.getObject() {
 			if [ -n \"\$1\" ]; then
@@ -1337,14 +1342,21 @@ bsda:obj:callerSetup() {
 #
 # @param caller
 #	The caller context prefix.
+# @param ${caller}_delete
+#	The list of objects to delete when returning to the caller.
 # @param ${caller}_setvars
 #	The list of variables to copy into the caller context.
 # @param bsda_obj_callStackCount
 #	Is decremented by 1.
 #
 bsda:obj:callerFinish() {
+	# Delete objects
+	eval eval "\${${caller}_delete}"
+	unset ${caller}_delete
+
 	# Remove the bsda:obj:callerSetvar() wrapper.
-	unset -f $caller.setvar $caller.getObject $caller.getClass
+	unset -f $caller.setvar $caller.delete \
+	         $caller.getObject $caller.getClass
 	# Decrement the call stack counter.
 	bsda_obj_callStackCount=$(($bsda_obj_callStackCount - 1))
 
