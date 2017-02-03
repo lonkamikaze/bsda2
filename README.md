@@ -153,6 +153,8 @@ following way:
   The data dir where shared code is installed.
 * `-docsdir=$prefix/share/doc/bsda2`
   The location to install markdown documentation files.
+* `-ports=/usr/ports`
+  The location of the ports tree.
 * `-nodoc`
   Set this to not install manual pages and markdown documentation.
 
