@@ -510,13 +510,11 @@ bsda:obj:createClass() {
 			local this class
 			class=$class
 
-			eval \"
-				# Create object reference.
-				this=\\\"${classPrefix}\${bsda_obj_uid}_\\\${${classPrefix}\${bsda_obj_uid}_nextId:-0}_\\\"
+			# Create object reference.
+			this=\"${classPrefix}${bsda_obj_uid}_\${${classPrefix}${bsda_obj_uid}_nextId:-0}_\"
 	
-				# Increase the object id counter.
-				${classPrefix}\${bsda_obj_uid}_nextId=\\\$((\\\$${classPrefix}\${bsda_obj_uid}_nextId + 1))
-			\"
+			# Increase the object id counter.
+			${classPrefix}${bsda_obj_uid}_nextId=\$((\$${classPrefix}${bsda_obj_uid}_nextId + 1))
 
 			# Create method instances.
 			$bsda_obj_namespace:createMethods $class $classPrefix \$this \"$methods\"
