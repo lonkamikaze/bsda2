@@ -247,7 +247,7 @@ bsda:obj:createClass() {
 	classPrefix="${namespacePrefix}$(echo "$class" | /usr/bin/tr ':' '_')_"
 
 	# Set the instance match pattern.
-	setvar ${classPrefix}instancePatterns "${classPrefix}([0-9a-f]+_){5}[0-9]+_$IFS"
+	setvar ${classPrefix}instancePatterns "${classPrefix}[0-9a-f]*[0-9]_"
 
 	# Create getters.
 	for method in $getters; do
@@ -369,7 +369,7 @@ bsda:obj:createClass() {
 		# Update the instance match patterns of parents.
 		for parent in $parent$IFS$parents; do
 			$parent.getPrefix parent
-			eval "${parent}instancePatterns=\"\${${parent}instancePatterns}\${${classPrefix}instancePatterns}\""
+			eval "${parent}instancePatterns=\"\${${parent}instancePatterns}|\${${classPrefix}instancePatterns}\""
 		done
 	done
 
@@ -661,7 +661,12 @@ bsda:obj:createClass() {
 	# A static type checker.
 	eval "
 		$class.isInstance() {
-			echo \"\$1\" | /usr/bin/egrep -xq \"\${${classPrefix}instancePatterns}\"
+			eval \"case \\\"\\\$1\\\" in
+			\${${classPrefix}instancePatterns})
+				return 0
+			;;
+			esac\"
+			return 1
 		}
 	"
 
