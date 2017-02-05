@@ -18,6 +18,7 @@ bsda:obj:createClass distviper:Session \
 	c:private:clean      "The destructor" \
 	x:private:params     "Process command line arguments" \
 	x:private:help       "Print usage message" \
+	x:private:error      "Print error message" \
 	x:private:status     "Print status" \
 	x:private:getMakeVar "Retrieve variables from make" \
 	x:private:run        "Select files and delete them"
@@ -80,7 +81,7 @@ distviper:Session.params() {
 			$this.help "$options"
 		;;
 		OPT_UNKNOWN)
-			$term.stderr "Unknown parameter \"$1\"."
+			$this.error "Unknown parameter \"$1\"."
 			exit 1
 		;;
 		OPT_SPLIT)
@@ -95,7 +96,7 @@ distviper:Session.params() {
 			$flags.add KEEP
 			setvar ${this}keep "$1"
 			if $flags.check KEEP -gt 1; then
-				$term.stderr "Too many arguments: ... $@"
+				$this.error "Too many arguments: ... $@"
 				exit 3
 			fi
 		;;
@@ -108,7 +109,7 @@ distviper:Session.params() {
 	done
 
 	if $flags.check VERBOSE -ne 0 && $flags.check QUIET -ne 0; then
-		$term.stderr "Conflicting options -v and -q supplied."
+		$this.error "Conflicting options -v and -q supplied."
 		exit 1
 	fi
 
@@ -133,7 +134,7 @@ distviper:Session.params() {
 		setvar ${this}keep all
 	;;
 	*)
-		$term.stderr "Unknown category of files to keep: $keep"
+		$this.error "Unknown category of files to keep: $keep"
 		exit 2
 	;;
 	esac
@@ -151,6 +152,16 @@ distviper:Session.help() {
 	$($this.getTerm).stdout "usage: distviper [-dhinqv] [keep]
 $(echo -n "$usage" | /usr/bin/sort -f)"
 	exit 0
+}
+
+#
+# Print error message.
+#
+# @param *
+#	The message to print
+#
+distviper:Session.error() {
+	$($this.getTerm).stderr "${0##*/}: $*"
 }
 
 #
@@ -187,12 +198,12 @@ distviper:Session.getMakeVar() {
 	$this.getTerm term
 	if ! value="$(/usr/bin/make -f/usr/share/mk/bsd.port.mk \
 	                            -V"$2" 2>&1)"; then
-		$term.stderr "make -V$2 failed:"
+		$this.error "make -V$2 failed:"
 		$term.stderr "$value"
 		exit 1
 	fi
 	if [ ! -d "$value" ]; then
-		$term.stderr "The $2 '$value' is not a directory."
+		$this.error "The $2 '$value' is not a directory."
 		exit 1
 	fi
 	$caller.setvar $1 "$value"
