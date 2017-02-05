@@ -75,14 +75,12 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 #	deserialise()
 #	isInstance()
 #	isClass()
-#	isInterface()
 #	getAttributes()
 #	getMethods()
 #	getPrefix()
 #	getInit()
 #	getClean()
 #	getParents()
-#	getInterfaces()
 #
 # The following methods are reserved:
 #	copy()
@@ -132,10 +130,6 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 #
 #		   The superInit() and superClean() methods also call
 #		   the first encountered init and clean methods.
-#		implements:
-#		   This prefix is followed by the name of an interfaces.
-#		   Interfaces define public methods that need to be implemented
-#		   by a class to conform to the interface.
 #
 #	With these parameters a constructor and a destructor will be built.
 #	It is important that all used attributes are listed, or the copy,
@@ -174,16 +168,14 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 #	2 if there is more than one cleanup method (c:) specified
 #	3 if there was an unknown scope operator
 #	4 for an attempt to extend something that is not a class
-#	5 for an attempt to implement something that is not an interface
 #
 bsda:obj:createClass() {
 	local IFS class methods method attributes getters setters arg
 	local getter setter attribute reference init clean serialise extends
-	local implements
 	local namespacePrefix classPrefix
 	local superInit superClean superInitParent superCleanParent
 	local inheritedAttributes inheritedMethods parent parents
-	local previousMethod scope interface
+	local previousMethod scope
 
 	# Default framework namespace.
 	: ${bsda_obj_namespace='bsda:obj'}
@@ -203,7 +195,6 @@ bsda:obj:createClass() {
 	init=
 	clean=
 	extends=
-	implements=
 	superInit=
 	superClean=
 
@@ -243,9 +234,6 @@ bsda:obj:createClass() {
 			;;
 			extends:*)
 				extends="$extends${arg#extends:}$IFS"
-			;;
-			implements:*)
-				implements="$implements${arg#implements:}$IFS"
 			;;
 			*)
 				# Assume everything else is a comment.
@@ -338,13 +326,6 @@ bsda:obj:createClass() {
 			return 4
 		fi
 
-		# Get the interfaces implemented by the class.
-		# Filter already registered interfaces.
-		parents="$($parent.getInterfaces | /usr/bin/grep -vFx "$implements")"
-		# Append the detected interfaces to the list of implemented
-		# interfaces.
-		implements="$implements${parents:+$parents$IFS}"
-
 		# Get the parents of this class.
 		# Filter already registered parents.
 		parents="$($parent.getParents | /usr/bin/grep -vFx "$extends")"
@@ -396,32 +377,6 @@ bsda:obj:createClass() {
 	# Get the super methods, first class wins.
 	[ -z "$init" ] && [ -n "$superInit" ] && init="$superInit"
 	[ -z "$clean" ] && [ -n "$superClean" ] && clean="$superClean"
-
-	# Manage implements.
-	for interface in $implements; do
-		if ! $interface.isInterface; then
-			echo "bsda:obj:createClass: ERROR: Implementing \"$interface\" failed, not an interface!" 1>&2
-			return 5
-		fi
-
-		# Get the parents of this interface.
-		# Filter already registered parents.
-		parents="$($interface.getParents | /usr/bin/grep -vFx "$implements")"
-		# Append the detected parents to the list of extended classes.
-		implements="$implements${parents:+$parents$IFS}"
-
-		# Get inherited public methods.
-		inheritedMethods="$($interface.getMethods | /usr/bin/grep -vFx "$methods")"
-
-		# Update the list of methods.
-		methods="${inheritedMethods:+$inheritedMethods$IFS}$methods"
-
-		# Update the instance match patterns of parents.
-		for parent in $interface$IFS$parents; do
-			$parent.getPrefix parent
-			eval "${parent}instancePatterns=\"\${${parent}instancePatterns}\${${classPrefix}instancePatterns}\""
-		done
-	done
 
 	# If a method is defined more than once, the widest scope wins.
 	# Go through the methods sorted by method name.
@@ -717,13 +672,6 @@ bsda:obj:createClass() {
 		}
 	"
 
-	# Return whether this is an interface.
-	eval "
-		$class.isInterface() {
-			return 1
-		}
-	"
-
 	# A static method that returns the attributes of a class.
 	eval "
 		$class.getAttributes() {
@@ -759,17 +707,6 @@ bsda:obj:createClass() {
 
 	# A static method that returns the parentage of this class.
 	eval "
-		$class.getInterfaces() {
-			if [ -n \"\$1\" ]; then
-				setvar \"\$1\" '$implements'
-			else
-				echo '$implements'
-			fi
-		}
-	"
-
-	# A static method that returns the parentage of this class.
-	eval "
 		$class.getParents() {
 			if [ -n \"\$1\" ]; then
 				setvar \"\$1\" '$extends'
@@ -797,169 +734,6 @@ bsda:obj:createClass() {
 				setvar \"\$1\" '$clean'
 			else
 				echo '$clean'
-			fi
-		}
-	"
-}
-
-#
-# This function creates an interface that can be implemented by a class.
-#
-# It is similar to the bsda:obj:createClass() function, but a lot less complex.
-#
-# The following static methods are reserved:
-#	isInstance()
-#	isClass()
-#	isInterface()
-#	getMethods()
-#	getPrefix()
-#	getParents()
-#
-# The following class prefix bound static attributes are reserved:
-#	instancePatterns
-#
-# @param 1
-#	The first parameter is the name of the interface.
-# @param @
-#	A description of the interface to create.
-#
-#	All parameters following the interface name make up a list of
-#	identifiers, the different types of identifiers are distinguished by
-#	the following prefixes:
-#
-#		x: Defines a public method.
-#		extends:
-#		   This prefix is followed by the name of another interface
-#		   from which method definitions are inherited.
-#
-#	Everything that is not recognized as an identifier is treated as a
-#	comment.
-#
-# @param bsda_obj_namespace
-#	The frameowrk namespace to use when building a class. The impact is on
-#	the use of helper functions.
-# @return
-#	0 on succes
-#	1 for an attempt to extend something that is not an interface
-#
-bsda:obj:createInterface() {
-	local IFS arg interface methods extends
-	local interfacePrefix namespacePrefix parent parents
-	local inheritedMethods
-
-	# Default framework namespace.
-	: ${bsda_obj_namespace='bsda:obj'}
-
-	# Get the interface name and shift it off the parameter list.
-	interface="$1"
-	shift
-
-	IFS='
-'
-
-	methods=
-	extends=
-
-	# Parse arguments.
-	for arg in "$@"; do
-		case "$arg" in
-			x:*)
-				methods="${methods}public:${arg#x:}$IFS"
-			;;
-			extends:*)
-				extends="$extends${arg#extends:}$IFS"
-			;;
-			*)
-				# Assume everything else is a comment.
-			;;
-		esac
-	done
-
-	# Create an interface prefix, this is required to access the instance
-	# matching patterns.
-	namespacePrefix="${bsda_obj_frameworkPrefix}$(echo "$bsda_obj_namespace" | /usr/bin/tr ':' '_')_"
-	interfacePrefix="${namespacePrefix}$(echo "$interface" | /usr/bin/tr ':' '_')_"
-
-	# Set the instance match pattern.
-	setvar ${interfacePrefix}instancePatterns "${interfacePrefix}([0-9a-f]+_){5}[0-9]+_$IFS"
-
-	# Manage inheritance.
-	for parent in $extends; do
-		if ! $parent.isInterface; then
-			echo "bsda:obj:createInterface: ERROR: Extending \"$interface\" failed, not an interface!" 1>&2
-			return 1
-		fi
-
-
-		# Get the parents of this interface.
-		# Filter already registered parents.
-		parents="$($parent.getParents | /usr/bin/grep -vFx "$extends")"
-		# Append the detected parents to the list of extended interfaces.
-		extends="$extends${parents:+$parents$IFS}"
-
-		# Get inherited public methods.
-		inheritedMethods="$($parent.getMethods | /usr/bin/grep -vFx "$methods")"
-
-		# Update the list of methods.
-		methods="${inheritedMethods:+$inheritedMethods$IFS}$methods"
-
-		# Update the instance match patterns of parents.
-		for parent in $parent$IFS$parents; do
-			$parent.getPrefix parent
-			eval "${parent}instancePatterns=\"\${${parent}instancePatterns}\${${interfacePrefix}instancePatterns}\""
-		done
-	done
-
-	# A static type checker.
-	eval "
-		$interface.isInstance() {
-			echo \"\$1\" | /usr/bin/egrep -xq \"\${${interfacePrefix}instancePatterns}\"
-		}
-	"
-
-	# Return whether this is a class.
-	eval "
-		$interface.isClass() {
-			return 1
-		}
-	"
-
-	# Return whether this is an interface.
-	eval "
-		$interface.isInterface() {
-			return 0
-		}
-	"
-
-	# A static method that returns the methods declared in this interace.
-	eval "
-		$interface.getMethods() {
-			if [ -n \"\$1\" ]; then
-				setvar \"\$1\" '$methods'
-			else
-				echo '$methods'
-			fi
-		}
-	"
-
-	# A static method that returns the interface prefix.
-	eval "
-		$interface.getPrefix() {
-			if [ -n \"\$1\" ]; then
-				setvar \"\$1\" '$interfacePrefix'
-			else
-				echo '$interfacePrefix'
-			fi
-		}
-	"
-
-	# A static method that returns the parentage of this interface.
-	eval "
-		$interface.getParents() {
-			if [ -n \"\$1\" ]; then
-				setvar \"\$1\" '$extends'
-			else
-				echo '$extends'
 			fi
 		}
 	"

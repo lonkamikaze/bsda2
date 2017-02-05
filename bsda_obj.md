@@ -10,10 +10,9 @@ BSDA:OBJ - Real World OO for Shell-Scripting
 ============================================
 
 The `bsda:obj` framework offers you some common OO-foo for shell scripting
-like classes, interfaces, encapsulation, polymorphism with and without
-inheritance, method overloading, introspection, serialisation, automatic
-creation of getters and setters and garbage collection upon process
-termination.
+like classes, encapsulation, polymorphism with and without inheritance,
+method overloading, introspection, serialisation, automatic creation
+of getters and setters and garbage collection upon process termination.
 
 `bsda:obj` provides a higher level of abstraction and code reuse without
 sacrificing the flexibility and versatility of shell scripting.
@@ -52,7 +51,6 @@ TABLE OF CONTENTS
    1. [Basic Class Creation](#1-1-basic-class-creation)
    2. [Inheritance](#1-2-inheritance)
    3. [Access Scope](#1-3-access-scope)
-   4. [Interfaces](#1-4-interfaces)
 2. [IMPLEMENTING METHODS](#2-implementing-methods)
    1. [Regular Methods](#2-1-regular-methods)
       1. [Accessing Attributes](#2-1-1-accessing-attributes)
@@ -75,7 +73,7 @@ TABLE OF CONTENTS
 11. [REFLECTION & REFACTORING](#11-reflection-refactoring)
     1. [Attributes](#11-1-attributes)
     2. [Methods](#11-2-methods)
-    3. [Parent Classes and Interfaces](#11-3-parent-classes-and-interfaces)
+    3. [Parent Classes](#11-3-parent-classes)
 12. [FORKING PROCESSES](#12-forking-processes)
     1. [Creating Child Processes](#12-1-creating-child-processes)
     2. [Detaching from the Execution Context](#12-2-detaching-from-the-execution-context)
@@ -262,51 +260,6 @@ bsda:obj:createClass myNs:Person \
 * **NOTE**
   When methods are inherited the widest declared scope always wins, no
   matter from which class it originates.
-
-### 1.4. Interfaces
-
-Implementations of generic solutions normally require the classes using them
-to conform to a certain interface (e.g. in a listener and notify pattern).
-
-Technically this can be realised with inheritance, but this is often a dirty
-solution, especially when conformance to several interfaces is required.
-
-To circumvent the consistency problems imposed by multiple inheritance the
-`bsda:obj:createInterface()` method allows the creation of interfaces:
-
-~~~ bash
-bsda:obj:createInterface Listener \
-	x:notify
-~~~
-
-* **NOTE**
-  Methods defined by an interface are always public, so there is no
-  scope operator.
-
-* **NOTE** Interfaces cannot be used to define attributes.
-
-Every class conforming to the interface has to implement the methods defined
-by the interface:
-
-~~~ bash
-bsda:obj:createClass Display implements:Listener \
-	[ … additional method and attribute definitions … ]
-
-Display.notify() {
-	[ … ]
-}
-~~~
-
-Interfaces can also extend other interfaces.
-
-To check whether an object is derived from a class conforming to an
-interface the static isInstance method can be use:
-
-~~~ bash
-if ! Listener.isInstance $object; then
-	[ … ]
-fi
-~~~
 
 
 
@@ -710,7 +663,7 @@ This framework supplies basic type checking facilities.
 ### 9.1. Object Type Checks
 
 This section documents the use of the static type checking method created
-by the `bsda:obj:createClass()` and `bsda:obj:createInterface()` function below.
+by the `bsda:obj:createClass()` function.
 
 The type checking method `isInstance()` takes an argument string and checks
 whether it is a reference to an object of this class.
@@ -896,26 +849,25 @@ this=$tmpThis
 class=$tmpClass
 ~~~
 
-### 11.3. Parent Classes and Interfaces
+### 11.3. Parent Classes
 
-Each class knows its parents and interfaces and reveals them through the
-static `getParents()` and `getInterfaces()` methods:
+Each class knows its parents and reveals them through the static
+`getParents()` method:
 
 ~~~ bash
-<classname>.getInterfaces interfaces
 <classname>.getParents parents
 ~~~
 
-The variables interfaces and parents contain newline separated lists of
-interface and class names after the preceding commands.
+The variable parents contains newline separated lists of class names
+after the preceding command.
 
 Though all classes know their parents, they do not know their children.
 Instead there is a recognition pattern for object IDs belonging to the
 class, which is used by the static `isInstance()` method for each class.
 
-Every inheriting/implementing class adds a pattern for itself to the
-recognition pattern of each class and interface it extends and implements.
-This pattern can be accessed through the class prefix:
+Every inheriting class adds a pattern for itself to the recognition
+pattern of each class it extends. This pattern can be accessed through
+the class prefix:
 
 ~~~ bash
 <classname>.getPrefix prefix
