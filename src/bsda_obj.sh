@@ -190,7 +190,7 @@ bsda:obj:createClass() {
 	local IFS class methods method attributes getters setters arg
 	local getter setter attribute reference init clean serialise extends
 	local implements
-	local namespacePrefix classPrefix prefix
+	local namespacePrefix classPrefix
 	local superInit superClean superInitParent superCleanParent
 	local inheritedAttributes inheritedMethods parent parents
 	local previousMethod scope interface
