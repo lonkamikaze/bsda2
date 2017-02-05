@@ -1,3 +1,4 @@
+#!/bin/sh
 set -f
 prefix="${0##*/}"
 namespace="$(echo "$prefix" | /usr/bin/tr '_' ':')"
