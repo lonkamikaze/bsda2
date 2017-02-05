@@ -1312,7 +1312,7 @@ bsda:obj:callerSetup() {
 
 		# Delete the given object when returning to the caller.
 		$caller.delete() {
-			${caller}_delete=\"\$1.delete;\${${caller}_delete}\"
+			delete_${caller}=\"\$1.delete;\${delete_${caller}}\"
 		}
 
 		# Create a function that returns the object ID of the caller.
@@ -1345,17 +1345,17 @@ bsda:obj:callerSetup() {
 #
 # @param caller
 #	The caller context prefix.
-# @param ${caller}_delete
+# @param delete_${caller}
 #	The list of objects to delete when returning to the caller.
-# @param ${caller}_setvars
+# @param setvars_${caller}
 #	The list of variables to copy into the caller context.
 # @param bsda_obj_callStackCount
 #	Is decremented by 1.
 #
 bsda:obj:callerFinish() {
 	# Delete objects
-	eval eval "\${${caller}_delete}"
-	unset ${caller}_delete
+	eval eval "\${delete_${caller}}"
+	unset delete_${caller}
 
 	# Remove the bsda:obj:callerSetvar() wrapper.
 	unset -f $caller.setvar $caller.delete \
@@ -1366,7 +1366,7 @@ bsda:obj:callerFinish() {
 	# Copy variables to the caller context.
 	local _var IFS
 	IFS=' '
-	eval "_var=\"\$${caller}_setvars\""
+	eval "_var=\"\$setvars_${caller}\""
 	for _var in $_var; do
 		# Copy variable.
 		eval "setvar $_var \"\$$caller$_var\""
@@ -1374,7 +1374,7 @@ bsda:obj:callerFinish() {
 		unset $caller$_var
 	done
 	# Delete list of variables from stack.
-	unset ${caller}_setvars
+	unset setvars_${caller}
 }
 
 #
@@ -1393,7 +1393,7 @@ bsda:obj:callerFinish() {
 #	The value to store.
 # @param caller
 #	The context to store variables in.
-# @param ${caller}_setvars
+# @param setvars_${caller}
 #	A list of all the stored variables for the caller context.
 #
 bsda:obj:callerSetvar() {
@@ -1403,7 +1403,7 @@ bsda:obj:callerSetvar() {
 	# Store value.
 	setvar $caller$1 "$2"
 	# Register variable.
-	eval "${caller}_setvars=\$${caller}_setvars\${${caller}_setvars:+ }$1"
+	eval "setvars_${caller}=\$setvars_${caller}\${setvars_${caller}:+ }$1"
 }
 
 #
