@@ -12,16 +12,6 @@ set -f
 #
 
 #
-# This is a user tunable to turn off scope checks, which can bring
-# considerable performance gain, but should only be done with thoroughly
-# tested code.
-#
-# It has to be activated before including the framework. Changing it at
-# runtime will have no effect.
-#
-#BSDA_OBJ_NOSCOPE=
-
-#
 # The stack counter that holds the number of methods that currently
 # use the return stack.
 #
@@ -1191,55 +1181,31 @@ bsda:obj:isSimpleFloat() {
 # @param 4
 #	A list of method names.
 #
-if [ -z "$BSDA_OBJ_NOSCOPE" ]; then
-	# Use the regular implementation.
-	bsda:obj:createMethods() {
-		local method scope
-		for method in $4; do
-			scope=${method%:*}
-			# Get scope check from class.
-			eval "scope=\"\$$2$scope\""
-			# Add method name to scope.
-			eval "scope=\"$scope\""
-			method=${method##*:}
-			eval "
-				$3.$method() {
-					$scope
-					local caller
-					bsda:obj:callerSetup
-					local class this _return
-					class=$1
-					this=$3
-					$1.$method \"\$@\"
-					_return=\$?
-					bsda:obj:callerFinish
-					return \$_return
-				}
-			"
-		done
-	}
-else
-	# Use the implementation without scope checks.
-	bsda:obj:createMethods() {
-		local method
-		for method in $4; do
-			method=${method##*:}
-			eval "
-				$3.$method() {
-					local caller
-					bsda:obj:callerSetup
-					local class this _return
-					class=$1
-					this=$3
-					$1.$method \"\$@\"
-					_return=\$?
-					bsda:obj:callerFinish
-					return \$_return
-				}
-			"
-		done
-	}
-fi
+bsda:obj:createMethods() {
+	local method scope
+	for method in $4; do
+		scope=${method%:*}
+		# Get scope check from class.
+		eval "scope=\"\$$2$scope\""
+		# Add method name to scope.
+		eval "scope=\"$scope\""
+		method=${method##*:}
+		eval "
+			$3.$method() {
+				$scope
+				local caller
+				bsda:obj:callerSetup
+				local class this _return
+				class=$1
+				this=$3
+				$1.$method \"\$@\"
+				_return=\$?
+				bsda:obj:callerFinish
+				return \$_return
+			}
+		"
+	done
+}
 
 #
 # Deletes methods from an object. This is intended to be used in a destructor.
