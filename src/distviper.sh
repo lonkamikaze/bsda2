@@ -216,8 +216,7 @@ distviper:Session.getMakeVar() {
 #	The folders to search for distinfo files
 #
 distviper:Session.run_find() {
-	/usr/bin/find "$@" -name distinfo -exec cat '{}' + \
-	| /usr/bin/awk '
+	/usr/bin/find "$@" -type f -name distinfo -not -exec /usr/bin/awk '
 		/^SHA/ {
 			sub(/^\(/, "", $2)
 			sub(/\)$/, "", $2)
@@ -226,7 +225,7 @@ distviper:Session.run_find() {
 				pairs[pair]
 				print pair
 			}
-		}' | /usr/bin/sort
+		}' '{}' + 2>&1 | /usr/bin/sort
 }
 
 #
@@ -275,8 +274,13 @@ distviper:Session.run() {
 
 	$this.status "Creating a list of $keep distfiles"
 	keepSums="$($class.run_find_$keep)"
-	$this.status "Extracting a list of $keep distfiles"
 	keepFiles="$(echo "$keepSums" | /usr/bin/sed 's/|.*//')"
+
+	if echo "$keepSums" | /usr/bin/grep -qv '|[0-9a-f]*$'; then
+		$this.error "Access to $portsdir failed"
+		$term.stderr "$(echo "$keepSums" | /usr/bin/grep -v '|[0-9a-f]*$')"
+		exit 1
+	fi
 
 	$this.status "Creating a list of distfiles to delete"
 	local verify files file obsoleteFiles mismatchFiles chksum fcount i fmt
