@@ -70,8 +70,6 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 # So all that is left to be done are the methods.
 #
 # The following static methods are reserved:
-#	superInit()
-#	superClean()
 #	deserialise()
 #	isInstance()
 #	isClass()
@@ -122,14 +120,6 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 #		extends:
 #		   This prefix is followed by the name of another class
 #		   this class inherits methods and attributes from.
-#		   Classes have to be given in the order of priority.
-#
-#		   The init and clean methods are inherited from the first
-#		   class having them if no own init or clean method is
-#		   supplied.
-#
-#		   The superInit() and superClean() methods also call
-#		   the first encountered init and clean methods.
 #
 #	With these parameters a constructor and a destructor will be built.
 #	It is important that all used attributes are listed, or the copy,
@@ -173,7 +163,6 @@ bsda:obj:createClass() {
 	local IFS class methods method attributes getters setters arg
 	local getter setter attribute reference init clean serialise extends
 	local namespacePrefix classPrefix
-	local superInit superClean superInitParent superCleanParent
 	local inheritedAttributes inheritedMethods parent parents
 	local previousMethod scope
 
@@ -195,8 +184,6 @@ bsda:obj:createClass() {
 	init=
 	clean=
 	extends=
-	superInit=
-	superClean=
 
 	# Parse arguments.
 	for arg in "$@"; do
@@ -318,65 +305,13 @@ bsda:obj:createClass() {
 	done
 
 	# Manage inheritance.
-	superInit=
-	superClean=
 	for parent in $extends; do
 		if ! $parent.isClass; then
 			echo "bsda:obj:createClass: ERROR: Extending \"$parent\" failed, not a class!" 1>&2
 			return 4
 		fi
-
-		# Get the parents of this class.
-		# Filter already registered parents.
-		parents="$($parent.getParents | /usr/bin/grep -vFx "$extends")"
-		# Append the detected parents to the list of extended classes.
-		extends="$extends${parents:+$parents$IFS}"
-
-		# Get the super methods, first class wins.
-		if [ -z "$superInit" ]; then
-			$parent.getInit superInit
-			superInitParent=$parent
-		fi
-		if [ -z "$superClean" ]; then
-			$parent.getClean superClean
-			superCleanParent=$parent
-		fi
-
-		# Get inherited methods and attributes.
-		inheritedMethods="$($parent.getMethods | /usr/bin/grep -vFx "$methods")"
-		inheritedAttributes="$($parent.getAttributes | /usr/bin/grep -vFx "$attributes")"
-
-		# Update the list of attributes.
-		attributes="${inheritedAttributes:+$inheritedAttributes$IFS}$attributes"
-
-		# Create aliases for methods.
-		for method in $inheritedMethods; do
-			# Check whether this method already exists
-			if echo "$methods" | /usr/bin/grep -qx ".*:${method##*:}"; then
-				# Skip ahead.
-				continue
-			fi
-
-			# Inherit method.
-			# Alias does not work in bash unless interactve
-			#alias $class.${method##*:}=$parent.${method##*:}
-			eval "$class.${method##*:}() { $parent.${method##*:} \"\$@\"; }"
-		done
-
-		# Update the list of methods.
-		methods="${inheritedMethods:+$inheritedMethods$IFS}$methods"
-
-		# Update the instance match patterns of parents.
-		for parent in $parent$IFS$parents; do
-			$parent.getPrefix parent
-			eval "${parent}instancePatterns=\"\${${parent}instancePatterns}|\${${classPrefix}instancePatterns}\""
-		done
 	done
 
-
-	# Get the super methods, first class wins.
-	[ -z "$init" ] && [ -n "$superInit" ] && init="$superInit"
-	[ -z "$clean" ] && [ -n "$superClean" ] && clean="$superClean"
 
 	# If a method is defined more than once, the widest scope wins.
 	# Go through the methods sorted by method name.
@@ -629,24 +564,6 @@ bsda:obj:createClass() {
 				unset bsda_obj_serialiseBlacklist
 			fi
 			return 0
-		}
-	"
-
-	# A static super method, which calls the init method of the
-	# parent class.
-	eval "
-		$class.superInit() {
-			${superInit:+$superInit \"\$@\"}
-			return
-		}
-	"
-
-	# A static super method, which calls the cleanup method of the
-	# parent class.
-	eval "
-		$class.superClean() {
-			${superClean:+$superClean \"\$@\"}
-			return
 		}
 	"
 
