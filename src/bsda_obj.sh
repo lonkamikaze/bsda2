@@ -98,7 +98,7 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 #	The first parameter is the name of the class.
 # @param @
 #	A description of the class to create.
-#	
+#
 #	All parameters following the class name make up a list of identifiers
 #	for attributes and methods. Every identifier has a prefix, the
 #	following prefixes are supported:
@@ -127,7 +127,7 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 #
 #	The prefixes r, w, x, i and c can be followed by a scope operator
 #	public or private.
-#	
+#
 #	The constructor can be called in the following way:
 #		<class> <refname>
 #	The class name acts as the name of the constructor, <refname> is the
@@ -245,15 +245,13 @@ bsda:obj:createClass() {
 		attribute="$getter"
 		getter="get$(echo "${getter%%${getter#?}}" | /usr/bin/tr '[:lower:]' '[:upper:]')${getter#?}"
 
-		eval "
-			$class.$getter() {
-				if [ -n \"\$1\" ]; then
-					eval \"\$1=\\\"\\\$\${this}$attribute\\\"\"
-				else
-					eval \"echo \\\"\\\$\${this}$attribute\\\"\"
-				fi
-			}
-		"
+		eval "$class.$getter() {
+			if [ -n \"\$1\" ]; then
+				eval \"\$1=\\\"\\\$\${this}$attribute\\\"\"
+			else
+				eval \"echo \\\"\\\$\${this}$attribute\\\"\"
+			fi
+		}"
 
 		# Check for scope operator.
 		if [ "${method%:*}" != "$method" ]; then
@@ -270,11 +268,9 @@ bsda:obj:createClass() {
 		attribute="$setter"
 		setter="set$(echo "${setter%%${setter#?}}" | /usr/bin/tr '[:lower:]' '[:upper:]')${setter#?}"
 
-		eval "
-			$class.$setter() {
-				setvar \"\${this}$attribute\" \"\$1\"
-			}
-		"
+		eval "$class.$setter() {
+			setvar \"\${this}$attribute\" \"\$1\"
+		}"
 
 		# Check for scope operator.
 		if [ "${method%:*}" != "$method" ]; then
@@ -367,229 +363,199 @@ bsda:obj:createClass() {
 	setvar ${classPrefix}public ''
 
 	# Create constructor.
-	eval "
-		$class() {
-			local this class
-			class=$class
+	eval "$class() {
+		local this class
+		class=$class
 
-			# Create object reference.
-			this=\"${classPrefix}${bsda_obj_uid}_\${${classPrefix}${bsda_obj_uid}_nextId:-0}_\"
-	
-			# Increase the object id counter.
-			${classPrefix}${bsda_obj_uid}_nextId=\$((\$${classPrefix}${bsda_obj_uid}_nextId + 1))
+		# Create object reference.
+		this=\"${classPrefix}${bsda_obj_uid}_\${${classPrefix}${bsda_obj_uid}_nextId:-0}_\"
 
-			# Create method instances.
-			$bsda_obj_namespace:createMethods $class $classPrefix \$this \"$methods\"
+		# Increase the object id counter.
+		${classPrefix}${bsda_obj_uid}_nextId=\$((\$${classPrefix}${bsda_obj_uid}_nextId + 1))
 
-			${clean:+
-				bsda_obj_freeOnExit=\"\$bsda_obj_freeOnExit\$this$IFS\"
-			}
+		# Create method instances.
+		$bsda_obj_namespace:createMethods $class $classPrefix \$this \"$methods\"
 
-			# If this object construction is part of a copy() call,
-			# this constructor is done.
-			if [ -n \"\$bsda_obj_doCopy\" ]; then
-				# Return the object reference.
-				if [ -n \"\$1\" ]; then
-					setvar \"\$1\" \$this
-				else
-					echo \$this
-				fi
-				return 0
-			fi
+		${clean:+bsda_obj_freeOnExit=\"\$bsda_obj_freeOnExit\$this$IFS\"}
 
-			local _return _var
-			_var=\"\$1\"
-			${init:+
-				# Cast the reference variable from the parameters.
-				shift
-				local caller
-				bsda:obj:callerSetup
-				# Call the init method.
-				$init \"\$@\"
-				_return=\$?
-				bsda:obj:callerFinish
-				# Destroy the object on failure.
-				if [ \$_return -ne 0 ]; then
-					\$this.delete
-					return \$_return
-				fi
-			}
-
+		# If this object construction is part of a copy() call,
+		# this constructor is done.
+		if [ -n \"\$bsda_obj_doCopy\" ]; then
 			# Return the object reference.
-			if [ -n \"\$_var\" ]; then
-				setvar \"\$_var\" \$this
+			if [ -n \"\$1\" ]; then
+				setvar \"\$1\" \$this
 			else
 				echo \$this
 			fi
 			return 0
+		fi
+
+		local _return _var
+		_var=\"\$1\"
+		${init:+
+		# Cast the reference variable from the parameters.
+		shift
+		local caller
+		bsda:obj:callerSetup
+		# Call the init method.
+		$init \"\$@\"
+		_return=\$?
+		bsda:obj:callerFinish
+		# Destroy the object on failure.
+		if [ \$_return -ne 0 ]; then
+			\$this.delete
+			return \$_return
+		fi
 		}
-	"
+
+		# Return the object reference.
+		if [ -n \"\$_var\" ]; then
+			setvar \"\$_var\" \$this
+		else
+			echo \$this
+		fi
+		return 0
+	}"
 
 	# Create a resetter.
-	eval "
-		$class.reset() {
-			${clean:+$clean \"\$@\" || return}
+	eval "$class.reset() {
+		${clean:+$clean \"\$@\" || return}
 
-			# Delete attributes.
-			$bsda_obj_namespace:deleteAttributes \$this \"$attributes\"
-		}
-	"
+		# Delete attributes.
+		$bsda_obj_namespace:deleteAttributes \$this \"$attributes\"
+	}"
 
 	# Create destructor.
-	eval "
-		$class.delete() {
-			${clean:+
-				$clean \"\$@\" || return
-				# Unregister cleanup function from EXIT trap
-				local nl
-				nl='$IFS'
-				bsda_obj_freeOnExit=\"\${bsda_obj_freeOnExit%%\$this*\}\${bsda_obj_freeOnExit#*\$this\$nl\}\"
-			}
-
-			# Delete methods and attributes.
-			$bsda_obj_namespace:deleteMethods \$this \"$methods\"
-			$bsda_obj_namespace:deleteAttributes \$this \"$attributes\"
+	eval "$class.delete() {
+		${clean:+
+		$clean \"\$@\" || return
+		# Unregister cleanup function from EXIT trap
+		local nl
+		nl='$IFS'
+		bsda_obj_freeOnExit=\"\${bsda_obj_freeOnExit%%\$this*\}\${bsda_obj_freeOnExit#*\$this\$nl\}\"
 		}
-	"
+
+		# Delete methods and attributes.
+		$bsda_obj_namespace:deleteMethods \$this \"$methods\"
+		$bsda_obj_namespace:deleteAttributes \$this \"$attributes\"
+	}"
 
 	# Create copy method.
-	eval "
-		$class.copy() {
-			local IFS bsda_obj_doCopy reference attribute
+	eval "$class.copy() {
+		local IFS bsda_obj_doCopy reference attribute
 
-			bsda_obj_doCopy=1
-			IFS='
+		bsda_obj_doCopy=1
+		IFS='
 '
 
-			# Create a new empty object.
-			$class reference
+		# Create a new empty object.
+		$class reference
 
-			# Store the new object reference in the target variable.
-			if [ -n \"\$1\" ]; then
-				setvar \"\$1\" \$reference
-			else
-				echo \$reference
-			fi
+		# Store the new object reference in the target variable.
+		if [ -n \"\$1\" ]; then
+			setvar \"\$1\" \$reference
+		else
+			echo \$reference
+		fi
 
-			# For each attribute copy the value over to the
-			# new object.
-			for attribute in \$(echo \"$attributes\"); do
-				eval \"\$reference\$attribute=\\\"\\\$\${this}\$attribute\\\"\"
-			done
-		}
-	"
+		# For each attribute copy the value over to the
+		# new object.
+		for attribute in \$(echo \"$attributes\"); do
+			eval \"\$reference\$attribute=\\\"\\\$\${this}\$attribute\\\"\"
+		done
+	}"
 
 	# A serialise method.
-	eval "
-		$class.serialise() {
-			local IFS attribute serialised svar
+	eval "$class.serialise() {
+		local IFS attribute serialised svar
 
-			IFS='
+		IFS='
 '
 
-			serialised=
-			for attribute in \$(echo '$attributes'); do
-				bsda:obj:serialiseVar svar \"\${this}\$attribute\"
-				serialised=\"\${serialised:+\$serialised;}\$svar\"
-			done
-			serialised=\"\$serialised;$class.deserialise \$this\"
+		serialised=
+		for attribute in \$(echo '$attributes'); do
+			bsda:obj:serialiseVar svar \"\${this}\$attribute\"
+			serialised=\"\${serialised:+\$serialised;}\$svar\"
+		done
+		serialised=\"\$serialised;$class.deserialise \$this\"
 
-			\$caller.setvar \"\$1\" \"\$serialised\"
-		}
-	"
+		\$caller.setvar \"\$1\" \"\$serialised\"
+	}"
 
 	# A static deserialise method.
-	eval "
-		$class.deserialise() {
-			# Create method instances.
-			$bsda_obj_namespace:createMethods $class $classPrefix \$1 \"$methods\"
-		}
-	"
+	eval "$class.deserialise() {
+		# Create method instances.
+		$bsda_obj_namespace:createMethods $class $classPrefix \$1 \"$methods\"
+	}"
 
 	# A static type checker.
-	eval "
-		$class.isInstance() {
-			case \"\$1\" in
-			$instancePattern)
-				return 0
-			;;
-			esac
-			return 1
-		}
-	"
+	eval "$class.isInstance() {
+		case \"\$1\" in
+		$instancePattern)
+			return 0
+		;;
+		esac
+		return 1
+	}"
 
 	# Return whether this is a class.
-	eval "
-		$class.isClass() {
-			return 0
-		}
-	"
+	eval "$class.isClass() {
+		return 0
+	}"
 
 	# A static method that returns the attributes of a class.
-	eval "
-		$class.getAttributes() {
-			if [ -n \"\$1\" ]; then
-				setvar \"\$1\" '$attributes'
-			else
-				echo '$attributes'
-			fi
-		}
-	"
+	eval "$class.getAttributes() {
+		if [ -n \"\$1\" ]; then
+			setvar \"\$1\" '$attributes'
+		else
+			echo '$attributes'
+		fi
+	}"
 
 	# A static method that returns the methods of a class.
-	eval "
-		$class.getMethods() {
-			if [ -n \"\$1\" ]; then
-				setvar \"\$1\" '$methods'
-			else
-				echo '$methods'
-			fi
-		}
-	"
+	eval "$class.getMethods() {
+		if [ -n \"\$1\" ]; then
+			setvar \"\$1\" '$methods'
+		else
+			echo '$methods'
+		fi
+	}"
 
 	# A static method that returns the class prefix.
-	eval "
-		$class.getPrefix() {
-			if [ -n \"\$1\" ]; then
-				setvar \"\$1\" '$classPrefix'
-			else
-				echo '$classPrefix'
-			fi
-		}
-	"
+	eval "$class.getPrefix() {
+		if [ -n \"\$1\" ]; then
+			setvar \"\$1\" '$classPrefix'
+		else
+			echo '$classPrefix'
+		fi
+	}"
 
 	# A static method that returns the parentage of this class.
-	eval "
-		$class.getParents() {
-			if [ -n \"\$1\" ]; then
-				setvar \"\$1\" '$extends'
-			else
-				echo '$extends'
-			fi
-		}
-	"
+	eval "$class.getParents() {
+		if [ -n \"\$1\" ]; then
+			setvar \"\$1\" '$extends'
+		else
+			echo '$extends'
+		fi
+	}"
 
 	# A static method that returns the name of the init method.
-	eval "
-		$class.getInit() {
-			if [ -n \"\$1\" ]; then
-				setvar \"\$1\" '$init'
-			else
-				echo '$init'
-			fi
-		}
-	"
+	eval "$class.getInit() {
+		if [ -n \"\$1\" ]; then
+			setvar \"\$1\" '$init'
+		else
+			echo '$init'
+		fi
+	}"
 
 	# A static method that returns the name of the cleanup method.
-	eval "
-		$class.getClean() {
-			if [ -n \"\$1\" ]; then
-				setvar \"\$1\" '$clean'
-			else
-				echo '$clean'
-			fi
-		}
-	"
+	eval "$class.getClean() {
+		if [ -n \"\$1\" ]; then
+			setvar \"\$1\" '$clean'
+		else
+			echo '$clean'
+		fi
+	}"
 }
 
 #
@@ -642,7 +608,7 @@ bsda:obj:delete[]() {
 #	serialised object to.
 # @param 2
 #	The serialised string of which the reference should be returned.
-#	
+#
 bsda:obj:getSerializedId() {
 	if [ -n "$2" ]; then
 		setvar "$1" "${2##* }"
@@ -817,20 +783,18 @@ bsda:obj:createMethods() {
 		# Add method name to scope.
 		eval "scope=\"$scope\""
 		method=${method##*:}
-		eval "
-			$3.$method() {
-				$scope
-				local caller
-				bsda:obj:callerSetup
-				local class this _return
-				class=$1
-				this=$3
-				$1.$method \"\$@\"
-				_return=\$?
-				bsda:obj:callerFinish
-				return \$_return
-			}
-		"
+		eval "$3.$method() {
+			$scope
+			local caller
+			bsda:obj:callerSetup
+			local class this _return
+			class=$1
+			this=$3
+			$1.$method \"\$@\"
+			_return=\$?
+			bsda:obj:callerFinish
+			return \$_return
+		}"
 	done
 }
 
@@ -894,37 +858,36 @@ bsda:obj:callerSetup() {
 
 	# Create functions to interact with the caller.
 	eval "
-		# Create a wrapper around bsda:obj:callerSetvar for access
-		# through the caller prefix. I do not have the slightest idea
-		# why alias does not work for this.
-		$caller.setvar() {
-			bsda:obj:callerSetvar \"\$@\"
-		}
+	# Create a wrapper around bsda:obj:callerSetvar for access
+	# through the caller prefix. I do not have the slightest idea
+	# why alias does not work for this.
+	$caller.setvar() {
+		bsda:obj:callerSetvar \"\$@\"
+	}
 
-		# Delete the given object when returning to the caller.
-		$caller.delete() {
-			delete_${caller}=\"\$1.delete;\${delete_${caller}}\"
-		}
+	# Delete the given object when returning to the caller.
+	$caller.delete() {
+		delete_${caller}=\"\$1.delete;\${delete_${caller}}\"
+	}
 
-		# Create a function that returns the object ID of the caller.
-		$caller.getObject() {
-			if [ -n \"\$1\" ]; then
-				setvar \"\$1\" '$this'
-			else
-				echo '$this'
-			fi
-		}
+	# Create a function that returns the object ID of the caller.
+	$caller.getObject() {
+		if [ -n \"\$1\" ]; then
+			setvar \"\$1\" '$this'
+		else
+			echo '$this'
+		fi
+	}
 
-		# Create a function that returns the class of the caller.
-		$caller.getClass() {
-			if [ -n \"\$1\" ]; then
-				setvar \"\$1\" '$class'
-			else
-				echo '$class'
-			fi
-		}
+	# Create a function that returns the class of the caller.
+	$caller.getClass() {
+		if [ -n \"\$1\" ]; then
+			setvar \"\$1\" '$class'
+		else
+			echo '$class'
+		fi
+	}
 	"
-
 }
 
 #
