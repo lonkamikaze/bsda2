@@ -88,7 +88,6 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 #
 # The following class prefix bound static attributes are reserved:
 #	private
-#	protected
 #	public
 #
 # The following session, class and process bound static attributes are
@@ -127,7 +126,7 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 #	comment.
 #
 #	The prefixes r, w, x, i and c can be followed by a scope operator
-#	public, protected or private.
+#	public or private.
 #	
 #	The constructor can be called in the following way:
 #		<class> <refname>
@@ -296,7 +295,7 @@ bsda:obj:createClass() {
 				# There is no scope operator, add public.
 				methods="${methods}public:$method$IFS"
 			;;
-			public | protected | private)
+			public | private)
 				# The accepted scope operators.
 				methods="$methods$method$IFS"
 			;;
@@ -337,11 +336,6 @@ bsda:obj:createClass() {
 			public)
 				scope=public
 			;;
-			protected)
-				if [ "$scope" = "private" ]; then
-					scope=protected
-				fi
-			;;
 			esac
 		fi
 
@@ -366,22 +360,6 @@ bsda:obj:createClass() {
 	setvar ${classPrefix}private "
 		if [ \\\"\\\$class\\\" != \\\"$class\\\" ]; then
 			echo \\\"$class.\${method##*:}(): Terminated because of access attempt to a private method\\\${class:+ by \\\$class}!\\\" 1>&2
-			return 255
-		fi
-	"
-	# Protected methods allow the following kinds of access:
-	# - Derived classes
-	#   Access is allowed to instances of the same class and its
-	#   decendants.
-	# - Parent classes
-	#   Access is permitted to all parent classes.
-	# - Namespace
-	#   Access is allowed from the same namespace or subspaces of the
-	#   own namespace. Classes without a namespace cannot access each
-	#   other this way.
-	setvar ${classPrefix}protected "
-		if (! $class.isInstance \\\$this) && (! echo \\\"\\\$class\\\" | /usr/bin/grep -Fx '$extends' > /dev/null) && [ \\\"\\\${class#${class%:*}}\\\" = \\\"\\\$class\\\" ]; then
-			echo \\\"$class.\${method##*:}(): Terminated because of access attempt to a protected method\\\${class:+ by \\\$class}!\\\" 1>&2
 			return 255
 		fi
 	"
