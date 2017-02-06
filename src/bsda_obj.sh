@@ -176,7 +176,7 @@ bsda:obj:createClass() {
 '
 
 	# There are some default methods.
-	methods="reset${IFS}delete${IFS}copy${IFS}serialise${IFS}"
+	methods="reset${IFS}delete${IFS}"
 	attributes=
 	getters=
 	setters=
@@ -226,6 +226,12 @@ bsda:obj:createClass() {
 			;;
 		esac
 	done
+
+	# Only classes without a custom destructor get copy() and
+	# serialise() members.
+	if [ -z "$clean" ]; then
+		methods="${methods}copy${IFS}serialise${IFS}"
+	fi
 
 	# Create reference prefix. The Process id is added to the prefix when
 	# an object is created.
