@@ -87,7 +87,6 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 #	serialise()
 #
 # The following class prefix bound static attributes are reserved:
-#	instancePatterns
 #	private
 #	protected
 #	public
@@ -161,7 +160,7 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 bsda:obj:createClass() {
 	local IFS class methods method attributes getters setters arg
 	local getter setter attribute reference init clean serialise extends
-	local namespacePrefix classPrefix
+	local namespacePrefix classPrefix instancePattern
 	local inheritedAttributes inheritedMethods parent parents
 	local previousMethod scope
 
@@ -239,7 +238,7 @@ bsda:obj:createClass() {
 	classPrefix="${namespacePrefix}$(echo "$class" | /usr/bin/tr ':' '_')_"
 
 	# Set the instance match pattern.
-	setvar ${classPrefix}instancePatterns "${classPrefix}[0-9a-f]*[0-9]_"
+	instancePattern="${classPrefix}[0-9a-f]*[0-9]_"
 
 	# Create getters.
 	for method in $getters; do
@@ -532,11 +531,11 @@ bsda:obj:createClass() {
 	# A static type checker.
 	eval "
 		$class.isInstance() {
-			eval \"case \\\"\\\$1\\\" in
-			\${${classPrefix}instancePatterns})
+			case \"\$1\" in
+			$instancePattern)
 				return 0
 			;;
-			esac\"
+			esac
 			return 1
 		}
 	"
