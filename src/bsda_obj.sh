@@ -305,7 +305,7 @@ bsda:obj:createClass() {
 
 	# Manage inheritance.
 	for parent in $extends; do
-		if ! $parent.isClass; then
+		if ! $parent.isClass 2> /dev/null; then
 			echo "bsda:obj:createClass: ERROR: Extending \"$parent\" failed, not a class!" 1>&2
 			return 4
 		fi
