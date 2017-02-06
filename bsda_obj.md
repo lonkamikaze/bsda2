@@ -723,16 +723,6 @@ The next example saves the object `$configuration` in a file.
 $configuration.serialise > ~/.myconfig
 ~~~
 
-If `$configuration` references other objects it will fail to access them
-if deserialised in a new context.
-This is what the `serialiseDeep()` method is good for. It serialises entire
-data structures recursively and is the right choice in many use cases.
-It is used in exactly the same way as the serialise method.
-
-~~~ bash
-$configuration.serialiseDeep > ~/.myconfig
-~~~
-
 Arguments:
 
 | Argument | Description

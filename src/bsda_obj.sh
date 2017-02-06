@@ -85,7 +85,6 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 #	delete()
 #	reset()
 #	serialise()
-#	serialiseDeep()
 #
 # The following class prefix bound static attributes are reserved:
 #	instancePatterns
@@ -177,7 +176,7 @@ bsda:obj:createClass() {
 '
 
 	# There are some default methods.
-	methods="reset${IFS}delete${IFS}copy${IFS}serialise${IFS}serialiseDeep${IFS}"
+	methods="reset${IFS}delete${IFS}copy${IFS}serialise${IFS}"
 	attributes=
 	getters=
 	setters=
@@ -513,57 +512,6 @@ bsda:obj:createClass() {
 			serialised=\"\$serialised;$class.deserialise \$this\"
 
 			\$caller.setvar \"\$1\" \"\$serialised\"
-		}
-	"
-
-	# A recursive serialise method.
-	eval "
-		$class.serialiseDeep() {
-			local IFS rootCall objects object serialised attribute
-
-			serialised=
-			rootCall=
-			IFS='
-'
-
-			# Check whether this is the root call.
-			if [ -z \"\$bsda_obj_serialiseBlacklist\" ]; then
-				rootCall=1
-			fi
-
-			# Add this to the blacklist to prevent circular
-			# recursion.
-			bsda_obj_serialiseBlacklist=\"\${bsda_obj_serialiseBlacklist:+\$bsda_obj_serialiseBlacklist$IFS}\$this\"
-
-			# Create a list of all referenced objects.
-			objects=\"\$(
-				# Echo each attribute.
-				for attribute in \$(echo '$attributes'); do
-					eval \"echo \\\"\\\${\$this\$attribute}\\\"\"
-				done | /usr/bin/egrep -o '$bsda_obj_frameworkPrefix[_[:alnum:]]+_([0-9a-f]+_){5}[0-9]+_' | /usr/bin/grep -vFx \"\$bsda_obj_serialiseBlacklist\" | /usr/bin/sort -u
-			)\"
-
-			# Serialize all required objects.
-			for object in \$objects; do
-				\$object.serialiseDeep 2> /dev/null \
-					|| echo \"$class.serialiseDeep: WARNING: Missing object \\\"\$object\\\" referenced by \\\"\$this\\\"!\" 1>&2
-			done
-
-			# Serialize this.
-			\$this.serialise serialised
-
-			# Append this to the recursive serialisation list.
-			bsda_obj_serialised=\"\${bsda_obj_serialised:+\$bsda_obj_serialised$IFS}\$serialised\"
-
-			# Root call only.
-			if [ -n \"\$rootCall\" ]; then
-				# Return serialised string.
-				\$caller.setvar \"\$1\" \"\$bsda_obj_serialised\"
-				# Wipe static serialisation variables.
-				unset bsda_obj_serialised
-				unset bsda_obj_serialiseBlacklist
-			fi
-			return 0
 		}
 	"
 
