@@ -78,7 +78,6 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 #	getPrefix()
 #	getInit()
 #	getClean()
-#	getParents()
 #
 # The following methods are reserved:
 #	copy()
@@ -114,9 +113,6 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 #		   given to the constructor.
 #		c: A cleanup method that is called before the reset or delete
 #		   command, with the parameters given to them.
-#		extends:
-#		   This prefix is followed by the name of another class
-#		   this class inherits methods and attributes from.
 #
 #	With these parameters a constructor and a destructor will be built.
 #	It is important that all used attributes are listed, or the copy,
@@ -154,13 +150,11 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 #	1 if there is more than one init method (i:) specified
 #	2 if there is more than one cleanup method (c:) specified
 #	3 if there was an unknown scope operator
-#	4 for an attempt to extend something that is not a class
 #
 bsda:obj:createClass() {
 	local IFS class methods method attributes getters setters arg
-	local getter setter attribute reference init clean serialise extends
+	local getter setter attribute reference init clean serialise
 	local namespacePrefix classPrefix instancePattern
-	local inheritedAttributes inheritedMethods parent parents
 	local previousMethod scope
 
 	# Default framework namespace.
@@ -180,7 +174,6 @@ bsda:obj:createClass() {
 	setters=
 	init=
 	clean=
-	extends=
 
 	# Parse arguments.
 	for arg in "$@"; do
@@ -215,9 +208,6 @@ bsda:obj:createClass() {
 				fi
 				methods="$methods${arg#c:}$IFS"
 				clean="$class.${arg##*:}"
-			;;
-			extends:*)
-				extends="$extends${arg#extends:}$IFS"
 			;;
 			*)
 				# Assume everything else is a comment.
@@ -301,14 +291,6 @@ bsda:obj:createClass() {
 				return 3
 			;;
 		esac
-	done
-
-	# Manage inheritance.
-	for parent in $extends; do
-		if ! $parent.isClass 2> /dev/null; then
-			echo "bsda:obj:createClass: ERROR: Extending \"$parent\" failed, not a class!" 1>&2
-			return 4
-		fi
 	done
 
 
@@ -527,15 +509,6 @@ bsda:obj:createClass() {
 			setvar \"\$1\" '$classPrefix'
 		else
 			echo '$classPrefix'
-		fi
-	}"
-
-	# A static method that returns the parentage of this class.
-	eval "$class.getParents() {
-		if [ -n \"\$1\" ]; then
-			setvar \"\$1\" '$extends'
-		else
-			echo '$extends'
 		fi
 	}"
 
