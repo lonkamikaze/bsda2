@@ -337,7 +337,6 @@ bsda:obj:createClass() {
 	# Private methods allow the following kinds of access:
 	# - Same class
 	#   Access is allowed by all objects with the same class.
-	#   This excludes inheriting classes.
 	setvar ${classPrefix}private "
 		if [ \\\"\\\$class\\\" != \\\"$class\\\" ]; then
 			echo \\\"$class.\${method##*:}(): Terminated because of access attempt to a private method\\\${class:+ by \\\$class}!\\\" 1>&2
