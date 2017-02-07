@@ -156,7 +156,7 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 #
 bsda:obj:createClass() {
 	local IFS class methods method attributes getters setters arg
-	local getter setter attribute reference init clean serialise
+	local getter setter attribute init clean
 	local namespacePrefix classPrefix instancePattern
 	local previousMethod scope
 
