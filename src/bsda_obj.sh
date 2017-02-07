@@ -159,6 +159,8 @@ bsda:obj:createClass() {
 	local getter setter attribute init clean
 	local namespacePrefix classPrefix instancePattern
 	local previousMethod scope
+	local aggregations alias classname
+	local has_copy has_serialise
 
 	# Default framework namespace.
 	: ${bsda_obj_namespace='bsda:obj'}
@@ -177,6 +179,8 @@ bsda:obj:createClass() {
 	setters=
 	init=
 	clean=
+	has_copy=1
+	has_serialise=1
 
 	# Parse arguments.
 	for arg in "$@"; do
@@ -212,16 +216,70 @@ bsda:obj:createClass() {
 				methods="$methods${arg#c:}$IFS"
 				clean="$class.${arg##*:}"
 			;;
+			a:*)
+				aggregations="$aggregations${arg#a:}$IFS"
+			;;
 			*)
 				# Assume everything else is a comment.
 			;;
 		esac
 	done
 
+	alias="$aggregations"
+	aggregations=
+	for alias in $alias; do
+		# Get scope of the getter method
+		case "$alias" in
+		public:* | private:*)
+			scope="${alias%%:*}"
+			alias="${alias#*:}"
+		;;
+		*)
+			scope=public
+		;;
+		esac
+
+		# Get alias and class
+		case "$alias" in
+		*=*)
+			classname="${alias#*=}"
+			alias="${alias%%=*}"
+		;;
+		*)
+			classname=
+		;;
+		esac
+
+		aggregations="$aggregations$alias$IFS"
+		attributes="$attributes$alias$IFS"
+		methods="$methods$scope:$alias$IFS"
+
+		eval "$class.$alias() {
+			if [ -n \"\$1\" ]; then
+				eval \"\$1=\\\"\\\$\${this}$alias\\\"\"
+			else
+				eval \"echo \\\"\\\$\${this}$alias\\\"\"
+			fi
+		}"
+
+		if [ -z "$classname" ]; then
+			has_copy=
+			has_serialise=
+		else
+			$classname.getMethods \
+			| /usr/bin/grep -qFx public:copy || has_copy=
+			$classname.getMethods \
+			| /usr/bin/grep -qFx public:serialise || has_serialise=
+		fi
+	done
+
 	# Only classes without a custom destructor get copy() and
 	# serialise() members.
-	if [ -z "$clean" ]; then
-		methods="${methods}copy${IFS}serialise${IFS}"
+	if [ -z "$clean" ] && [ -n "$has_copy" ]; then
+		methods="${methods}copy${IFS}"
+	fi
+	if [ -z "$clean" ] && [ -n "$has_serialise" ]; then
+		methods="${methods}serialise${IFS}"
 	fi
 
 	# Create reference prefix. The Process id is added to the prefix when
@@ -405,6 +463,12 @@ bsda:obj:createClass() {
 	eval "$class.reset() {
 		${clean:+$clean \"\$@\" || return}
 
+		${aggregations:+$(
+		for alias in $aggregations; do
+			echo eval \"\\\$\${this}$alias.reset\"
+		done
+		)}
+
 		# Delete attributes.
 		$bsda_obj_namespace:deleteAttributes \$this \"$attributes\"
 	}"
@@ -418,6 +482,12 @@ bsda:obj:createClass() {
 		nl='$IFS'
 		bsda_obj_freeOnExit=\"\${bsda_obj_freeOnExit%%\$this*\}\${bsda_obj_freeOnExit#*\$this\$nl\}\"
 		}
+
+		${aggregations:+$(
+		for alias in $aggregations; do
+			echo eval \"\\\$\${this}$alias.delete\"
+		done
+		)}
 
 		# Delete methods and attributes.
 		$bsda_obj_namespace:deleteMethods \$this \"$methods\"
@@ -447,6 +517,13 @@ bsda:obj:createClass() {
 		for attribute in \$(echo \"$attributes\"); do
 			eval \"\$reference\$attribute=\\\"\\\$\${this}\$attribute\\\"\"
 		done
+
+		${aggregations:+$(
+		for alias in $aggregations; do
+			echo eval \"\\\$\${this}$alias.copy \${reference}$alias\"
+		done
+		)}
+
 	}"
 
 	# A serialise method.
@@ -462,6 +539,13 @@ bsda:obj:createClass() {
 			serialised=\"\${serialised:+\$serialised;}\$svar\"
 		done
 		serialised=\"\$serialised;$class.deserialise \$this\"
+
+		${aggregations:+$(
+		for alias in $aggregations; do
+			echo eval \"\\\$\${this}$alias.serialise svar\"
+			echo 'serialised="$svar;$serialised"'
+		done
+		)}
 
 		\$caller.setvar \"\$1\" \"\$serialised\"
 	}"
