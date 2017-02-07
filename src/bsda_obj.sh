@@ -113,6 +113,10 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 #		   given to the constructor.
 #		c: A cleanup method that is called before the reset or delete
 #		   command, with the parameters given to them.
+#		a: An aggregation. Aggregations are special attributes,
+#		   referencing other objects, that are automatically
+#		   deleted, copied, resetted and serialised along
+#		   with an instance of the class.
 #
 #	With these parameters a constructor and a destructor will be built.
 #	It is important that all used attributes are listed, or the copy,
@@ -121,7 +125,7 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 #	Everything that is not recognized as an identifier is treated as a
 #	comment.
 #
-#	The prefixes r, w, x, i and c can be followed by a scope operator
+#	The prefixes r, w, x, i, c and a can be followed by a scope operator
 #	public or private.
 #
 #	The constructor can be called in the following way:
@@ -225,6 +229,7 @@ bsda:obj:createClass() {
 		esac
 	done
 
+	# Create aggregations.
 	alias="$aggregations"
 	aggregations=
 	for alias in $alias; do
