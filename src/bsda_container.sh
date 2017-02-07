@@ -15,17 +15,17 @@ readonly _bsda_container_=1
 #
 # @warning
 #	If the array is serialised the values will be treated as data.
-#	I.e.  #	references are not followed up, even when calling
-#	serialiseDeep().
+#	I.e. references are not followed up.
 #
 bsda:obj:createClass bsda:container:Array \
-	i:private:init   "The constructor" \
-	c:private:clean  "The destructor" \
-	r:public:count   "The number of elements the array contains" \
-	x:public:[       "Random access operator to read/write values" \
-	x:public:push    "Push a new value to the end of the array" \
-	x:public:pop     "Pop the latest value from the end of the array" \
-	x:public:foreach "Call back with every value"
+	i:private:init     "The constructor" \
+	c:private:clean    "The destructor" \
+	r:public:count     "The number of elements the array contains" \
+	x:public:[         "Random access operator to read/write values" \
+	x:public:push      "Push a new value to the end of the array" \
+	x:public:pop       "Pop the latest value from the end of the array" \
+	x:public:foreach   "Call back with every value" \
+	x:public:serialise "Serialise the array"
 
 #
 # The constructor fills the array with initial values.
@@ -156,7 +156,7 @@ bsda:container:Array.[() {
 }
 
 #
-# Overload the serialiser.
+# Serialise the array.
 #
 # @parma &1
 #	The variable to write the serialised instance to
@@ -176,18 +176,6 @@ bsda:container:Array.serialise() {
 }
 
 #
-# Alias for bsda:container:Array.serialise().
-#
-# With this alias in place encountering an array during deep serialisation
-# causes it to be serialised. However this does not perform deep
-# serialisation, objects referenced by the array need to be serialised
-# manually.
-#
-bsda:container:Array.serialiseDeep() {
-	bsda:container:Array.serialise "$@"
-}
-
-#
 # A key/value storage class.
 #
 bsda:obj:createClass bsda:container:Map \
@@ -199,7 +187,8 @@ bsda:obj:createClass bsda:container:Map \
 	r:private:rmCount  "The number of keys removed since compression" \
 	x:public:[         "Random access operator" \
 	x:public:foreach   "Callback with a key/value pair" \
-	x:public:getCount  "Returns the number of stored key/value pairs"
+	x:public:getCount  "Returns the number of stored key/value pairs" \
+	x:public:serialise "Serialise the map"
 
 #
 # A helper function to roll out cached activities.
@@ -385,7 +374,7 @@ bsda:container:Map.getCount() {
 }
 
 #
-# Overload the serialiser.
+# Serialise the map.
 #
 # @parma &1
 #	The variable to write the serialised instance to
@@ -404,16 +393,3 @@ bsda:container:Map.serialise() {
 	serialised="$serialised;$class.deserialise $this"
 	$caller.setvar "$1" "$serialised"
 }
-
-#
-# Alias for bsda:container:Map.serialise().
-#
-# With this alias in place encountering a map during deep serialisation
-# causes it to be serialised. However this does not perform deep
-# serialisation, objects referenced by the map need to be serialised
-# manually.
-#
-bsda:container:Map.serialiseDeep() {
-	bsda:container:Map.serialise "$@"
-}
-
