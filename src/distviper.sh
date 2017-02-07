@@ -72,6 +72,7 @@ distviper:Session.params() {
 	NOCHKSUM    -n --no-checksum 'Skip checksum checks' \
 	QUIET       -q --quiet       'Do not print anything' \
 	VERBOSE     -v --verbose     'Verbose output'
+	$caller.delete $options
 
 	$this.getFlags flags
 	while [ $# -gt 0 ]; do
