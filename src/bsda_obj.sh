@@ -265,7 +265,7 @@ bsda:obj:createClass() {
 		if [ -z "$classname" ]; then
 			has_copy=
 			has_serialise=
-		else
+		elif [ "$classname" != "$class" ]; then
 			$classname.getMethods \
 			| /usr/bin/grep -qFx public:copy || has_copy=
 			$classname.getMethods \
