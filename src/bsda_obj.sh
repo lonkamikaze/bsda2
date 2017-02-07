@@ -483,11 +483,11 @@ bsda:obj:createClass() {
 		bsda_obj_freeOnExit=\"\${bsda_obj_freeOnExit%%\$this*\}\${bsda_obj_freeOnExit#*\$this\$nl\}\"
 		}
 
-		${aggregations:+$(
+		${aggregations:+eval \"$(
 		for alias in $aggregations; do
-			echo eval \"\\\$\${this}$alias.delete\"
+			echo \\\$\${this}$alias.delete
 		done
-		)}
+		)\"}
 
 		# Delete methods and attributes.
 		$bsda_obj_namespace:deleteMethods \$this \"$methods\"
@@ -496,11 +496,9 @@ bsda:obj:createClass() {
 
 	# Create copy method.
 	eval "$class.copy() {
-		local IFS bsda_obj_doCopy reference attribute
+		local bsda_obj_doCopy reference
 
 		bsda_obj_doCopy=1
-		IFS='
-'
 
 		# Create a new empty object.
 		$class reference
@@ -514,30 +512,31 @@ bsda:obj:createClass() {
 
 		# For each attribute copy the value over to the
 		# new object.
-		for attribute in \$(echo \"$attributes\"); do
-			eval \"\$reference\$attribute=\\\"\\\$\${this}\$attribute\\\"\"
+		${attributes:+eval \"$(
+		for attribute in $attributes; do
+			echo "\${reference}$attribute=\\\"\\\$\${this}$attribute\\\""
 		done
+		)\"}
 
-		${aggregations:+$(
+		${aggregations:+eval \"$(
 		for alias in $aggregations; do
-			echo eval \"\\\$\${this}$alias.copy \${reference}$alias\"
+			echo "\\\$\${this}$alias.copy \${reference}$alias"
 		done
-		)}
+		)\"}
 
 	}"
 
 	# A serialise method.
 	eval "$class.serialise() {
-		local IFS attribute serialised svar
-
-		IFS='
-'
+		local serialised svar
 
 		serialised=
-		for attribute in \$(echo '$attributes'); do
-			bsda:obj:serialiseVar svar \"\${this}\$attribute\"
-			serialised=\"\${serialised:+\$serialised;}\$svar\"
+		${attributes:+$(
+		for attribute in $attributes; do
+			echo "bsda:obj:serialiseVar svar \"\${this}$attribute\""
+			echo "serialised=\"\${serialised:+\$serialised;}\$svar\""
 		done
+		)}
 		serialised=\"\$serialised;$class.deserialise \$this\"
 
 		${aggregations:+$(
