@@ -1173,6 +1173,20 @@ bsda:obj:fork
 }
 
 #
+# Ignore nullptr copy.
+#
+.copy() {
+	:
+}
+
+#
+# Ignore nullptr serialise.
+#
+.serialise() {
+	:
+}
+
+#
 # Compatibility hacks.
 #
 
