@@ -273,6 +273,9 @@ bsda:obj:createClass() {
 		fi
 	done
 
+	# Remove duplicated attributes.
+	attributes="$(echo "$attributes" | /usr/bin/awk '!a[$0]++')"
+
 	# Only classes without a custom destructor get copy() and
 	# serialise() members.
 	if [ -z "$clean" ] && [ -n "$has_copy" ]; then
