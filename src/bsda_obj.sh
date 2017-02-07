@@ -145,11 +145,14 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 # @param bsda_obj_namespace
 #	The frameowrk namespace to use when building a class. The impact is on
 #	the use of helper functions.
-# @return
-#	0 on succes
-#	1 if there is more than one init method (i:) specified
-#	2 if there is more than one cleanup method (c:) specified
-#	3 if there was an unknown scope operator
+# @retval 0
+#	On succes
+# @retval 1
+#	If there is more than one init method (i:) specified
+# @retval 2
+#	If there is more than one cleanup method (c:) specified
+# @retval 3
+#	If there was an unknown scope operator
 #
 bsda:obj:createClass() {
 	local IFS class methods method attributes getters setters arg
