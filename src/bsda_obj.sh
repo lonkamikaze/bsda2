@@ -82,7 +82,6 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 # The following methods are reserved:
 #	copy()
 #	delete()
-#	reset()
 #	serialise()
 #
 # The following class prefix bound static attributes are reserved:
@@ -177,7 +176,7 @@ bsda:obj:createClass() {
 '
 
 	# There are some default methods.
-	methods="reset${IFS}delete${IFS}"
+	methods="delete${IFS}"
 	attributes=
 	getters=
 	setters=
@@ -465,20 +464,6 @@ bsda:obj:createClass() {
 			echo \$this
 		fi
 		return 0
-	}"
-
-	# Create a resetter.
-	eval "$class.reset() {
-		${clean:+$clean \"\$@\" || return}
-
-		${aggregations:+$(
-		for alias in $aggregations; do
-			echo eval \"\\\$\${this}$alias.reset\"
-		done
-		)}
-
-		# Delete attributes.
-		$bsda_obj_namespace:deleteAttributes \$this \"$attributes\"
 	}"
 
 	# Create destructor.
