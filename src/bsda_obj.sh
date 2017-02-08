@@ -70,23 +70,23 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 # So all that is left to be done are the methods.
 #
 # The following static methods are reserved:
-#	deserialise()
-#	isInstance()
-#	isClass()
-#	getAttributes()
-#	getMethods()
-#	getPrefix()
-#	getInit()
-#	getClean()
+# - deserialise()
+# - isInstance()
+# - isClass()
+# - getAttributes()
+# - getMethods()
+# - getPrefix()
+# - getInit()
+# - getClean()
 #
 # The following methods are reserved:
-#	copy()
-#	delete()
-#	serialise()
+# - copy()
+# - delete()
+# - serialise()
 #
 # The following class prefix bound static attributes are reserved:
-#	private
-#	public
+# - private
+# - public
 #
 # The following session, class and process bound static attributes are
 # reserved:
@@ -99,23 +99,34 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 #
 #	All parameters following the class name make up a list of identifiers
 #	for attributes and methods. Every identifier has a prefix, the
-#	following prefixes are supported:
+#	following formats are supported:
 #
-#		-: A plain attribute.
-#		r: An attribute with a get method. The identifier
-#		   "r:foo" results in a method called "getFoo".
-#		w: An attribute with a get and set method. "w:foo" results
-#		   in "getFoo" and "setFoo".
-#		x: A method, this has to be user implemented as
-#		   "<class>.<method>()".
-#		i: An init method that is called with the remaining parameters
-#		   given to the constructor.
-#		c: A cleanup method that is called before the reset or delete
-#		   command, with the parameters given to them.
-#		a: An aggregation. Aggregations are special attributes,
-#		   referencing other objects, that are automatically
-#		   deleted, copied, resetted and serialised along
-#		   with an instance of the class.
+#	- `-:<name>`:
+#	  A plain attribute.
+#	- `r:[<scope>:]<name>`
+#	  An attribute with a get method named `$obj.getName()`.
+#	- `w:[<scope>:]<name>`
+#	  An attribute with a getter and setter named `$obj.getName()`
+#	  and `$obj.setName()`.
+#	- `x:[<scope>:]<name>`
+#	  A user implemented method named `$obj.name()`, needs to
+#	  be implemented as 'class.name()`.
+#	- `i:[<scope>:]<name>`
+#	  An initialisation method called by the constructor. The
+#	  scope only affects a direct call of the method, the constructor
+#	  is always public.
+#	- `c:[<scope>:]<name>`
+#	  A cleanup method called by the destructor. The scope only
+#	  affects direct calls of the method.
+#	- `a:[<scope>:]<name>[=<class>]
+#	  An aggregation. Aggregations are special attributes,
+#	  referencing other objects, that are automatically
+#	  deleted, copied and serialised along with an instance
+#	  of a class.
+#	  An aggregation attribute has a getter named `$obj.name()`.
+#	  An optional class name is used to determine if the default
+#	  `$obj.copy()` and `$obj.serialise()` methods can be created.
+#	  If the class is omitted, they never are.
 #
 #	With these parameters a constructor and a destructor will be built.
 #	It is important that all used attributes are listed, or the copy,
@@ -131,10 +142,6 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 #		<class> <refname>
 #	The class name acts as the name of the constructor, <refname> is the
 #	name of the variable to store the reference to the new object in.
-#
-#	The resetter deletes all attributes, this can be used to replace
-#	an object. The resetter is called this way:
-#		$reference.reset
 #
 #	The destructor can be called in the following way:
 #		$reference.delete
