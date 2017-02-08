@@ -49,7 +49,7 @@ TABLE OF CONTENTS
 
 1. [DEFINING CLASSES](#1-defining-classes)
    1. [Basic Class Creation](#1-1-basic-class-creation)
-   2. [Inheritance](#1-2-inheritance)
+   2. [Aggregations](#1-2-aggregations)
    3. [Access Scope](#1-3-access-scope)
 2. [IMPLEMENTING METHODS](#2-implementing-methods)
    1. [Regular Methods](#2-1-regular-methods)
@@ -73,7 +73,6 @@ TABLE OF CONTENTS
 11. [REFLECTION & REFACTORING](#11-reflection-refactoring)
     1. [Attributes](#11-1-attributes)
     2. [Methods](#11-2-methods)
-    3. [Parent Classes](#11-3-parent-classes)
 12. [FORKING PROCESSES](#12-forking-processes)
     1. [Creating Child Processes](#12-1-creating-child-processes)
     2. [Detaching from the Execution Context](#12-2-detaching-from-the-execution-context)
@@ -168,53 +167,35 @@ object creation by the init method:
 MyConstPoint2D corner "upper right corner" 640 0
 ~~~
 
-### 1.2. Inheritance
+### 1.2. Aggregations
 
-If a similar class is required there is no reason to start anew, the
-previous class can be extended:
+Aggregations are attributes with special properties:
 
 ~~~ bash
-bsda:obj:createClass MyConstPoint3D extends:MyConstPoint2D \
-	i:init \
-	r:z
+bsda:obj:createClass Triangle2D \
+	a:A:MyPoint2D \
+	a:B:MyPoint2D \
+	a:C:MyPoint2D \
+	i:init
 
-MyConstPoint3D.init() {
-	# Call the init method of the parent class.
-	$class.superInit "$1" "$2" "$3" || return 1
-	# Check whether the given coordinate is an integer.
-	bsda:obj:isInt "$4" || return 1
-	setvar ${this}z "$4"
+Triangle2D.init() {
+	# Create the points making up a triangle.
+	MyPoint2D ${this}A
+	MyPoint2D ${this}B
+	MyPoint2D ${this}C
 }
+
+Triangle2D tri
+$tri.A point
+$point.setX 13
+$point.setY 37
+…
+$tri.delete # Delete triangle, including all the points.
 ~~~
 
-The init method is explicitly stated in the class declaration just for the
-sake of readability, though not a requirement for overloading inherited
-methods, this is considered good style.
-
-* **NOTE**
-  If the init method does not `return 0` the object is instantly
-  destroyed and the return value is forwarded to the caller.
-  The caller then has a reference to a no longer existing object
-  and does not know about it, unless the return value of the
-  constructor is checked.
-
-Multiple inheritance is possible, but should be used with great care,
-because there are several limits. If several extended classes provide
-the same method, the method of the first class has the priority.
-
-The super init and cleanup methods are those of the first class providing
-an init or cleanup method.
-The remaining init and cleanup methods might continue to exist as regular
-methods, if their names do not conflict.
-
-Inherited methods become part of a class. Thus inherited private methods
-are readily available to every method of the class, even new methods or
-methods inherited from different classes.
-
-It also means that even instances of the originating class do not have
-access to private methods. This behaviour contradicts common expectations.
-The different paradigm is that access scope in this framework manages
-access to the current context instead of access to certain code.
+Aggregations are a weak form of composition, the creation of aggregated
+objects has to be done explicitly, but their lifetime is bound to
+the aggregating object. I.e. they are deleted implicitly.
 
 ### 1.3. Access Scope
 
@@ -223,13 +204,7 @@ add the scope operators private, protected and public. If no scope
 operator is given, public is assumed.
 
 - `public`: This scope allows access from anywhere
-- `protected`: The protected scope allows classes that are derived from the
-  current class, parents of the corrunt class or reside within
-  the same namespace access
 - `private`: Only instances of the same class have access
-
-Namespaces are colon (the character `:`) seperated. E.g. the class
-`bsda:pkg:Index` has the namespace `bsda:pkg`.
 
 The scope operator is added after the identifier type prefix. Only
 prefixes that declare methods can have a scope operator.
@@ -256,10 +231,6 @@ bsda:obj:createClass myNs:Person \
 	w:private:firstName \
 	x:public:getFirstName
 ~~~
-
-* **NOTE**
-  When methods are inherited the widest declared scope always wins, no
-  matter from which class it originates.
 
 
 
@@ -837,38 +808,6 @@ $object.<methodname>
 # Restore context
 this=$tmpThis
 class=$tmpClass
-~~~
-
-### 11.3. Parent Classes
-
-Each class knows its parents and reveals them through the static
-`getParents()` method:
-
-~~~ bash
-<classname>.getParents parents
-~~~
-
-The variable parents contains newline separated lists of class names
-after the preceding command.
-
-Though all classes know their parents, they do not know their children.
-Instead there is a recognition pattern for object IDs belonging to the
-class, which is used by the static `isInstance()` method for each class.
-
-Every inheriting class adds a pattern for itself to the recognition
-pattern of each class it extends. This pattern can be accessed through
-the class prefix:
-
-~~~ bash
-<classname>.getPrefix prefix
-bsda:obj:getVar patterns ${prefix}instancePatterns
-~~~
-
-The class prefix can also be used to access the code for the access scope
-checks. This can be abused to deactivate theses checks for a certain class:
-
-~~~ bash
-unset ${prefix}public ${prefix}protected ${prefix}private
 ~~~
 
 
