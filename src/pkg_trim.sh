@@ -19,23 +19,16 @@ readonly _pkg_trim_=1
 # to the first state.
 #
 bsda:obj:createClass pkg:trim:State \
-	r:public:prev       "Link to the previous state" \
+	a:private:next=pkg:trim:State \
 	r:public:next       "Link to the next state" \
+	r:public:prev       "Link to the previous state" \
 	r:public:show       "The packages to show for selection" \
 	r:public:flipped    "The packages that changed state" \
 	r:public:checked    "The checked packages" \
-	c:private:clean     "The destructor" \
-	x:private:all       "Helper function to accumulate attributes" \
+	r:private:all       "Helper function to accumulate attributes" \
 	x:public:allShow    "Return all shown packages up to this state" \
 	x:public:allFlipped "Return all flipped packages up to this state" \
 	x:public:allChecked "Return all checked packages up to this state"
-
-#
-# Recursively delete the tail of the linked list.
-#
-pkg:trim:State.clean() {
-	$($this.getNext).delete
-}
 
 #
 # A helper function that provides an accumulated value.
@@ -111,14 +104,13 @@ pkg:trim:State.allChecked() {
 #   acquire the accumulated state
 #
 bsda:obj:createClass pkg:trim:StateManager \
+	a:private:States=pkg:trim:State \
 	r:private:pkgcached "A list of cached packages" \
 	r:private:pkgcache  "A cache with all queried pkg information" \
-	r:private:first     "The first state" \
 	r:private:state     "The current state" \
 	r:private:fmt       "The format string" \
 	x:private:cache     "Updates information in the cache" \
 	i:private:init      "Initialiase first state with leaf packages" \
-	c:private:clean     "Remove the state list" \
 	x:public:isComplete "Returns whether selection process is complete" \
 	x:public:isFirst    "Returns whether this is the first state" \
 	x:public:checklist  "Returns tuples for dialog(1) --checklist" \
@@ -187,17 +179,10 @@ pkg:trim:StateManager.init() {
 	fmt="${1:-%n-%v}"
 	setvar ${this}fmt "$fmt"
 	pkg:trim:State state
-	setvar ${this}first $state
+	setvar ${this}States $state
 	setvar ${this}state $state
 	# Initialise first state
 	setvar ${state}show "$(pkg:query:leaves "$fmt")"
-}
-
-#
-# Delete the linked list of states.
-#
-pkg:trim:StateManager.clean() {
-	$($this.getFirst).delete
 }
 
 #
@@ -230,7 +215,7 @@ pkg:trim:StateManager.isComplete() {
 #
 pkg:trim:StateManager.isFirst() {
 	local first state
-	$this.getFirst first
+	$this.States first
 	$this.getState state
 	test $first = $state
 }
@@ -502,9 +487,8 @@ pkg:trim:StateManager.unchecked() {
 # The session class for pkg_trim.
 #
 bsda:obj:createClass pkg:trim:Session \
-	r:private:flags     "A bsda:opts:Flags instance" \
+	a:private:Flags=bsda:opts:Flags \
 	i:private:init      "The constructor" \
-	c:private:clean     "The destructor" \
 	x:private:help      "Print usage and exit" \
 	x:private:params    "Handle command line arguments" \
 	x:private:runReview "Review package selection" \
@@ -517,17 +501,10 @@ bsda:obj:createClass pkg:trim:Session \
 #	The command line arguments
 #
 pkg:trim:Session.init() {
-	bsda:opts:Flags ${this}flags
+	bsda:opts:Flags ${this}Flags
 
 	$this.params "$@"
 	$this.run
-}
-
-#
-# The destructor for this session.
-#
-pkg:trim:Session.clean() {
-	$($this.getFlags).delete
 }
 
 #
@@ -552,12 +529,13 @@ $(echo -n "$usage" | /usr/bin/sort -f)"
 #
 pkg:trim:Session.params() {
 	local options flags
-	$this.getFlags flags
+	$this.Flags flags
 
 	bsda:opts:Options options \
 	HELP        -h --help   'Display the list of command arguments' \
 	PKG_ORIGIN  -o --origin 'Show package origins instead of names' \
 	PKG_YES     -y --yes    'Assume yes when asked to delete/autoremove'
+	$caller.delete $options
 
 	while [ $# -gt 0 ]; do
 		$options.getopt option "$1"
@@ -583,7 +561,6 @@ pkg:trim:Session.params() {
 		esac
 		shift
 	done
-	$options.delete
 }
 
 #
@@ -633,7 +610,7 @@ pkg:trim:Session.run() {
 	local IFS flags ret fmt dialog
 	IFS='
 '
-	$this.getFlags flags
+	$this.Flags flags
 
 	# Use name-version packages unless PKG_ORIGIN is set
 	fmt="%n-%v"

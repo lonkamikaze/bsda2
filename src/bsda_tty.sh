@@ -56,7 +56,7 @@ readonly _bsda_tty_=1
 # output on stdout and stderr without messing up the status lines.
 #
 bsda:obj:createClass bsda:tty:Async \
-	r:private:fifo      "The FIFO to communicate through" \
+	a:private:Fifo=bsda:fifo:Fifo \
 	r:private:active    "Whether status line output is active" \
 	r:private:dpid      "The PID of the daemon process" \
 	i:private:init      "Set up asynchronous output process" \
@@ -74,10 +74,8 @@ bsda:obj:createClass bsda:tty:Async \
 # and receives commands through a fifo.
 #
 bsda:tty:Async.init() {
-	setvar ${this}active
-	setvar ${this}fifo
 	if [ -w /dev/tty ]; then
-		bsda:fifo:Fifo ${this}fifo || return
+		bsda:fifo:Fifo ${this}Fifo || return
 		setvar ${this}active 1
 		$class.daemon &
 		setvar ${this}dpid $!
@@ -89,7 +87,6 @@ bsda:tty:Async.init() {
 #
 bsda:tty:Async.clean() {
 	$this.deactivate
-	$($this.getFifo).delete
 }
 
 #
@@ -102,7 +99,7 @@ bsda:tty:Async.use() {
 	if eval "[ -z \"\$${this}active\" ]"; then
 		return
 	fi
-	$($this.getFifo).sink "printf 'use %d\n' $(($1))"
+	$($this.Fifo).sink "printf 'use %d\n' $(($1))"
 }
 
 #
@@ -122,7 +119,7 @@ bsda:tty:Async.line() {
 '
 			str=\"\$(echo -n \"\${2%%\$NL*}\" | bsda:obj:escape)\"
 			line=\$((\$1))
-			$($this.getFifo).sink 'echo \"line\$line \$str\"'
+			$($this.Fifo).sink 'echo \"line\$line \$str\"'
 		}"
 	else
 		eval "$this.line() {
@@ -144,7 +141,7 @@ bsda:tty:Async.line() {
 bsda:tty:Async.deactivate() {
 	if eval "[ -n \"\$${this}active\" ]"; then
 		setvar ${this}active
-		$($this.getFifo).sink echo exit
+		$($this.Fifo).sink echo exit
 		# Reset self-optimising functions
 		bsda:tty:Async.line
 		bsda:tty:Async.stdout
@@ -169,7 +166,7 @@ bsda:tty:Async.stdout() {
 		eval "$this.stdout() {
 			local str
 			str=\"\$(echo \"\$*\" | bsda:obj:escape)\"
-			$($this.getFifo).sink 'echo \"stdout \$str\"'
+			$($this.Fifo).sink 'echo \"stdout \$str\"'
 		}"
 	else
 		eval "$this.stdout() {
@@ -196,7 +193,7 @@ bsda:tty:Async.stderr() {
 		eval "$this.stderr() {
 			local str
 			str=\"\$(echo \"\$*\" | bsda:obj:escape)\"
-			$($this.getFifo).sink 'echo \"stderr \$str\"'
+			$($this.Fifo).sink 'echo \"stderr \$str\"'
 		}"
 	else
 		eval "$this.stderr() {
@@ -252,7 +249,7 @@ bsda:tty:Async.daemon_winch() {
 bsda:tty:Async.daemon_startup() {
 	trap "$class.daemon_deactivate" EXIT
 	$class.daemon_winch
-	$this.getFifo fifo
+	$this.Fifo fifo
 	# Handle signals
 	trap "trap '' HUP INT TERM;$fifo.sink echo exit" HUP INT TERM
 	trap "trap '' WINCH;$fifo.sink echo winch" WINCH

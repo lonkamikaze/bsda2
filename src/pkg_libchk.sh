@@ -38,13 +38,12 @@ pkg:libchk:JobResult.init() {
 # The session class for pkg_libchk.
 #
 bsda:obj:createClass pkg:libchk:Session \
-	r:private:flags    "A bsda:opts:Flags flag store and counter" \
-	r:private:term     "The bsda:tty:Async instances for output" \
-	r:private:fifo     "A bsda:fifo:Fifo instance" \
+	a:private:Flags=bsda:opts:Flags \
+	a:private:Term=bsda:tty:Async \
+	a:private:Fifo=bsda:fifo:Fifo \
 	r:private:packages "The list of packages to process" \
 	r:private:jobs     "The number of parallel jobs" \
 	i:public:init      "The constructor" \
-	c:public:clean     "The destructor" \
 	x:private:params   "Parse command line arguments" \
 	x:private:help     "Print usage message" \
 	x:private:packages "Determine requested packages" \
@@ -60,32 +59,23 @@ bsda:obj:createClass pkg:libchk:Session \
 #
 pkg:libchk:Session.init() {
 	# Setup terminal manager
-	bsda:tty:Async ${this}term
+	bsda:tty:Async ${this}Term
 
 	# Set defaults
 	setvar ${this}jobs $(($(/sbin/sysctl -n hw.ncpu 2> /dev/null || echo 1) + 1))
 
 	# Read command line arguments
-	bsda:opts:Flags ${this}flags
+	bsda:opts:Flags ${this}Flags
 	$this.params "$@"
 
 	# Setup terminal lines
-	$($this.getTerm).use $(($($this.getJobs) + 1))
+	$($this.Term).use $(($($this.getJobs) + 1))
 
 	# Create the fifo
-	bsda:fifo:Fifo ${this}fifo
+	bsda:fifo:Fifo ${this}Fifo
 
 	# Perform checks
 	$this.run
-}
-
-#
-# The destructor, clean up acquired resources.
-#
-pkg:libchk:Session.clean() {
-	$($this.getFlags).delete
-	$($this.getFifo).delete
-	$($this.getTerm).delete
 }
 
 #
@@ -108,7 +98,7 @@ pkg:libchk:Session.params() {
 	NO_COMPAT -n  --no-compat 'Do not report compat dependencies' \
 	VERBOSE   -v  --verbose   'Verbose output' \
 
-	$this.getFlags flags
+	$this.Flags flags
 
 	nl='
 '
@@ -131,11 +121,11 @@ pkg:libchk:Session.params() {
 				shift
 			fi
 			if ! [ "$jobs" -eq "$jobs" ] 2> /dev/null; then
-				$($this.getTerm).stderr \
+				$($this.Term).stderr \
 					"The -j option must be followed by a number."
 				exit 4
 			elif [ "$jobs" -lt 1 ]; then
-				$($this.getTerm).stderr \
+				$($this.Term).stderr \
 					"The -j option must specify at least 1 job."
 				exit 4
 			else
@@ -143,7 +133,7 @@ pkg:libchk:Session.params() {
 			fi
 		;;
 		OPT_UNKNOWN)
-			$($this.getTerm).stderr "Unknown parameter \"$1\"."
+			$($this.Term).stderr "Unknown parameter \"$1\"."
 			exit 2
 		;;
 		OPT_SPLIT)
@@ -163,11 +153,11 @@ pkg:libchk:Session.params() {
 	done
 
 	if $flags.check CLEAN -ne 0; then
-		$($this.getTerm).deactivate
+		$($this.Term).deactivate
 	fi
 
 	if $flags.check VERBOSE -ne 0 && $flags.check PKG_QUIET -ne 0; then
-		$($this.getTerm).stderr \
+		$($this.Term).stderr \
 			"The parameters -v and -q may not be used at the same time."
 		exit 3
 	fi
@@ -182,7 +172,7 @@ pkg:libchk:Session.params() {
 pkg:libchk:Session.help() {
 	local usage
 	$1.usage usage "\t%.2s, %-18s  %s\n"
-	$($this.getTerm).stdout "usage: pkg_libchk [-aCcdghimnOoqrvx] [-j jobs] [pkg-name]
+	$($this.Term).stdout "usage: pkg_libchk [-aCcdghimnOoqrvx] [-j jobs] [pkg-name]
 $(echo -n "$usage" | /usr/bin/sort -f)"
 	exit 0
 }
@@ -198,7 +188,7 @@ $(echo -n "$usage" | /usr/bin/sort -f)"
 #
 pkg:libchk:Session.packages() {
 	local pkginfo flags pkgs warn
-	$this.getFlags flags
+	$this.Flags flags
 	pkg:info:Env pkginfo $flags
 	$caller.delete $pkginfo
 
@@ -207,24 +197,24 @@ pkg:libchk:Session.packages() {
 		local errmsg errnum
 		$pkginfo.getErrmsg errmsg
 		$pkginfo.getErrnum errnum
-		$($this.getTerm).stderr "$errmsg"
+		$($this.Term).stderr "$errmsg"
 		exit $errnum
 	fi
 
 	$pkginfo.getWarn warn
 	if [ -n "$warn" ]; then
-		$($this.getTerm).stderr "$warn"
+		$($this.Term).stderr "$warn"
 	fi
 
 	# Verbose output
 	if $flags.check VERBOSE -ne 0; then
 		if $flags.check PKG_ALL -ne 0; then
-			$($this.getTerm).stderr "Checking all packages ..."
+			$($this.Term).stderr "Checking all packages ..."
 		else
 			local IFS
 			IFS='
 '
-			$($this.getTerm).stderr "Checking packages:" \
+			$($this.Term).stderr "Checking packages:" \
 			                        "------------------" \
 			                        "$pkgs" \
 			                        "------------------"
@@ -247,7 +237,7 @@ pkg:libchk:Session.print() {
 	bsda:obj:deserialise res "$2"
 	$caller.setvar "$1" "$($res.getSline)"
 
-	$this.getFlags flags
+	$this.Flags flags
 
 	$res.getPkg pkg
 	$res.getMisses misses
@@ -262,7 +252,7 @@ pkg:libchk:Session.print() {
 
 	# Honour quiet output flag
 	if $flags.check PKG_QUIET -ne 0; then
-		$($this.getTerm).stdout "$pkg"
+		$($this.Term).stdout "$pkg"
 		return
 	fi
 
@@ -283,7 +273,7 @@ pkg:libchk:Session.print() {
 			fi
 		fi
 	}
-	$($this.getTerm).stdout "$output"
+	$($this.Term).stdout "$output"
 }
 
 #
@@ -296,10 +286,10 @@ pkg:libchk:Session.run() {
 	IFS='
 '
 
-	$this.getTerm term
+	$this.Term term
 	$this.getJobs maxjobs
 	$this.getPackages pkgs
-	$this.getFifo fifo
+	$this.Fifo fifo
 	num=$(($(echo "$pkgs" | /usr/bin/wc -l)))
 	        # Total number of packages/jobs
 	count=0 # Completed jobs
@@ -363,7 +353,7 @@ pkg:libchk:Session.job() {
 	local compat
 	IFS='
 '
-	$this.getFlags flags
+	$this.Flags flags
 	$flags.check NO_COMPAT -eq 0 && compat=1 || compat=
 
 	# The files of the package
@@ -401,6 +391,6 @@ pkg:libchk:Session.job() {
 	}
 	# Create a JobResult, serialise it and send it back to the dispatcher
 	pkg:libchk:JobResult res "$1" "$messages" "$2"
-	$($this.getFifo).sink $res.serialise
+	$($this.Fifo).sink $res.serialise
 }
 

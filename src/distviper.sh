@@ -9,13 +9,12 @@ readonly _distviper_=1
 # The session class for distviper.
 #
 bsda:obj:createClass distviper:Session \
-	r:private:flags      "The flags collection" \
-	r:private:term       "The terminal controller" \
+	a:private:Flags=bsda:opts:Flags \
+	a:private:Term=bsda:tty:Async \
 	r:private:keep       "The kind of files to keep" \
 	r:private:portsdir   "The PORTSDIR" \
 	r:private:distdir    "The DISTDIR" \
 	i:private:init       "The constructor" \
-	c:private:clean      "The destructor" \
 	x:private:params     "Process command line arguments" \
 	x:private:help       "Print usage message" \
 	x:private:error      "Print error message" \
@@ -31,27 +30,17 @@ bsda:obj:createClass distviper:Session \
 #
 distviper:Session.init() {
 	# Setup terminal manager
-	bsda:tty:Async ${this}term
+	bsda:tty:Async ${this}Term
 
 	# Set default mode
 	setvar ${this}keep all
 
 	# Read command line arguments
-	bsda:opts:Flags ${this}flags
+	bsda:opts:Flags ${this}Flags
 	$this.params "$@"
 
 	# Perform
 	$this.run
-}
-
-#
-# The destructor.
-#
-# Clean up the flags and the terminal controller.
-#
-distviper:Session.clean() {
-	$($this.getFlags).delete
-	$($this.getTerm).delete
 }
 
 #
@@ -63,7 +52,7 @@ distviper:Session.clean() {
 distviper:Session.params() {
 	local options flags option term
 
-	$this.getTerm term
+	$this.Term term
 
 	bsda:opts:Options options \
 	DEMO        -d --demo        'Just print what would have been done' \
@@ -74,7 +63,7 @@ distviper:Session.params() {
 	VERBOSE     -v --verbose     'Verbose output'
 	$caller.delete $options
 
-	$this.getFlags flags
+	$this.Flags flags
 	while [ $# -gt 0 ]; do
 		$options.getopt option "$1"
 		case "$option" in
@@ -150,7 +139,7 @@ distviper:Session.params() {
 distviper:Session.help() {
 	local usage
 	$1.usage usage "\t%.2s, %-13s  %s\n"
-	$($this.getTerm).stdout "usage: distviper [-dhinqv] [keep]
+	$($this.Term).stdout "usage: distviper [-dhinqv] [keep]
 $(echo -n "$usage" | /usr/bin/sort -f)"
 	exit 0
 }
@@ -162,7 +151,7 @@ $(echo -n "$usage" | /usr/bin/sort -f)"
 #	The message to print
 #
 distviper:Session.error() {
-	$($this.getTerm).stderr "${0##*/}: $*"
+	$($this.Term).stderr "${0##*/}: $*"
 }
 
 #
@@ -176,8 +165,8 @@ distviper:Session.error() {
 #
 distviper:Session.status() {
 	local term
-	$this.getTerm term
-	if $($this.getFlags).check VERBOSE -ne 0; then
+	$this.Term term
+	if $($this.Flags).check VERBOSE -ne 0; then
 		$term.stdout "$1"
 	else
 		$term.line 0 "$1"
@@ -196,7 +185,7 @@ distviper:Session.status() {
 #
 distviper:Session.getMakeVar() {
 	local term value
-	$this.getTerm term
+	$this.Term term
 	if ! value="$(/usr/bin/make -f/usr/share/mk/bsd.port.mk \
 	                            -V"$2" 2>&1)"; then
 		$this.error "make -V$2 failed:"
@@ -267,8 +256,8 @@ distviper:Session.run() {
 	local IFS term flags keep portsdir distdir keepSums keepFiles
 	IFS='
 '
-	$this.getTerm term
-	$this.getFlags flags
+	$this.Term term
+	$this.Flags flags
 	$this.getKeep keep
 	$this.getPortsdir portsdir
 	$this.getDistdir distdir

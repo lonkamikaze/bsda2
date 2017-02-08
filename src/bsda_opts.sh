@@ -41,13 +41,12 @@ readonly _bsda_opts_=1
 # | OPT_NOOPT   | The argument is not an option                               |
 #
 bsda:obj:createClass bsda:opts:Options \
+	a:private:Next=bsda:opts:Options \
 	r:private:ident  "The identifier to return for a match" \
 	r:private:short  "The short version of the option" \
 	r:private:long   "The long version of the option" \
 	r:private:desc   "The description for the usage output" \
-	r:private:next   "The next bsda:opts:Options instance" \
 	i:private:init   "The constructor" \
-	c:private:clean  "The destructor" \
 	x:public:getopt  "Checks the given argument against the options" \
 	x:public:usage   "Returns options and descriptions" \
 	x:public:append  "Grow the collection"
@@ -71,22 +70,12 @@ bsda:opts:Options.init() {
 	setvar ${this}short "$2"
 	setvar ${this}long "$3"
 	setvar ${this}desc "$4"
-	unset ${this}next
 
 	shift 4
 	# Recursively create the next option
 	if [ $# -gt 0 ]; then
-		bsda:opts:Options ${this}next "$@"
+		bsda:opts:Options ${this}Next "$@"
 	fi
-}
-
-#
-# Recursively delete the list.
-#
-bsda:opts:Options.clean() {
-	local next
-	$this.getNext next
-	$next.delete
 }
 
 #
@@ -115,7 +104,7 @@ bsda:opts:Options.getopt() {
 		return 0
 	fi
 	# Check argument against next option
-	$this.getNext next
+	$this.Next next
 	if [ -n "$next" ]; then
 		$next.getopt ident "$@"
 		$caller.setvar "$retvar" "$ident"
@@ -155,7 +144,7 @@ bsda:opts:Options.getopt() {
 bsda:opts:Options.usage() {
 	local next sopt lopt desc
 	result=
-	$this.getNext next
+	$this.Next next
 	if [ -n "$next" ]; then
 		$next.usage result "$2"
 	fi
@@ -180,21 +169,20 @@ $result"
 #
 bsda:opts:Options.append() {
 	local next
-	$this.getNext next
+	$this.Next next
 	if [ -n "$next" ]; then
 		$next.append "$@"
 		return
 	fi
-	$class ${this}next "$@"
+	$class ${this}Next "$@"
 }
 
 #
 # A simple container to hold flag occurrence counts.
 #
 bsda:obj:createClass bsda:opts:Flags \
-	r:private:flags "A bsda:container:Map instance with flag counters" \
+	a:private:Flags=bsda:container:Map \
 	i:private:init  "The constructor" \
-	c:private:clean "The destructor" \
 	x:public:add    "Count the given flag" \
 	x:public:check  "Compare a flag numerically"
 
@@ -202,14 +190,7 @@ bsda:obj:createClass bsda:opts:Flags \
 # The constructor initialises an empty map.
 #
 bsda:opts:Flags.init() {
-	bsda:container:Map ${this}flags
-}
-
-#
-# The destructor clears out the map.
-#
-bsda:opts:Flags.clean() {
-	$($this.getFlags).delete
+	bsda:container:Map ${this}Flags
 }
 
 #
@@ -220,7 +201,7 @@ bsda:opts:Flags.clean() {
 #
 bsda:opts:Flags.add() {
 	local flags value
-	$this.getFlags flags
+	$this.Flags flags
 	$flags.[ "$1" ] value
 	value=$((value + 1))
 	$flags.[ "$1" ]= ${value}
@@ -247,7 +228,7 @@ bsda:opts:Flags.add() {
 #
 bsda:opts:Flags.check() {
 	local flags value
-	$this.getFlags flags
+	$this.Flags flags
 	$flags.[ "$1" ] value
 	test $((value)) "$2" $(($3))
 }
