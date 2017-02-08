@@ -58,32 +58,31 @@ TABLE OF CONTENTS
       3. [Temporary Objects](#2-1-3-temporary-objects)
    2. [Special Methods](#2-2-special-methods)
 3. [CONSTRUCTOR](#3-constructor)
-4. [RESET](#4-reset)
-5. [DESTRUCTOR](#5-destructor)
-6. [COPY](#6-copy)
-7. [GET](#7-get)
-8. [SET](#8-set)
-9. [TYPE CHECKS](#9-type-checks)
-    1. [Object Type Checks](#9-1-object-type-checks)
-    2. [Primitive Type Checks](#9-2-primitive-type-checks)
-10. [SERIALISE](#10-serialise)
-    1. [Serialising](#10-1-serialising)
-    2. [Deserialising](#10-2-deserialising)
-    3. [Filtering](#10-3-filtering)
-11. [REFLECTION & REFACTORING](#11-reflection-refactoring)
-    1. [Attributes](#11-1-attributes)
-    2. [Methods](#11-2-methods)
-12. [FORKING PROCESSES](#12-forking-processes)
-    1. [Creating Child Processes](#12-1-creating-child-processes)
-    2. [Detaching from the Execution Context](#12-2-detaching-from-the-execution-context)
-13. [GARBAGE COLLECTION](#13-garbage-collection)
-14. [FILE DESCRIPTORS](#14-file-descriptors)
-15. [COMPATIBILITY](#15-compatibility)
-    1. [POSIX](#15-1-posix)
-    2. [bash - local](#15-2-bash-local)
-    3. [bash - setvar](#15-3-bash-setvar)
-    4. [bash - Command Substitution Variable Scope](#15-4-bash-command-substitution-variable-scope)
-    5. [bash - alias](#15-5-bash-alias)
+4. [DESTRUCTOR](#4-destructor)
+5. [COPY](#5-copy)
+6. [GET](#6-get)
+7. [SET](#7-set)
+8. [TYPE CHECKS](#8-type-checks)
+    1. [Object Type Checks](#8-1-object-type-checks)
+    2. [Primitive Type Checks](#8-2-primitive-type-checks)
+9. [SERIALISE](#9-serialise)
+    1. [Serialising](#9-1-serialising)
+    2. [Deserialising](#9-2-deserialising)
+    3. [Filtering](#9-3-filtering)
+10. [REFLECTION & REFACTORING](#10-reflection-refactoring)
+    1. [Attributes](#10-1-attributes)
+    2. [Methods](#10-2-methods)
+11. [FORKING PROCESSES](#11-forking-processes)
+    1. [Creating Child Processes](#11-1-creating-child-processes)
+    2. [Detaching from the Execution Context](#11-2-detaching-from-the-execution-context)
+12. [GARBAGE COLLECTION](#12-garbage-collection)
+13. [FILE DESCRIPTORS](#13-file-descriptors)
+14. [COMPATIBILITY](#14-compatibility)
+    1. [POSIX](#14-1-posix)
+    2. [bash - local](#14-2-bash-local)
+    3. [bash - setvar](#14-3-bash-setvar)
+    4. [bash - Command Substitution Variable Scope](#14-4-bash-command-substitution-variable-scope)
+    5. [bash - alias](#14-5-bash-alias)
 
 
 
@@ -408,23 +407,18 @@ when an object is created, the second when it is reset or deleted.
 
 The init method is called by the constructor with all arguments apart
 from the first one, which is the variable the constructor stores the object
-reference in. It can also be called directly (e.g. after a call to the
-`reset()` method).
+reference in. It can also be called directly.
 
 The purpose of an init method is to initialise attributes during class
-creation. If the current class is derived from another class it might
-be a good idea to call the init method of the parent class. This is
-done by calling `$class.superInit()`.
+creation. If the init method fails (returns a value > 0) the constructor
+immediately destroys the object.
 
-If the init method fails (returns a value > 0) the constructor immediately
-destroys the object.
+The cleanup method is called implicitly by the `delete()` method.
 
-The cleanup method is called implicitly by the `delete()` and `reset()`
-methods. Unlike the init method it has all the possibilities of an
-ordinary method.
+The `delete()` method does not proceed if the cleanup method fails.
 
-Both the `delete()` and `reset()` methods do not proceed if the cleanup
-method fails.
+The existence of a cleanup method prevents the creation of the  `copy()`
+and `serialise()` methods.
 
 
 
@@ -467,42 +461,6 @@ Return values:
 |----------|------------------------------------------------------------
 | 0        | Object was successfully constructed
 | *        | Object construction failed, most likely in the init method
-
-
-
-## 4. RESET
-
-This section documents the use of a resetter created by the
-`bsda:obj:createClass()` function below.
-
-The resetter first calls the cleanup method with all parameters, if one
-has been defined. Afterwards it simply removes all attributes from memory.
-
-* **NOTE**
-  The destruction of attributes is avoided when the cleanup method fails.
-
-The resetter does not call the init method afterwards, because it would
-not be possible to provide different parameters to the init and cleanup
-methods in that case.
-
-The following example shows how to reset an object referenced by `foobar`.
-
-~~~ bash
-$foobar.reset
-~~~
-
-Arguments:
-
-| Argument | Description
-|----------|------------------------------------------------------------
-|  @       | The arguments are forwarded to the cleanup method
-
-Return values:
-
-| Value    | Description
-|----------|------------------------------------------------------------
-| 0        | If there is no cleanup method
-| *        | The return value depends on the cleanup method
 
 
 
@@ -564,7 +522,7 @@ bsda:obj:delete[] $($this.getCSChildren)
 
 
 
-## 6. COPY
+## 5. COPY
 
 This section documents the use of a copy method created by the
 `bsda:obj:createClass()` function below.
@@ -582,7 +540,7 @@ $foobar.copy foobarCopy
 
 
 
-## 7. GET
+## 6. GET
 
 This section documents the use of a getter method created by the
 `bsda:obj:createClass()` function below.
@@ -605,7 +563,7 @@ Arguments:
 
 
 
-## 8. SET
+## 7. SET
 
 This section documents the use of a setter method created by the
 `bsda:obj:createClass()` function below.
@@ -627,11 +585,11 @@ Arguments:
 
 
 
-## 9. TYPE CHECKS
+## 8. TYPE CHECKS
 
 This framework supplies basic type checking facilities.
 
-### 9.1. Object Type Checks
+### 8.1. Object Type Checks
 
 This section documents the use of the static type checking method created
 by the `bsda:obj:createClass()` function.
@@ -656,7 +614,7 @@ Arguments:
 |----------|------------------------------------------------------------
 |  1       | Any string that might be a reference.
 
-### 9.2. Primitive Type Checks
+### 8.2. Primitive Type Checks
 
 The following primitive type checking functions are available and documented
 in the code:
@@ -669,7 +627,7 @@ in the code:
 
 
 
-## 10. SERIALISE
+## 9. SERIALISE
 
 This documents the process of serialisation and deserialisation.
 Serialization is the process of turning data structures into string
@@ -679,7 +637,7 @@ or a pipe. They can even be transmitted over a network through nc(1).
 
 * **NOTE** Static attributes are not subject to serialisation.
 
-### 10.1. Serialising
+### 9.1. Serialising
 
 The following example serialises the object `$foobar` and stores the string
 the variable serialised.
@@ -700,7 +658,7 @@ Arguments:
 |----------|------------------------------------------------------------
 | &1       | The variable to store the serialised string in
 
-### 10.2. Deserialising
+### 9.2. Deserialising
 
 This example loads the object `$configuration` from a file and restores it.
 
@@ -723,7 +681,7 @@ Arguments:
 | &1       | The variable to store the deserialised object reference in
 |  2       | The string to be deserialised, can be provided on stdin
 
-### 10.3. Filtering
+### 9.3. Filtering
 
 Sometimes a lot of serialised data has to be deserialised that contains
 stale objects. For such cases the serialised data can be filtered to contain
@@ -740,7 +698,7 @@ bsda:obj:serialisedUniq serialised "$serialised"
 
 
 
-## 11. REFLECTION & REFACTORING
+## 10. REFLECTION & REFACTORING
 
 The bsda:obj framework offers full reflection. Refactoring is not supported,
 but possible to a limited degree.
@@ -749,7 +707,7 @@ Internally the reflection support is required for realizing inheritance.
 A new class tells all its parents "I'm one of yours" and takes all the
 methods and attributes for itself.
 
-### 11.1. Attributes
+### 10.1. Attributes
 
 Each class offers the static method `getAttributes()`:
 
@@ -772,7 +730,7 @@ for attribute in $attributes; do
 done
 ~~~
 
-### 11.2. Methods
+### 10.2. Methods
 
 Each class also offers the static method `getMethods()`:
 
@@ -812,7 +770,7 @@ class=$tmpClass
 
 
 
-## 12. FORKING PROCESSES
+## 11. FORKING PROCESSES
 
 One of the intended uses of serialising is that a process forks and both
 processes are able to pass new or updated objects to each others and thus
@@ -825,7 +783,7 @@ Additional garbage collection needs to be reinitialised in the forked
 process to ensure all acquired resources are freed when the process
 terminates.
 
-### 12.1. Creating Child Processes
+### 11.1. Creating Child Processes
 
 The function `bsda:obj:fork()` can be used to circumvent this problem by
 regenerating `bsda_obj_uid`, resetting `bsda_obj_freeOnExit` and setting
@@ -843,7 +801,7 @@ The following example illustrates its use.
 The `bsda:obj:fork()` call must not be omitted or non-memory resources may
 be freed while still in use.
 
-### 12.2. Detaching from the Execution Context
+### 11.2. Detaching from the Execution Context
 
 Detaching into the background by forking off a process and exiting would
 invoke garbage collection and cause the process to hang until all child
@@ -860,7 +818,7 @@ bsda:obj:detach $this.daemon
 
 
 
-## 13. GARBAGE COLLECTION
+## 12. GARBAGE COLLECTION
 
 In order to prevent resource leaks `bsda:obj` performs some lazy garbage
 collection.
@@ -875,7 +833,7 @@ an object. This ensures that such resources are not freed multiple times.
 
 
 
-## 14. FILE DESCRIPTORS
+## 13. FILE DESCRIPTORS
 
 The _FreeBSD_ `sh` only allows file descriptor numbers up to 9. The numbers
 1 and 2 are used for `stdout` and `stderr`, that means only 7 descriptors are
@@ -920,7 +878,7 @@ Arguments to `bsda:obj:releaseDesc()`:
 
 
 
-## 15. COMPATIBILITY
+## 14. COMPATIBILITY
 
 This framework was written for the bourne shell clone, provided with the
 _FreeBSD_ operating system (a descendant of the _Almquist shell_). To open it
@@ -937,7 +895,7 @@ Compatibilty hacks can be found at the very end of `bsda_obj.sh`. This chapter
 describes some of the differences between FreeBSD `sh` and `bash` that one
 might have to keep in mind when implementing classes with this framework.
 
-### 15.1. POSIX
+### 14.1. POSIX
 
 The relatively strict _POSIX_ conformance of `dash` is the reason that this
 framework is not compatible to it. The specific reason why this framework
@@ -977,19 +935,19 @@ function names as well, because the `.` and `:` builtin functions imply that
   [POSIX]: http://www.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_09_05
   [Shoop]: http://shoop.cvs.sourceforge.net/viewvc/shoop/shoop/docs/README?view=markup
 
-### 15.2. bash - local
+### 14.2. bash - local
 
 The `local` command of bash destroys the original variable values when
 declaring a variable local. Most notably that broke scope checks.
 A simple workaround was to move the local decleration behind the scope
 checks in the code.
 
-### 15.3. bash - setvar
+### 14.3. bash - setvar
 
 The `bash` does not have a setvar command. A hack was introduced to circumvent
 this.
 
-### 15.4. bash - Command Substitution Variable Scope
+### 14.4. bash - Command Substitution Variable Scope
 
 Variable changes inside command substition are lost outside the scope of the
 substition, when using `bash`. The _FreeBSD_ `sh` performs command
@@ -1005,7 +963,7 @@ test=a
 echo $test$(test=b)$test
 ~~~
 
-### 15.5. bash - alias
+### 14.5. bash - alias
 
 The `alias` command in `bash`, used for inheritance in the framework, only
 works in interactive mode. Hence all uses of `alias` had to be substituted with
