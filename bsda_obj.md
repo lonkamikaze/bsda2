@@ -769,7 +769,7 @@ terminates.
 
 The function `bsda:obj:fork()` can be used to circumvent this problem by
 regenerating `bsda_obj_uid`, resetting `bsda_obj_freeOnExit` and setting
-up traps for `SIGINT`, `SIGTERM` and the `EXIT` handler.
+up traps for `SIGHUP`, `SIGINT`, `SIGTERM` and the `EXIT` handler.
 
 The following example illustrates its use.
 
@@ -807,7 +807,8 @@ collection.
 
 A list of objects with a cleanup method is maintained in
 `bsda_obj_freeOnExit`. These objects are explicitly deleted if the shell
-exits due to the `exit` command or the signals `SIGINT` or `SIGTERM`.
+exits due to the `exit` command or the signals `SIGHUP`, `SIGINT`
+or `SIGTERM`.
 
 This gives objects the opportunity to free non-memory resources. Note that
 these actions are only performed within the process that originally created
