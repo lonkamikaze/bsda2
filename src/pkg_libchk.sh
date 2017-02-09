@@ -43,7 +43,7 @@ bsda:obj:createClass pkg:libchk:Session \
 	a:private:Fifo=bsda:fifo:Fifo \
 	r:private:packages "The list of packages to process" \
 	r:private:jobs     "The number of parallel jobs" \
-	i:public:init      "The constructor" \
+	i:private:init     "The constructor" \
 	x:private:params   "Parse command line arguments" \
 	x:private:help     "Print usage message" \
 	x:private:packages "Determine requested packages" \
