@@ -10,4 +10,4 @@ bsda_dir="${0%${0##*/}}";bsda_dir="${bsda_dir%/}"
 readonly bsda_dir
 
 . ${bsda_dir:-.}/${prefix}.sh
-${namespace}:Session session "$@"
+${namespace}:Session session "$@" && $session.delete
