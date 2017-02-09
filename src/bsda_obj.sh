@@ -18,8 +18,7 @@ set -f
 bsda_obj_callStackCount=0
 
 #
-# This is a prefix to every object ID and should be the same among all
-# compatible frameworks to ensure that deep serialisation works.
+# This is a prefix to every object ID.
 #
 readonly bsda_obj_frameworkPrefix=BSDA_OBJ_
 
@@ -34,17 +33,6 @@ readonly bsda_obj_interpreter="$(/bin/ps -wwo args= -p $$ | /usr/bin/sed -e "s, 
 # bsda:obj:fork() function to update this value in the forked process.
 #
 #bsda_obj_uid
-
-#
-# This is used as a buffer during deep serialisation.
-#
-#bsda_obj_serialised
-
-#
-# During deep serialisation this holds a list of objects to prevent circular
-# recursion.
-#
-#bsda_obj_serialiseBlacklist
 
 #
 # The copy method sets this temporarily to tell the constructor not to call
