@@ -734,7 +734,7 @@ done
 
 Each class also offers the static method `getMethods()`:
 
-~~~ bash
+~~~
 <classname>.getMethods methods
 ~~~
 
@@ -748,25 +748,7 @@ format:
 The methods are newline separated.
 
 Every method can be overwritten, by redefining it. The access scope checks
-remain the same. To access a private or protected method of an unrelated
-object, the class and identity of the caller can be faked by rewriting the
-class and this special variables:
-
-~~~ bash
-# Preserve context
-local tmpThis tmpClass
-tmpThis="$this"
-tmpClass="$class"
-
-# Call forbidden method
-this=$object
-class=<objectclass>
-$object.<methodname>
-
-# Restore context
-this=$tmpThis
-class=$tmpClass
-~~~
+remain the same.
 
 
 
