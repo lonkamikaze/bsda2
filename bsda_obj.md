@@ -199,8 +199,8 @@ the aggregating object. I.e. they are deleted implicitly.
 ### 1.3. Access Scope
 
 You might want to limit access to certain methods, for this you can
-add the scope operators private, protected and public. If no scope
-operator is given, public is assumed.
+add the scope operators private and public. If no scope operator is
+given, public is assumed.
 
 - `public`: This scope allows access from anywhere
 - `private`: Only instances of the same class have access
@@ -741,8 +741,8 @@ Each class also offers the static method `getMethods()`:
 The methods variable in the example then contains a list of methods in the
 format:
 
-~~~ bash
-("private" | "protected" | "public") + ":" + <methodname>
+~~~
+("private" | "public") + ":" + <methodname>
 ~~~
 
 The methods are newline separated.
