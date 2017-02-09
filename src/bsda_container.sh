@@ -25,7 +25,8 @@ bsda:obj:createClass bsda:container:Array \
 	x:public:push      "Push a new value to the end of the array" \
 	x:public:pop       "Pop the latest value from the end of the array" \
 	x:public:foreach   "Call back with every value" \
-	x:public:serialise "Serialise the array"
+	x:public:serialise "Serialise the array" \
+	x:public:copy      "Copy the array"
 
 #
 # The constructor fills the array with initial values.
@@ -176,6 +177,26 @@ bsda:container:Array.serialise() {
 }
 
 #
+# Lambda function for bsda:container:Array.copy().
+#
+bsda:container:Array.copy_lambda() {
+	$array.push "$2"
+}
+
+#
+# Copy the array.
+#
+# @parma &1
+#	The variable to receive the new array reference
+#
+bsda:container:Array.copy() {
+	local array
+	$class array
+	$this.foreach $class.copy_lambda
+	$caller.setvar "$1" "$array"
+}
+
+#
 # A key/value storage class.
 #
 bsda:obj:createClass bsda:container:Map \
@@ -188,7 +209,8 @@ bsda:obj:createClass bsda:container:Map \
 	x:public:[         "Random access operator" \
 	x:public:foreach   "Callback with a key/value pair" \
 	x:public:getCount  "Returns the number of stored key/value pairs" \
-	x:public:serialise "Serialise the map"
+	x:public:serialise "Serialise the map" \
+	x:public:copy      "Copy the map"
 
 #
 # A helper function to roll out cached activities.
@@ -392,4 +414,24 @@ bsda:container:Map.serialise() {
 	done
 	serialised="$serialised;$class.deserialise $this"
 	$caller.setvar "$1" "$serialised"
+}
+
+#
+# Lambda function for bsda:container:Map.copy().
+#
+bsda:container:Map.copy_lambda() {
+	$map.[ "$1" ]= "$2"
+}
+
+#
+# Copy the map.
+#
+# @parma &1
+#	The variable to receive the new map reference
+#
+bsda:container:Map.copy() {
+	local map
+	$class map
+	$this.foreach $class.copy_lambda
+	$caller.setvar "$1" "$map"
 }
