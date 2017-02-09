@@ -7,8 +7,8 @@ set -f
 # shell scripts.
 #
 # The most significant function is bsda:obj:createClass(), which basically
-# creates a class, including getters, setters, a constructor, a destructor,
-# a reset and a copy function. It also creates serialisation methods.
+# creates a class, including getters, setters, a constructor, a destructor
+# and a copy function. It also creates serialisation methods.
 #
 
 #
@@ -52,8 +52,8 @@ readonly bsda_obj_interpreter="$(/bin/ps -wwo args= -p $$ | /usr/bin/sed -e "s, 
 bsda_obj_desc=3,4,5,6,7,8,9,
 
 #
-# Creates a new class, i.e. a constructor, destructor, resetter, getters,
-# setters and so forth.
+# Creates a new class, i.e. a constructor, destructor, getters, setters
+# and so forth.
 #
 # So all that is left to be done are the methods.
 #

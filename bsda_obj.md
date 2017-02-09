@@ -403,7 +403,7 @@ Exiting
 
 There are two special kinds of methods available, init and cleanup methods.
 These methods are special, because they are called implicitly, the first
-when an object is created, the second when it is reset or deleted.
+when an object is created, the second when it is deleted.
 
 The init method is called by the constructor with all arguments apart
 from the first one, which is the variable the constructor stores the object
