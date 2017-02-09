@@ -284,7 +284,7 @@ shows how to read an attribute, manipulate it and write the new value.
 foo.bar() {
 	local count
 	# Get counter value.
-	bsda:obj:getVar count ${this}count
+	getvar count ${this}count
 	# Increase counter value copy.
 	count=$((count + 1))
 	# Store the counter value.
@@ -724,9 +724,9 @@ determined from):
 
 ~~~ bash
 for attribute in $attributes; do
-	echo $attribute:
+	echo -n "$attribute: "
 	# Print the attribute value
-	bsda:obj:getVar $object$attribute
+	getvar $object$attribute
 done
 ~~~
 

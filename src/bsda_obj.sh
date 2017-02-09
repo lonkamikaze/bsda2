@@ -617,25 +617,6 @@ bsda:obj:createClass() {
 }
 
 #
-# Returns a variable from a given reference. The variable is either written
-# to a named variable, or in absence of one, output to stdout.
-#
-# @param 1
-#	If this is the sole parameter it is a reference to the variable
-#	to output to stdout. If a second parameter exists, it is the name of
-#	the variable to write to.
-# @param 2
-#	The reference to the variable to return.
-#
-bsda:obj:getVar() {
-	if [ -n "$2" ]; then
-		eval "$1=\"\$$2\""
-	else
-		eval "echo \"\$$1\""
-	fi
-}
-
-#
 # Delete all objects in a list of objects.
 #
 # If deleting an object fails, it has no influence on the subsequent
@@ -1204,3 +1185,26 @@ if ! setvar 2> /dev/null; then
 	}
 fi
 
+# Setup getvar for symmetry with setvar
+if ! getvar 2> /dev/null; then
+	#
+	# Returns a variable from a given reference.
+	#
+	# The variable is either written to a named variable, or in
+	# absence of one, output to stdout.
+	#
+	# @param 1
+	#	If this is the sole parameter it is a reference to
+	#	the variable to output to stdout. If a second parameter
+	#	exists, it is the name of the variable to write to.
+	# @param 2
+	#	The reference to the variable to return.
+	#
+	getvar() {
+		if [ -n "$2" ]; then
+			eval "$1=\"\$$2\""
+		else
+			eval "echo \"\$$1\""
+		fi
+	}
+fi

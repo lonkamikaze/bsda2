@@ -82,7 +82,7 @@ bsda:container:Array.pop() {
 		return 1;
 	fi
 	count=$((count - 1))
-	bsda:obj:getVar value ${this}_val_$count
+	getvar value ${this}_val_$count
 	$caller.setvar "$1" "$value"
 	unset ${this}_val_$count
 	setvar ${this}count $count
@@ -147,7 +147,7 @@ bsda:container:Array.[() {
 			return 1
 		fi
 		local value
-		bsda:obj:getVar value ${this}_val_$i
+		getvar value ${this}_val_$i
 		$caller.setvar "$3" "${value}"
 		;;
 	*)
@@ -348,7 +348,7 @@ bsda:container:Map.[() {
 		;;
 	"]")
 		local value
-		bsda:obj:getVar value ${this}_val_$key
+		getvar value ${this}_val_$key
 		$caller.setvar "$3" "$value"
 		;;
 	*)
