@@ -293,7 +293,7 @@ foo.bar() {
 ~~~
 
 The following example does the same with getters and setters. Getters and
-setters are documented in sections [7](#7-get) and [8](#8-set).
+setters are documented in sections [6](#6-get) and [7](#7-set).
 
 ~~~ bash
 foo.bar() {
