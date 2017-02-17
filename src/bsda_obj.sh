@@ -489,11 +489,7 @@ bsda:obj:createClass() {
 		$class reference
 
 		# Store the new object reference in the target variable.
-		if [ -n \"\$1\" ]; then
-			setvar \"\$1\" \$reference
-		else
-			echo \$reference
-		fi
+		\$caller.setvar \"\$1\" \$reference
 
 		# For each attribute copy the value over to the
 		# new object.
