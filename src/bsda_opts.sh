@@ -232,4 +232,3 @@ bsda:opts:Flags.check() {
 	$flags.[ "$1" ] value
 	test $((value)) "$2" $(($3))
 }
-

@@ -71,4 +71,3 @@ bsda:fifo:Fifo.clean() {
 	eval "exec $desc>&-"
 	bsda:obj:releaseDesc $desc
 }
-

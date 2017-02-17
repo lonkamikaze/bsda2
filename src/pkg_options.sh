@@ -21,4 +21,3 @@ PKG_BY_ORIGIN        -O --by-origin        'Select by pkg-name origin' \
 PKG_QUIET            -q --quiet            'Print only the requested information' \
 PKG_ORIGIN           -o --origin           'Display package origins instead of names'
 }
-

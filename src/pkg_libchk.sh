@@ -393,4 +393,3 @@ pkg:libchk:Session.job() {
 	pkg:libchk:JobResult res "$1" "$messages" "$2"
 	$($this.Fifo).sink $res.serialise
 }
-
