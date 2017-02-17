@@ -67,6 +67,7 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 # The following methods are reserved:
 # - copy()
 # - delete()
+# - dump()
 # - serialise()
 #
 # The following class prefix bound static attributes are reserved:
@@ -168,7 +169,7 @@ bsda:obj:createClass() {
 '
 
 	# There are some default methods.
-	methods="delete${IFS}"
+	methods="delete${IFS}dump${IFS}"
 	attributes=
 	getters=
 	setters=
@@ -477,6 +478,25 @@ bsda:obj:createClass() {
 		# Delete methods and attributes.
 		$bsda_obj_namespace:deleteMethods \$this \"$methods\"
 		$bsda_obj_namespace:deleteAttributes \$this \"$attributes\"
+	}"
+
+	# Prints an object in a human readable format.
+	eval "$class.dump() {
+		local result var
+		result=\"$class@\$this {${aggregations:+${attributes:+$IFS\$( (
+			$(for alias in $aggregations; do
+				echo "eval \"\\\$\${this}$alias.dump var\""
+				echo "echo \"$alias=\$var\""
+			done)
+			$(for attribute in $attributes; do
+				for alias in $aggregations; do
+					test "$alias" = "$attribute" && continue 2
+				done
+				echo "getvar var \"\${this}$attribute\""
+				echo "echo \"$attribute='\$var'\""
+			done)
+		) | /usr/bin/sed 's/^/  /')$IFS}}}\"
+		\$caller.setvar \"\$1\" \"\$result\"
 	}"
 
 	# Create copy method.
@@ -1112,6 +1132,13 @@ bsda:obj:fork
 #
 .delete() {
 	: # bash does not allow empty functions
+}
+
+#
+# Ignore nullptr dump.
+#
+.dump() {
+	:
 }
 
 #
