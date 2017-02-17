@@ -703,9 +703,7 @@ bsda:obj:serialisedUniq serialised "$serialised"
 The bsda:obj framework offers full reflection. Refactoring is not supported,
 but possible to a limited degree.
 
-Internally the reflection support is required for realizing inheritance.
-A new class tells all its parents "I'm one of yours" and takes all the
-methods and attributes for itself.
+Internally the reflection support is required for realising aggregation.
 
 ### 10.1. Attributes
 
