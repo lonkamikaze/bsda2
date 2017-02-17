@@ -63,9 +63,6 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 # - isClass()
 # - getAttributes()
 # - getMethods()
-# - getPrefix()
-# - getInit()
-# - getClean()
 #
 # The following methods are reserved:
 # - copy()
@@ -573,33 +570,6 @@ bsda:obj:createClass() {
 			setvar \"\$1\" '$methods'
 		else
 			echo '$methods'
-		fi
-	}"
-
-	# A static method that returns the class prefix.
-	eval "$class.getPrefix() {
-		if [ -n \"\$1\" ]; then
-			setvar \"\$1\" '$classPrefix'
-		else
-			echo '$classPrefix'
-		fi
-	}"
-
-	# A static method that returns the name of the init method.
-	eval "$class.getInit() {
-		if [ -n \"\$1\" ]; then
-			setvar \"\$1\" '$init'
-		else
-			echo '$init'
-		fi
-	}"
-
-	# A static method that returns the name of the cleanup method.
-	eval "$class.getClean() {
-		if [ -n \"\$1\" ]; then
-			setvar \"\$1\" '$clean'
-		else
-			echo '$clean'
 		fi
 	}"
 }
