@@ -532,20 +532,16 @@ bsda:obj:createClass() {
 		local serialised svar
 
 		serialised=
-		${attributes:+$(
-		for attribute in $attributes; do
+		$(for attribute in $attributes; do
 			echo "bsda:obj:serialiseVar svar \"\${this}$attribute\""
 			echo "serialised=\"\${serialised:+\$serialised;}\$svar\""
-		done
-		)}
+		done)
 		serialised=\"\$serialised;$class.deserialise \$this\"
 
-		${aggregations:+$(
-		for alias in $aggregations; do
+		$(for alias in $aggregations; do
 			echo eval \"\\\$\${this}$alias.serialise svar\"
 			echo 'serialised="$svar;$serialised"'
-		done
-		)}
+		done)
 
 		\$caller.setvar \"\$1\" \"\$serialised\"
 	}"
