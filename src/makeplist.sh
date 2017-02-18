@@ -306,7 +306,7 @@ makeplist:Make.plist() {
 	for option in $options; do
 		files="$($plists.common "" "$option" \
 		         | /usr/bin/grep -vFx "$all" \
-		         | /usr/bin/sed "s/^/%%$option%%/")"
+		         | /usr/bin/sed "/./s/^/%%$option%%/")"
 		all="$all${all:+${files:+$nl}}$files"
 	done
 	$caller.setvar "$1" "$all"
