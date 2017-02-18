@@ -26,7 +26,7 @@ makeplist:options:_except() {
 }
 
 makeplist:options:_in() {
-	test -z "$1" && return
+	test -z "$1" && return 1
 	local needle item 
 	needle="$1"
 	shift
@@ -195,7 +195,7 @@ bsda:obj:createClass makeplist:PlistManager \
 	r:private:plist_sub_sed \
 	i:private:init \
 	x:public:create \
-	x:public:common
+	x:public:match
 
 makeplist:PlistManager.init() {
 	local prefix
@@ -244,27 +244,59 @@ makeplist:PlistManager.create() {
 		| /usr/bin/sed "$plist_sub_sed")"
 }
 
-makeplist:PlistManager.common() {
-	local plist with files first common retval
+#
+#
+# @param &1
+#	Files to add for this option
+# @param &2
+#	Files to remove for this option
+# @param 3
+#	The option to match
+#
+makeplist:PlistManager.match() {
+	local plist with files firstMatch firstUnmatch retval
+	local common match unmatch files
 	$this.First plist
-	first=1
+	firstMatch=1
+	firstUnmatch=1
 	common=
+	match=
+	unmatch=
 	while makeplist:Plist.isInstance "$plist"; do
-		$plist.getWith with
 		$plist.getRetval retval
-		if [ 0 -eq "$retval" ] && makeplist:options:_in "$2" $with; then
-			if [ -n "$first" ]; then
-				first=
-				$plist.getFiles common
+		# Skip failed builds
+		if [ 0 -ne "$retval" ]; then
+			$plist.Next plist
+			continue
+		fi
+		$plist.getWith with
+		# Get files
+		if makeplist:options:_in "$3" $with; then
+			# Files matching the option
+			if [ -n "$firstMatch" ]; then
+				firstMatch=
+				$plist.getFiles match
 			else
 				$plist.getFiles files
-				common="$(echo "$common" \
-				          | /usr/bin/grep -Fx "$files")"
+				match="$(echo "$match" | /usr/bin/grep -Fx "$files")"
+			fi
+		else
+			# Files matching anywhere but the option
+			if [ -n "$firstUnmatch" ]; then
+				firstUnmatch=
+				$plist.getFiles unmatch
+			else
+				$plist.getFiles files
+				unmatch="$(echo "$unmatch" | /usr/bin/grep -Fx "$files")"
 			fi
 		fi
 		$plist.Next plist
 	done
-	$caller.setvar "$1" "$common"
+	files="$match"
+	match="$(echo "$match" | /usr/bin/grep -vFx "$unmatch")"
+	unmatch="$(echo "$unmatch" | /usr/bin/grep -vFx "$files")"
+	$caller.setvar "$1" "$match"
+	$caller.setvar "$2" "$unmatch"
 }
 
 bsda:obj:createClass makeplist:Make \
@@ -297,18 +329,30 @@ makeplist:Make.run() {
 }
 
 makeplist:Make.plist() {
-	local nl options option plists files all
+	local nl options option plists all null add remove mask
 	nl='
 '
 	$this.Plists plists
 	$this.getOptions options
-	$plists.common all
+	$plists.match null all ""
 	for option in $options; do
-		files="$($plists.common "" "$option" \
-		         | /usr/bin/grep -vFx "$all" \
-		         | /usr/bin/sed "/./s/^/%%$option%%/")"
-		all="$all${all:+${files:+$nl}}$files"
+		$plists.match add remove "$option"
+		mask="$mask${mask:+${remove:+$nl}}$remove"
+		add="$(echo "$add" | /usr/bin/sed "/./s/^/%%$option%%/")"
+		remove="$(echo "$remove" | /usr/bin/sed "/./s/^/%%NO_$option%%/")"
+		all="$all${all:+${add:+$nl}}$add"
+		all="$all${all:+${remove:+$nl}}$remove"
 	done
+
+	# Filter files that show up as a %%NO_*%% somewhere
+	local mask_sed
+	mask_sed=h
+	for option in $options; do
+		mask_sed="$mask_sed;g;s/^/%%$option%%/p"
+	done
+	mask="$(echo "$mask" | /usr/bin/sed -n "$mask_sed")"
+	all="$(echo "$all" | /usr/bin/grep -vFx "$mask")"
+
 	$caller.setvar "$1" "$all"
 }
 
