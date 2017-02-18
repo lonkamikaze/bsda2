@@ -241,6 +241,7 @@ makeplist:PlistManager.create() {
 		| /usr/sbin/mtree -Sf /dev/stdin -f "$mtree_file" \
 		| /usr/bin/awk '/ (file|link) [^\/]*/{sub(/ (file|link) [^\/]*/, "");print}' \
 		| /usr/bin/grep -v "^$_license_dir$nl^$desktopdir" \
+		| /usr/bin/sort -n \
 		| /usr/bin/sed "$plist_sub_sed")"
 }
 
