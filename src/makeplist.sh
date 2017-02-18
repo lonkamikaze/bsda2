@@ -239,7 +239,7 @@ makeplist:PlistManager.create() {
 	setvar ${plist}files "$(
 		/usr/sbin/mtree -cp "$stagedir$prefix/" \
 		| /usr/sbin/mtree -Sf /dev/stdin -f "$mtree_file" \
-		| /usr/bin/awk '/ file [^\/]*/{sub(/ file [^\/]*/, "");print}' \
+		| /usr/bin/awk '/ (file|link) [^\/]*/{sub(/ (file|link) [^\/]*/, "");print}' \
 		| /usr/bin/grep -v "^$_license_dir$nl^$desktopdir" \
 		| /usr/bin/sed "$plist_sub_sed")"
 }
