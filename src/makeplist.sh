@@ -221,7 +221,8 @@ bsda:obj:createClass makeplist:PlistManager \
 	r:private:prefix \
 	r:private:_license_dir \
 	r:private:desktopdir \
-	r:private:plist_sub_sed \
+	r:private:plistSubSed \
+	x:private:plistSubSed \
 	i:private:init \
 	x:public:create \
 	x:public:match \
@@ -237,7 +238,40 @@ makeplist:PlistManager.init() {
 		/usr/bin/make -V"_LICENSE_DIR:S,^$prefix/,,")" || return
 	setvar ${this}desktopdir "$(
 		/usr/bin/make -V"DESKTOPDIR:S,^$prefix/,,")" || return
-	setvar ${this}plist_sub_sed "$(/usr/bin/make -VPLIST_SUB_SED)" || return
+	$this.plistSubSed || return
+}
+
+makeplist:PlistManager.plistSubSed() {
+	local IFS sublist exprs sub
+	IFS='
+'
+	sublist="$(/usr/bin/make -VPLIST_SUB:ts\\n)" || return
+	# Sort by replacement size so the biggest mach wins
+	sublist="$(
+		for sub in $sublist; do
+			tail="${sub#*=}"
+			tail="${tail#\"}";tail="${tail%\"}"
+			case "$tail" in
+			''|@*)
+				continue
+			;;
+			esac
+			tail="$(echo -n "$tail" | /usr/bin/vis -ce '.[]*?!')"
+			echo "${#tail} ${sub%%=*}=$tail"
+		done | /usr/bin/sort -rn | /usr/bin/sed 's/^[0-9]* //'
+	)"
+	#
+	exprs=
+	for sub in $sublist; do case "$sub" in
+	LIB32DIR=*)
+	;;
+	*DIR=*)
+		exprs="${exprs}s!${sub#*=}/!%%${sub%%=*}%%/!;"
+	;;
+	*VER=*|*VERSION=*)
+		exprs="${exprs}s!${sub#*=}!%%${sub%%=*}%%!;"
+	esac; done
+	setvar ${this}plistSubSed "$exprs"
 }
 
 makeplist:PlistManager.create() {
@@ -262,7 +296,7 @@ makeplist:PlistManager.create() {
 	$this.getStagedir stagedir
 	$this.getPrefix prefix
 	$this.getMtree_file mtree_file
-	$this.getPlist_sub_sed plist_sub_sed
+	$this.getPlistSubSed plist_sub_sed
 	setvar ${plist}retval "$1"
 	setvar ${plist}logfile "$2"
 	setvar ${plist}with "$3"
