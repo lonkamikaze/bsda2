@@ -423,23 +423,60 @@ makeplist:PlistManager.report() {
 	done
 }
 
+#
+# Creates a temporary directory.
+#
+bsda:obj:createClass makeplist:TmpDir \
+	r:private:dirname \
+	i:private:init \
+	c:private:clean
+
+#
+# @param &1
+#	The variable to return the dirname to
+# @param 2
+#	The mktemp template
+#
+makeplist:TmpDir.init() {
+	setvar ${this}dirname "$(/usr/bin/mktemp -d ${2:+-t "$2"})" || return
+	local dirname
+	$this.getDirname dirname
+	$caller.setvar "$1" "$dirname"
+}
+
+makeplist:TmpDir.clean() {
+	local dirname
+	$this.getDirname dirname
+	/bin/rmdir "$dirname" 2> /dev/null || :
+}
+
 bsda:obj:createClass makeplist:Make \
+	a:private:Logdir=makeplist:TmpDir \
 	a:private:Plists=makeplist:PlistManager \
+	r:private:logdir \
 	r:private:no_build \
 	i:private:init \
 	x:public:run \
-	x:public:plist \
-	x:public:report
+	x:public:plist
 
 makeplist:Make.init() {
+	local origin
+	origin="$(/usr/bin/make -VPKGORIGIN:S,/,.,g)" || return
+	if [ -z "$origin" ]; then
+		echo "${0##*/}: ERROR: Port origin could not be detected"
+		return 1
+	fi
+	makeplist:TmpDir ${this}Logdir ${this}logdir "${0##*/}.$origin" \
+	|| return
 	makeplist:PlistManager ${this}Plists || return
 	setvar ${this}no_build "$(/usr/bin/make -VNO_BUILD)" || return
 }
 
 makeplist:Make.run() {
 	local retval plists no_build stagedir prefix mtree_file
-	local retval logfilename logfile
-	logfilename="makeplist${1:+-$(makeplist:_join - $1)}.log"
+	local retval logdir logfilename logfile
+	$this.getLogdir logdir
+	logfilename="$logdir/stage${1:+-$(makeplist:_join - $1)}.log"
 	makeplist:File logfile "$logfilename"
 	$caller.delete $logfile
 	$this.Plists plists
@@ -477,9 +514,9 @@ bsda:obj:createClass makeplist:Session \
 	x:private:run
 
 makeplist:Session.init() {
-	makeplist:Make ${this}Make
-	makeplist:options:Flags ${this}Flags
-	makeplist:options:Singles ${this}Singles
+	makeplist:Make ${this}Make || return
+	makeplist:options:Flags ${this}Flags || return
+	makeplist:options:Singles ${this}Singles || return
 	$this.run
 }
 
