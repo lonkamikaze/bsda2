@@ -61,10 +61,6 @@ makeplist:options:_except() {
 #
 # Instances permute through binary options.
 #
-# Instead of permuting through all valid combinations, only use each
-# option once. All permutations would be in O(n!), which is exponential
-# growth and hence problematic for even a small amount of options.
-#
 # This handles the following kinds of options:
 #
 # - `OPTIONS_DEFINE`
@@ -73,6 +69,10 @@ makeplist:options:_except() {
 #
 # These kinds of options are basically independent flags, only grouped
 # for usability purposes.
+#
+# Instead of permuting through all valid combinations, only use each
+# option once. All permutations would be in O(n!), which is exponential
+# growth and hence problematic for even a small amount of options.
 #
 bsda:obj:createClass makeplist:options:Flags \
 	r:private:flags  "All options to permute through" \
@@ -126,7 +126,7 @@ makeplist:options:Flags.next() {
 # Returns the selected flag.
 #
 # @param &1
-#	The variable to return the flag to.
+#	The variable to return the flag to
 #
 makeplist:options:Flags.with() {
 	local i flags
@@ -149,17 +149,28 @@ makeplist:options:Flags.without() {
 }
 
 #
-# OPTIONS_SINGLE, OPTIONS_MULTI
+# Instances permute through single and multi option groups.
+#
+# This handles the following kinds of options:
+#
+# - `OPTIONS_SINGLE`
+# - `OPTIONS_MULTI`
+#
+# Of each group of options one has to be selected. This permutation
+# makes sure every option is selected at least once.
 #
 bsda:obj:createClass makeplist:options:Singles \
 	a:private:Groups=bsda:container:Map \
-	r:private:group \
-	r:private:select \
-	i:private:init \
-	x:public:next \
-	x:public:with \
-	x:public:without
+	r:private:group  "The currently selected group" \
+	r:private:select "The index of the option selected from the group" \
+	i:private:init   "Acquire option groups from make" \
+	x:public:next    "Select the next option" \
+	x:public:with    "The selected option of every group" \
+	x:public:without "The options not selected"
 
+#
+# Acquire all option groups from make.
+#
 makeplist:options:Singles.init() {
 	bsda:container:Map ${this}Groups
 	local group groups
@@ -173,6 +184,19 @@ makeplist:options:Singles.init() {
 	setvar ${this}select 1
 }
 
+#
+# Iterates through the map of groups until the group following the
+# current selection is found.
+#
+# @param group
+#	Must be set to current group, returns set to the next group
+# @param 1,2
+#	The group and its options
+# @retval 0
+#	Iterated beyond the last group
+# @retval 1
+#	The next group has been selected
+#
 makeplist:options:Singles.next_lambda() {
 	if [ -z "$group" ]; then
 		group="$1"
@@ -183,15 +207,27 @@ makeplist:options:Singles.next_lambda() {
 	fi
 }
 
+#
+# Select the next permutation.
+#
+# Select the next option. Starts over after going through all options.
+#
+# @retval 0
+#	Selecting the next option succeeded
+# @retval 1
+#	No more option left, starting over
+#
 makeplist:options:Singles.next() {
 	local groups group select options option complete
 	complete=0
 	$this.Groups groups
 	$this.getGroup group
 	$this.getSelect select
+	# Select the next option
 	$groups.[ "$group" ] options
 	select=$((select + 1))
 	option="$(makeplist:options:_pick $select $options)"
+	# If no option is left in the group select the next group
 	if [ -z "$option" ]; then
 		select=2
 		if $groups.foreach $class.next_lambda; then
@@ -203,6 +239,16 @@ makeplist:options:Singles.next() {
 	return $complete
 }
 
+#
+# Accumulates selected options from the map of groups.
+#
+# @param group,select
+#	Must be set to current group and selection index
+# @param with
+#	Accumulates the selected options
+# @param 1,2
+#	The group and its options
+#
 makeplist:options:Singles.with_lambda() {
 	if [ "$group" == "$1" ]; then
 		with="${with:+$with }$(makeplist:options:_pick $select $2)"
@@ -211,6 +257,12 @@ makeplist:options:Singles.with_lambda() {
 	fi
 }
 
+#
+# Returns the selected options.
+#
+# @param &1
+#	The variable to return the options to
+#
 makeplist:options:Singles.with() {
 	local groups group select with
 	$this.Groups groups
@@ -221,6 +273,16 @@ makeplist:options:Singles.with() {
 	$caller.setvar "$1" "$with"
 }
 
+#
+# Accumulates unselected options from the map of groups.
+#
+# @param group,select
+#	Must be set to current group and selection index
+# @param without
+#	Accumulates the unselected options
+# @param 1,2
+#	The group and its options
+#
 makeplist:options:Singles.without_lambda() {
 	if [ "$group" == "$1" ]; then
 		without="${without:+$without }$(makeplist:options:_except $select $2)"
@@ -229,6 +291,12 @@ makeplist:options:Singles.without_lambda() {
 	fi
 }
 
+#
+# Returns everything but the selected options.
+#
+# @param &1
+#	The variable to return the options to
+#
 makeplist:options:Singles.without() {
 	local groups group select without
 	$this.Groups groups
