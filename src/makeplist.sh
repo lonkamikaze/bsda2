@@ -32,17 +32,6 @@ makeplist:options:_except() {
 	echo "$*"
 }
 
-makeplist:options:_in() {
-	test -z "$1" && return 1
-	local needle item 
-	needle="$1"
-	shift
-	for item in "$@"; do
-		test "$needle" = "$item" && return
-	done
-	return 1
-}
-
 #
 # OPTIONS_DEFINE, OPTIONS_RADIO, OPTIONS_GROUP
 #
@@ -221,11 +210,12 @@ bsda:obj:createClass makeplist:PlistManager \
 	r:private:prefix \
 	r:private:_license_dir \
 	r:private:desktopdir \
+	r:private:optionsSorted \
 	r:private:plistSubSed \
 	x:private:plistSubSed \
 	i:private:init \
 	x:public:create \
-	x:public:match \
+	x:public:plist \
 	x:public:report
 
 makeplist:PlistManager.init() {
@@ -238,6 +228,10 @@ makeplist:PlistManager.init() {
 		/usr/bin/make -V"_LICENSE_DIR:S,^$prefix/,,")" || return
 	setvar ${this}desktopdir "$(
 		/usr/bin/make -V"DESKTOPDIR:S,^$prefix/,,")" || return
+	setvar ${this}optionsSorted "$(
+		/usr/bin/make -V'SELECTED_OPTIONS:ts\n' \
+		              -V'DESELECTED_OPTIONS:ts\n' \
+		| /usr/bin/sort -n)" || return
 	$this.plistSubSed || return
 }
 
@@ -296,7 +290,6 @@ makeplist:PlistManager.create() {
 	$this.getStagedir stagedir
 	$this.getPrefix prefix
 	$this.getMtree_file mtree_file
-	$this.getPlistSubSed plist_sub_sed
 	setvar ${plist}retval "$1"
 	setvar ${plist}logfile "$2"
 	setvar ${plist}with "$3"
@@ -305,64 +298,108 @@ makeplist:PlistManager.create() {
 		/usr/sbin/mtree -cp "$stagedir$prefix/" \
 		| /usr/sbin/mtree -Sf /dev/stdin -f "$mtree_file" \
 		| /usr/bin/awk '/ (file|link) [^\/]*/{sub(/ (file|link) [^\/]*/, "");print}' \
-		| /usr/bin/grep -v "^$_license_dir$nl^$desktopdir" \
-		| /usr/bin/sort -n \
-		| /usr/bin/sed "$plist_sub_sed")"
+		| /usr/bin/grep -v "^$_license_dir$nl^$desktopdir")"
 }
 
-#
-#
-# @param &1
-#	Files to add for this option
-# @param &2
-#	Files to remove for this option
-# @param 3
-#	The option to match
-#
-makeplist:PlistManager.match() {
-	local plist with files firstMatch firstUnmatch retval
-	local common match unmatch files
-	$this.First plist
-	firstMatch=1
-	firstUnmatch=1
-	common=
-	match=
-	unmatch=
-	while makeplist:Plist.isInstance "$plist"; do
-		$plist.getRetval retval
-		# Skip failed builds
-		if [ 0 -ne "$retval" ]; then
+makeplist:PlistManager.plist_filter() { /usr/bin/awk '
+	# Get the order of options
+	BEGIN {
+		for (i = 1; i < ARGC; ++i) {
+			OPTIONS_ORDERD[i] = ARGV[i]
+			CNT_OPT_FILES[ARGV[i]] = 0
+			delete ARGV[i]
+		}
+		CNT_FILES = 0
+	}
+	# Get the options the following files were staged with
+	/^OPTIONS:/ {
+		delete aoptions
+		sub(/^OPTIONS: */, "")
+		cnt_aoptions = split($0, aoptions)
+		for (i = 1; i <= cnt_aoptions; ++i) {
+			++OPTIONS[aoptions[i]]
+		}
+		++CONFIGS
+		next
+	}
+	# Collect files
+	{
+		# Record order of file
+		if (!($0 in FILES)) {
+			FILES_ORDERED[++CNT_FILES] = $0
+		}
+		# Count occurence of file
+		++FILES[$0]
+		# The same book keepin per option
+		for (i = 1; i <= cnt_aoptions; ++i) {
+			option = aoptions[i]
+			# Record order of file for option
+			if (!OPT_FILES[option, $0]) {
+				OPT_FILES_ORDERED[option, ++CNT_OPT_FILES[option]] = $0
+			}
+			# Count occurence of file by option
+			++OPT_FILES[option, $0]
+		}
+	}
+	# Print files
+	END {
+		# Print files common to all configurations
+		for (i = 1; i <= CNT_FILES; ++i) {
+			file = FILES_ORDERED[i]
+			if (FILES[file] == CONFIGS) {
+				print file
+				delete FILES[file]
+			}
+		}
+		# Print option specific files
+		for (i = 1; OPTIONS_ORDERD[i]; ++i) {
+			option = OPTIONS_ORDERD[i]
+			for (p = 1; p <= CNT_OPT_FILES[option]; ++p) {
+				file = OPT_FILES_ORDERED[option, p]
+				# Skip files that have already been printed
+				if (!(file in FILES)) { continue }
+				# Print file if it only occurs for the current
+				# option
+				if (OPT_FILES[option, file] == FILES[file]) {
+					print "%%" option "%%" file
+					delete FILES[file]
+				}
+				# Print file if it occurs everywhere but with
+				# this option
+				else if (!OPT_FILES[option, file] && \
+				         FILES[file] + OPTIONS[option] == CONFIGS) {
+					print "%%NO_" option "%%" file
+					delete FILES[file]
+				}
+			}
+		}
+		# Print all files that have not been printed
+		for (i = 1; i <= CNT_FILES; ++i) {
+			file = FILES_ORDERED[i]
+			if (!(file in FILES)) { continue }
+			print "@fail " file " could not be mapped to an option!"
+		}
+	}
+' "$@";}
+
+makeplist:PlistManager.plist() {
+	$caller.setvar "$1" "$(
+		$this.getOptionsSorted options
+		$this.getPlistSubSed subsed
+		$this.First plist
+		while [ -n "$plist" ]; do
+			$plist.getRetval retval
+			# Skip failed builds
+			if [ 0 -ne "$retval" ]; then
+				$plist.Next plist
+				continue
+			fi
+			$plist.getWith with
+			echo OPTIONS: $with
+			$plist.getFiles
 			$plist.Next plist
-			continue
-		fi
-		$plist.getWith with
-		# Get files
-		if makeplist:options:_in "$3" $with; then
-			# Files matching the option
-			if [ -n "$firstMatch" ]; then
-				firstMatch=
-				$plist.getFiles match
-			else
-				$plist.getFiles files
-				match="$(echo "$match" | /usr/bin/grep -Fx "$files")"
-			fi
-		else
-			# Files matching anywhere but the option
-			if [ -n "$firstUnmatch" ]; then
-				firstUnmatch=
-				$plist.getFiles unmatch
-			else
-				$plist.getFiles files
-				unmatch="$(echo "$unmatch" | /usr/bin/grep -Fx "$files")"
-			fi
-		fi
-		$plist.Next plist
-	done
-	files="$match"
-	match="$(echo "$match" | /usr/bin/grep -vFx "$unmatch")"
-	unmatch="$(echo "$unmatch" | /usr/bin/grep -vFx "$files")"
-	$caller.setvar "$1" "$match"
-	$caller.setvar "$2" "$unmatch"
+		done | $class.plist_filter $options | /usr/bin/sed "$subsed"
+	)"
 }
 
 makeplist:PlistManager.report() {
@@ -389,7 +426,6 @@ makeplist:PlistManager.report() {
 bsda:obj:createClass makeplist:Make \
 	a:private:Plists=makeplist:PlistManager \
 	r:private:no_build \
-	r:private:options \
 	i:private:init \
 	x:public:run \
 	x:public:plist \
@@ -398,10 +434,6 @@ bsda:obj:createClass makeplist:Make \
 makeplist:Make.init() {
 	makeplist:PlistManager ${this}Plists || return
 	setvar ${this}no_build "$(/usr/bin/make -VNO_BUILD)" || return
-	setvar ${this}options "$(
-		/usr/bin/make -V'SELECTED_OPTIONS:ts\n' \
-		              -V'DESELECTED_OPTIONS:ts\n' \
-		| /usr/bin/sort)" || return
 }
 
 makeplist:Make.run() {
@@ -427,31 +459,10 @@ makeplist:Make.run() {
 }
 
 makeplist:Make.plist() {
-	local nl options option plists all null add remove mask
-	nl='
-'
+	local plists plist
 	$this.Plists plists
-	$this.getOptions options
-	$plists.match null all ""
-	for option in $options; do
-		$plists.match add remove "$option"
-		mask="$mask${mask:+${remove:+$nl}}$remove"
-		add="$(echo "$add" | /usr/bin/sed "/./s/^/%%$option%%/")"
-		remove="$(echo "$remove" | /usr/bin/sed "/./s/^/%%NO_$option%%/")"
-		all="$all${all:+${add:+$nl}}$add"
-		all="$all${all:+${remove:+$nl}}$remove"
-	done
-
-	# Filter files that show up as a %%NO_*%% somewhere
-	local mask_sed
-	mask_sed=h
-	for option in $options; do
-		mask_sed="$mask_sed;g;s/^/%%$option%%/p"
-	done
-	mask="$(echo "$mask" | /usr/bin/sed -n "$mask_sed")"
-	all="$(echo "$all" | /usr/bin/grep -vFx "$mask")"
-
-	$caller.setvar "$1" "$all"
+	$plists.plist plist
+	$caller.setvar "$1" "$plist"
 }
 
 makeplist:Make.report() {
