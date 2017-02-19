@@ -3,6 +3,15 @@ readonly _makeplist_=1
 
 . ${bsda_dir:-.}/bsda_container.sh
 
+#
+# A static function that outputs all arguments joined by a given
+# separator.
+#
+# @param 1
+#	The separator character
+# @param *
+#	The arguments to join
+#
 makeplist:_join() {
 	local IFS
 	IFS="$1"
@@ -10,6 +19,15 @@ makeplist:_join() {
 	echo "$*"
 }
 
+#
+# From a list of arguments pick the argument with the given number,
+# counting from 1.
+#
+# @param 1
+#	The index of the desired argument
+# @param @
+#	The list of items
+#
 makeplist:options:_pick() {
 	local i
 	i=$(($1))
@@ -19,6 +37,14 @@ makeplist:options:_pick() {
 	fi
 }
 
+#
+# Outputs all but the selected argument.
+#
+# @param 1
+#	The index of the undesired argument
+# @param @
+#	The list of items
+#
 makeplist:options:_except() {
 	local i item
 	i=$(($1))
@@ -33,29 +59,57 @@ makeplist:options:_except() {
 }
 
 #
-# OPTIONS_DEFINE, OPTIONS_RADIO, OPTIONS_GROUP
+# Instances permute through binary options.
+#
+# Instead of permuting through all valid combinations, only use each
+# option once. All permutations would be in O(n!), which is exponential
+# growth and hence problematic for even a small amount of options.
+#
+# This handles the following kinds of options:
+#
+# - `OPTIONS_DEFINE`
+# - `OPTIONS_RADIO`
+# - `OPTIONS_GROUP`
+#
+# These kinds of options are basically independent flags, only grouped
+# for usability purposes.
 #
 bsda:obj:createClass makeplist:options:Flags \
-	r:private:flags \
-	r:private:select \
-	i:private:init \
-	x:public:next \
-	x:public:with \
-	x:public:without
+	r:private:flags  "All options to permute through" \
+	r:private:select "The index of the currently selected flag" \
+	i:private:init   "Acquire all flags from make" \
+	x:public:next    "Select the next permutation" \
+	x:public:with    "List the flag activated for this permutation" \
+	x:public:without "List flags not activated for this permutation"
 
+#
+# Acquire all flags from make.
+#
 makeplist:options:Flags.init() {
 	local flags group
-	flags="$(/usr/bin/make -VOPTIONS_DEFINE)"
+	flags="$(/usr/bin/make -VOPTIONS_DEFINE)" || return
 	for group in $(/usr/bin/make -VOPTIONS_GROUP); do
-		flags="${flags:+$flags }$(/usr/bin/make -VOPTIONS_GROUP_$group)"
+		flags="${flags:+$flags }$(/usr/bin/make -VOPTIONS_GROUP_$group)" \
+		|| return
 	done
 	for group in $(/usr/bin/make -VOPTIONS_RADIO); do
-		flags="${flags:+$flags }$(/usr/bin/make -VOPTIONS_RADIO_$group)"
+		flags="${flags:+$flags }$(/usr/bin/make -VOPTIONS_RADIO_$group)" \
+		|| return
 	done
 	setvar ${this}select 0
 	setvar ${this}flags "$flags"
 }
 
+#
+# Select the next permutation.
+#
+# Selects the next flag. Starts over after going through all flags.
+#
+# @retval 0
+#	Selecting the next flag succeeded
+# @retval 1
+#	No more flags left, starting over
+#
 makeplist:options:Flags.next() {
 	local i flags flag
 	$this.getSelect i
@@ -68,6 +122,12 @@ makeplist:options:Flags.next() {
 	fi
 }
 
+#
+# Returns the selected flag.
+#
+# @param &1
+#	The variable to return the flag to.
+#
 makeplist:options:Flags.with() {
 	local i flags
 	$this.getSelect i
@@ -75,6 +135,12 @@ makeplist:options:Flags.with() {
 	$caller.setvar "$1" "$(makeplist:options:_pick $i $flags)"
 }
 
+#
+# Returns all but the selected flag.
+#
+# @param &1
+#	The variable to return the flags to.
+#
 makeplist:options:Flags.without() {
 	local i flags
 	$this.getSelect i
@@ -517,6 +583,7 @@ makeplist:Session.run() {
 	$this.Flags flags
 	$this.Singles singles
 
+	# Go through all permutations to count them
 	count=1
 	while $flags.next; do
 		count=$((count + 1))
@@ -524,7 +591,13 @@ makeplist:Session.run() {
 	while $singles.next; do
 		count=$((count + 1))
 	done
-	
+
+	#
+	# Run make for each permutation
+	#
+
+	# Get the initial state with no flags and all singles set
+	# to the first option
 	$flags.with with
 	$flags.without without
 	$singles.with option
@@ -533,6 +606,8 @@ makeplist:Session.run() {
 	without="$without${without:+${option:+ }}$option"
 	echo "${0##*/}: Building plist $((i = 1)) of $count${with:+: $with}"
 	$make.run "$with" "$without"
+
+	# Try all flags
 	while $flags.next; do
 		$flags.with with
 		$flags.without without
@@ -543,6 +618,8 @@ makeplist:Session.run() {
 		echo "${0##*/}: Building plist $((i += 1)) of $count: $with"
 		$make.run "$with" "$without"
 	done
+
+	# Try every single/multi flag once
 	while $singles.next; do
 		$flags.with with
 		$flags.without without
@@ -553,6 +630,8 @@ makeplist:Session.run() {
 		echo "${0##*/}: Building plist $((i += 1)) of $count: $with"
 		$make.run "$with" "$without"
 	done
+
+	# Generate the resulting plist
 	echo "${0##*/}: Printing to pkg-plist.${0##*/}"
 	$make.plist | /usr/bin/tee "pkg-plist.${0##*/}"
 }
