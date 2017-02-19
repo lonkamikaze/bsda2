@@ -483,10 +483,11 @@ makeplist:Make.run() {
 		                /usr/bin/make clean stage WITH="$1" WITHOUT="$2"
 	fi
 	retval=$?
+	$plists.create "$retval" "$logfilename.gz" "$@"
 	if [ 0 -ne $retval ]; then
 		/usr/bin/gzip -9 "$logfilename"
+		/bin/sleep .5 # Sleep to allow user SIGINT
 	fi
-	$plists.create "$retval" "$logfilename.gz" "$@"
 }
 
 makeplist:Make.plist() {
