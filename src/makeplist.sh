@@ -200,7 +200,22 @@ bsda:obj:createClass makeplist:Plist \
 	r:public:logfile \
 	r:public:with \
 	r:public:without \
-	r:public:files
+	r:public:files \
+	c:private:report
+
+makeplist:Plist.report() {
+	local retval with without logfile
+	$this.getRetval retval
+	# Skip successful builds
+	test 0 -eq "$retval" && return 0
+	$this.getWith with
+	$this.getWithout without
+	$this.getLogfile logfile
+	echo "${0##*/}: ERROR: Building/staging returned $retval"
+	echo "WITH=\"$with\""
+	echo "WITHOUT=\"$without\""
+	echo "A build log is available: $logfile"
+}
 
 bsda:obj:createClass makeplist:PlistManager \
 	a:private:First=makeplist:Plist \
@@ -402,27 +417,6 @@ makeplist:PlistManager.plist() {
 	)"
 }
 
-makeplist:PlistManager.report() {
-	local plist retval with without logfile
-	$this.First plist
-	while makeplist:Plist.isInstance "$plist"; do
-		$plist.getRetval retval
-		# Skip successful builds
-		if [ 0 -eq "$retval" ]; then
-			$plist.Next plist
-			continue
-		fi
-		$plist.getWith with
-		$plist.getWithout without
-		$plist.getLogfile logfile
-		echo "${0##*/}: Building/staging returned $retval"
-		echo "WITH=\"$with\""
-		echo "WITHOUT=\"$without\""
-		echo "An output log is available: $logfile"
-		$plist.Next plist
-	done
-}
-
 #
 # Creates a temporary directory.
 #
@@ -502,10 +496,6 @@ makeplist:Make.plist() {
 	$caller.setvar "$1" "$plist"
 }
 
-makeplist:Make.report() {
-	$($this.Plists).report
-}
-
 bsda:obj:createClass makeplist:Session \
 	a:private:Make=makeplist:Make \
 	a:private:Flags=makeplist:options:Flags \
@@ -564,7 +554,4 @@ makeplist:Session.run() {
 	done
 	echo "${0##*/}: Printing to pkg-plist.${0##*/}"
 	$make.plist | /usr/bin/tee "pkg-plist.${0##*/}"
-
-	# Report problems
-	$make.report
 }
