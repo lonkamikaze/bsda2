@@ -92,8 +92,14 @@ bsda:container:Array.pop() {
 #
 # Call back the given function with every key/value pair.
 #
+# Terminates early if the function returns a non-null value.
+#
 # @param 1
-#	The command to call
+#	The function/command to call
+# @retval 0
+#	The loop went through all key/value pairs
+# @retval *
+#	The return value of the function call that ended the loop
 #
 bsda:container:Array.foreach() {
 	local key count
@@ -360,8 +366,14 @@ bsda:container:Map.[() {
 #
 # Call back the given function with every key/value pair.
 #
+# Terminates early if the function returns a non-null value.
+#
 # @param 1
-#	The command to call
+#	The function/command to call
+# @retval 0
+#	The loop went through all key/value pairs
+# @retval *
+#	The return value of the function call that ended the loop
 #
 bsda:container:Map.foreach() {
 	$class.compress
