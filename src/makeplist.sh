@@ -3,6 +3,13 @@ readonly _makeplist_=1
 
 . ${bsda_dir:-.}/bsda_container.sh
 
+makeplist:_join() {
+	local IFS
+	IFS="$1"
+	shift
+	echo "$*"
+}
+
 makeplist:options:_pick() {
 	local i
 	i=$(($1))
@@ -177,6 +184,27 @@ makeplist:options:Singles.without() {
 	$caller.setvar "$1" "$without"
 }
 
+#
+# This deletes the given file when deleted.
+#
+# This is a simple RAII wrapper.
+#
+bsda:obj:createClass makeplist:File \
+	r:private:filename \
+	i:private:init \
+	c:private:clean
+
+makeplist:File.init() {
+	test -n "$1" || return
+	setvar ${this}filename "$1"
+}
+
+makeplist:File.clean() {
+	local filename
+	$this.getFilename filename
+	/bin/rm -f "$filename"
+}
+
 bsda:obj:createClass makeplist:Plist \
 	a:public:Next=makeplist:Plist \
 	r:public:retval \
@@ -319,12 +347,22 @@ makeplist:Make.init() {
 
 makeplist:Make.run() {
 	local retval plists no_build stagedir prefix mtree_file
+	local retval logfilename logfile
+	logfilename="makeplist${1:+-$(makeplist:_join - $1)}.log"
+	makeplist:File logfile "$logfilename"
+	$caller.delete $logfile
 	$this.Plists plists
 	$this.getNo_build no_build
 	if [ -n "$no_build" ]; then
-		/usr/bin/make restage WITH="$1" WITHOUT="$2"
+		/usr/bin/script -q "$logfilename" \
+		                /usr/bin/make restage WITH="$1" WITHOUT="$2"
 	else
-		/usr/bin/make clean stage WITH="$1" WITHOUT="$2"
+		/usr/bin/script -q "$logfilename" \
+		                /usr/bin/make clean stage WITH="$1" WITHOUT="$2"
+	fi
+	retval=$?
+	if [ 0 -ne $retval ]; then
+		/usr/bin/gzip -9 "$logfilename"
 	fi
 	$plists.create "$?" "$@"
 }
