@@ -208,6 +208,7 @@ makeplist:File.clean() {
 bsda:obj:createClass makeplist:Plist \
 	a:public:Next=makeplist:Plist \
 	r:public:retval \
+	r:public:logfile \
 	r:public:with \
 	r:public:without \
 	r:public:files
@@ -223,7 +224,8 @@ bsda:obj:createClass makeplist:PlistManager \
 	r:private:plist_sub_sed \
 	i:private:init \
 	x:public:create \
-	x:public:match
+	x:public:match \
+	x:public:report
 
 makeplist:PlistManager.init() {
 	local prefix
@@ -262,8 +264,9 @@ makeplist:PlistManager.create() {
 	$this.getMtree_file mtree_file
 	$this.getPlist_sub_sed plist_sub_sed
 	setvar ${plist}retval "$1"
-	setvar ${plist}with "$2"
-	setvar ${plist}without "$3"
+	setvar ${plist}logfile "$2"
+	setvar ${plist}with "$3"
+	setvar ${plist}without "$4"
 	setvar ${plist}files "$(
 		/usr/sbin/mtree -cp "$stagedir$prefix/" \
 		| /usr/sbin/mtree -Sf /dev/stdin -f "$mtree_file" \
@@ -328,13 +331,35 @@ makeplist:PlistManager.match() {
 	$caller.setvar "$2" "$unmatch"
 }
 
+makeplist:PlistManager.report() {
+	local plist retval with without logfile
+	$this.First plist
+	while makeplist:Plist.isInstance "$plist"; do
+		$plist.getRetval retval
+		# Skip successful builds
+		if [ 0 -eq "$retval" ]; then
+			$plist.Next plist
+			continue
+		fi
+		$plist.getWith with
+		$plist.getWithout without
+		$plist.getLogfile logfile
+		echo "${0##*/}: Building/staging returned $retval"
+		echo "WITH=\"$with\""
+		echo "WITHOUT=\"$without\""
+		echo "An output log is available: $logfile"
+		$plist.Next plist
+	done
+}
+
 bsda:obj:createClass makeplist:Make \
 	a:private:Plists=makeplist:PlistManager \
 	r:private:no_build \
 	r:private:options \
 	i:private:init \
 	x:public:run \
-	x:public:plist
+	x:public:plist \
+	x:public:report
 
 makeplist:Make.init() {
 	makeplist:PlistManager ${this}Plists || return
@@ -364,7 +389,7 @@ makeplist:Make.run() {
 	if [ 0 -ne $retval ]; then
 		/usr/bin/gzip -9 "$logfilename"
 	fi
-	$plists.create "$?" "$@"
+	$plists.create "$retval" "$logfilename.gz" "$@"
 }
 
 makeplist:Make.plist() {
@@ -393,6 +418,10 @@ makeplist:Make.plist() {
 	all="$(echo "$all" | /usr/bin/grep -vFx "$mask")"
 
 	$caller.setvar "$1" "$all"
+}
+
+makeplist:Make.report() {
+	$($this.Plists).report
 }
 
 bsda:obj:createClass makeplist:Session \
@@ -453,4 +482,7 @@ makeplist:Session.run() {
 	done
 	echo "${0##*/}: Printing to pkg-plist.${0##*/}"
 	$make.plist | /usr/bin/tee "pkg-plist.${0##*/}"
+
+	# Report problems
+	$make.report
 }
