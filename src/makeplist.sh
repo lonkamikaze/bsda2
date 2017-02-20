@@ -357,9 +357,9 @@ bsda:obj:createClass makeplist:PlistManager \
 	r:private:mtree_file \
 	r:private:stagedir \
 	r:private:prefix \
-	r:private:_license_dir \
-	r:private:desktopdir \
 	r:private:optionsSorted \
+	r:private:plistFilter \
+	x:private:plistFilter \
 	r:private:plistSubSed \
 	x:private:plistSubSed \
 	i:private:init \
@@ -372,16 +372,27 @@ makeplist:PlistManager.init() {
 	setvar ${this}mtree_file "$(/usr/bin/make -VMTREE_FILE)" || return
 	setvar ${this}stagedir "$(/usr/bin/make -VSTAGEDIR)" || return
 	setvar ${this}prefix "$(/usr/bin/make -VPREFIX)" || return
-	$this.getPrefix prefix
-	setvar ${this}_license_dir "$(
-		/usr/bin/make -V"_LICENSE_DIR:S,^$prefix/,,")" || return
-	setvar ${this}desktopdir "$(
-		/usr/bin/make -V"DESKTOPDIR:S,^$prefix/,,")" || return
 	setvar ${this}optionsSorted "$(
 		/usr/bin/make -V'SELECTED_OPTIONS:ts\n' \
 		              -V'DESELECTED_OPTIONS:ts\n' \
 		| /usr/bin/sort -n)" || return
+	$this.plistFilter || return
 	$this.plistSubSed || return
+}
+
+makeplist:PlistManager.plistFilter() {
+	local filter
+	filter="$( (
+		/usr/bin/make -V'${_LICENSE_DIR:S,^${PREFIX}/,^,:S,$$,/,:ts\n}' \
+		              -V'${DESKTOPDIR:S,^${PREFIX}/,^,:S,$$,/,:ts\n}' \
+		              -V'USE_RC_SUBR:S,^,^etc/rc.d/,:ts\n' \
+		| /usr/bin/vis -ce '.[]*?' \
+		&& /usr/bin/make -V'${PORTDOCS:S,^,^${DOCSDIR_REL}/,:ts\n}' \
+		                 -V'${PORTEXAMPLES:S,^,^${EXAMPLESDIR_REL}/,:ts\n}' \
+		                 -V'${PORTDATA:S,^,^${DATADIR_REL}/,:ts\n}' \
+		   | /usr/bin/sed 's/\*/.*/g;s/\?/./g'
+	) | /usr/bin/grep .)" || return
+	setvar ${this}plistFilter "$filter"
 }
 
 makeplist:PlistManager.plistSubSed() {
@@ -431,15 +442,13 @@ makeplist:PlistManager.create() {
 	setvar ${this}tail "$plist"
 
 	# Populate new list entry
-	local nl _license_dir desktopdir stagedir prefix mtree_file
-	local plist_sub_sed
+	local nl stagedir prefix mtree_file plistFilter
 	nl='
 '
-	$this.get_license_dir _license_dir
-	$this.getDesktopdir desktopdir
 	$this.getStagedir stagedir
 	$this.getPrefix prefix
 	$this.getMtree_file mtree_file
+	$this.getPlistFilter plistFilter
 	setvar ${plist}retval "$1"
 	setvar ${plist}logfile "$2"
 	setvar ${plist}with "$3"
@@ -448,7 +457,7 @@ makeplist:PlistManager.create() {
 		/usr/sbin/mtree -cp "$stagedir$prefix/" \
 		| /usr/sbin/mtree -Sf /dev/stdin -f "$mtree_file" \
 		| /usr/bin/awk '/ (file|link) [^\/]*/{sub(/ (file|link) [^\/]*/, "");print}' \
-		| /usr/bin/grep -v "^$_license_dir$nl^$desktopdir")"
+		| /usr/bin/grep -v "$plistFilter")"
 }
 
 makeplist:PlistManager.plist_filter() { /usr/bin/awk '
