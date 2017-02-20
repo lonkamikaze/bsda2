@@ -337,15 +337,22 @@ makeplist:File.clean() {
 	/bin/rm -f "$filename"
 }
 
+#
+# A container and a linked list class for plists of a single build/stage.
+#
 bsda:obj:createClass makeplist:Plist \
 	a:public:Next=makeplist:Plist \
-	r:public:retval \
-	r:public:logfile \
-	r:public:with \
-	r:public:without \
-	r:public:files \
-	c:private:report
+	r:public:retval  "The return status of the build/stage" \
+	r:public:logfile "The name of the logfile to the build/stage" \
+	r:public:with    "The options the build/stage was done with" \
+	r:public:without "The options the build/stage was done without" \
+	r:public:files   "The files found in the staging area" \
+	c:private:report "The destructor reports failed build/stage attempts"
 
+#
+# Prints a notification if the build/stage returned a non-zero exit
+# status.
+#
 makeplist:Plist.report() {
 	local retval with without logfile
 	$this.getRetval retval
