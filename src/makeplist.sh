@@ -513,10 +513,14 @@ makeplist:PlistManager.plist_filter() { /usr/bin/awk '
 					print "%%" option "%%" file
 					delete FILES[file]
 				}
+			}
+			for (p = 1; p <= CNT_FILES; ++p) {
+				file = FILES_ORDERED[p]
+				if (!(file in FILES)) { continue }
 				# Print file if it occurs everywhere but with
 				# this option
-				else if (!OPT_FILES[option, file] && \
-				         FILES[file] + OPTIONS[option] == CONFIGS) {
+				if (!OPT_FILES[option, file] && \
+				    FILES[file] + OPTIONS[option] == CONFIGS) {
 					print "%%NO_" option "%%" file
 					delete FILES[file]
 				}
