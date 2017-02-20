@@ -313,15 +313,24 @@ makeplist:options:Singles.without() {
 # This is a simple RAII wrapper.
 #
 bsda:obj:createClass makeplist:File \
-	r:private:filename \
-	i:private:init \
-	c:private:clean
+	r:private:filename "Name of the file to remove" \
+	i:private:init     "The constructor" \
+	c:private:clean    "The destructor, removes the file"
 
+#
+# Store the filename.
+#
+# @param 1
+#	The filename
+#
 makeplist:File.init() {
 	test -n "$1" || return
 	setvar ${this}filename "$1"
 }
 
+#
+# Remove the file.
+#
 makeplist:File.clean() {
 	local filename
 	$this.getFilename filename
