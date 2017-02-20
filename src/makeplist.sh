@@ -250,7 +250,7 @@ makeplist:options:Singles.next() {
 #	The group and its options
 #
 makeplist:options:Singles.with_lambda() {
-	if [ "$group" == "$1" ]; then
+	if [ "$group" = "$1" ]; then
 		with="${with:+$with }$(makeplist:options:_pick $select $2)"
 	else
 		with="${with:+$with }$(makeplist:options:_pick 1 $2)"
@@ -284,7 +284,7 @@ makeplist:options:Singles.with() {
 #	The group and its options
 #
 makeplist:options:Singles.without_lambda() {
-	if [ "$group" == "$1" ]; then
+	if [ "$group" = "$1" ]; then
 		without="${without:+$without }$(makeplist:options:_except $select $2)"
 	else
 		without="${without:+$without }$(makeplist:options:_except 1 $2)"
