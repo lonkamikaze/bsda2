@@ -453,11 +453,15 @@ makeplist:PlistManager.create() {
 	setvar ${plist}logfile "$2"
 	setvar ${plist}with "$3"
 	setvar ${plist}without "$4"
-	setvar ${plist}files "$(
+	setvar ${plist}files "$( (
+		/usr/bin/find -s "$stagedir" \
+		              \( -type f -o -type l \) \
+		              -not -path "$stagedir$prefix/*" \
+		| /usr/bin/sed "s!^$stagedir!!"
 		/usr/sbin/mtree -cp "$stagedir$prefix/" \
 		| /usr/sbin/mtree -Sf /dev/stdin -f "$mtree_file" \
-		| /usr/bin/awk '/ (file|link) [^\/]*/{sub(/ (file|link) [^\/]*/, "");print}' \
-		| /usr/bin/grep -v "$plistFilter")"
+		| /usr/bin/awk '/ (file|link) [^\/]*/{sub(/ (file|link) [^\/]*/, "");print}'
+	) | /usr/bin/grep -v "$plistFilter" )"
 }
 
 makeplist:PlistManager.plist_filter() { /usr/bin/awk '
