@@ -385,7 +385,7 @@ makeplist:PlistManager.init() {
 }
 
 makeplist:PlistManager.plistSubSed() {
-	local IFS sublist exprs sub
+	local IFS sublist exprs sub prefix
 	IFS='
 '
 	sublist="$(/usr/bin/make -VPLIST_SUB:ts\\n)" || return
@@ -405,13 +405,14 @@ makeplist:PlistManager.plistSubSed() {
 	)"
 	#
 	exprs=
+	$this.getPrefix prefix
 	for sub in $sublist; do case "$sub" in
-	LIB32DIR=*)
+	LIB32DIR=*|PREFIX=*|*=$prefix)
 	;;
 	*DIR=*)
 		exprs="${exprs}s!${sub#*=}/!%%${sub%%=*}%%/!;"
 	;;
-	*VER=*|*VERSION=*)
+	*)
 		exprs="${exprs}s!${sub#*=}!%%${sub%%=*}%%!;"
 	esac; done
 	setvar ${this}plistSubSed "$exprs"
