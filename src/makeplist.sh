@@ -599,7 +599,8 @@ makeplist:PlistManager.plist_filter() { /usr/bin/awk '
 				if (!(file in FILES)) { continue }
 				# Print file if it only occurs for the current
 				# option
-				if (OPT_FILES[option, file] == FILES[file]) {
+				if (OPT_FILES[option, file] == OPTIONS[option] &&
+				    OPT_FILES[option, file] == FILES[file]) {
 					print "%%" option "%%" file
 					delete FILES[file]
 				}
@@ -609,7 +610,7 @@ makeplist:PlistManager.plist_filter() { /usr/bin/awk '
 				if (!(file in FILES)) { continue }
 				# Print file if it occurs everywhere but with
 				# this option
-				if (!OPT_FILES[option, file] && \
+				if (!OPT_FILES[option, file] &&
 				    FILES[file] + OPTIONS[option] == CONFIGS) {
 					print "%%NO_" option "%%" file
 					delete FILES[file]
