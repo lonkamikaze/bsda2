@@ -367,19 +367,25 @@ makeplist:Plist.report() {
 	echo "A build log is available: $logfile"
 }
 
+#
+# Manage the linked list of per build plists.
+#
 bsda:obj:createClass makeplist:PlistManager \
 	a:private:First=makeplist:Plist \
-	r:private:tail \
-	r:private:mtree_file \
-	r:private:stagedir \
-	r:private:prefix \
-	r:private:optionsSorted \
-	x:private:plistFilter \
-	x:private:plistSubSed \
-	i:private:init \
-	x:public:create \
-	x:public:plist \
+	r:private:tail          "The last entry in the list" \
+	r:private:mtree_file    "The value of MTREE_FILE" \
+	r:private:stagedir      "The value of STAGEDIR" \
+	r:private:prefix        "The value of PREFIX" \
+	r:private:optionsSorted "A sorted list of all options" \
+	x:private:plistFilter   "Returns a list of grep -v filters" \
+	x:private:plistSubSed   "Retruns a list of sed instructions" \
+	i:private:init          "The constructor populates members" \
+	x:public:create         "Create a plist entry" \
+	x:public:plist          "Produce the plist"
 
+#
+# Construct the manager, pull all the required variables from make.
+#
 makeplist:PlistManager.init() {
 	local prefix
 	setvar ${this}mtree_file "$(/usr/bin/make -VMTREE_FILE)" || return
@@ -391,6 +397,29 @@ makeplist:PlistManager.init() {
 		| /usr/bin/sort -n)" || return
 }
 
+#
+# Returns filtering rules to apply using `grep -v`.
+#
+# The filtering rules are based on the following make variables:
+#
+# | Variable          | Description                                      |
+# |-------------------|--------------------------------------------------|
+# | `DESKTOP_ENTRIES` | Macro for creating/installing desktop icons      |
+# | `USE_RC_SUBR`     | Macro for creating/installing rc(8) scripts      |
+# | `PLIST_FILES`     | A list of files automatically added to the plist |
+# | `PORTDOCS`        | A list of files / glob patterns in DOCSDIR       |
+# | `PORTEXAMPLES`    | A list of files / glob patterns in EXAMPLESDIR   |
+# | `PORTDATA`        | A list of files / glob patterns in DATADIR       |
+#
+# @param &1
+#	The variable to return the filter list to
+# @param 2,3
+#	The options to build WITH and WITHOUT
+# @retval 0
+#	Creating the filter list succeeded
+# @retval *
+#	Creating the filter list failed
+#
 makeplist:PlistManager.plistFilter() {
 	local filter
 	filter="$( (
@@ -410,6 +439,16 @@ makeplist:PlistManager.plistFilter() {
 	$caller.setvar "$1" "$filter"
 }
 
+#
+# Generates sed instructions from PLIST_SUB.
+#
+# @param &1
+#	The variable to return the sub list to.
+# @retval 0
+#	Creating the sub list succeeded
+# @retval *
+#	Creating the sub list failed
+#
 makeplist:PlistManager.plistSubSed() {
 	local IFS sublist exprs sub prefix
 	IFS='
@@ -444,6 +483,16 @@ makeplist:PlistManager.plistSubSed() {
 	$caller.setvar "$1" "$exprs"
 }
 
+#
+# Create a plist entry for the last build/stage.
+#
+# @param 1
+#	The return value of the build/stage
+# @param 2
+#	The log file for the build/stage
+# @param 3,4
+#	The options the build/stage was performed WITH and WITHOUT
+#
 makeplist:PlistManager.create() {
 	# Update linked list
 	local plist tail
@@ -478,6 +527,19 @@ makeplist:PlistManager.create() {
 	) | /usr/bin/grep -v "$plistFilter" )"
 }
 
+#
+# Takes a stream of per build packaging lists and outputs the complete
+# plist.
+#
+# Every plist should be preceded by a line starting with `OPTIONS: `
+# followed by a list of options the build/stage was done with.
+#
+# Files are output in the order of input and grouped by options in
+# the given order.
+#
+# @param @
+#	All options in the order they should be output in
+#
 makeplist:PlistManager.plist_filter() { /usr/bin/awk '
 	# Get the order of options
 	BEGIN {
@@ -563,6 +625,12 @@ makeplist:PlistManager.plist_filter() { /usr/bin/awk '
 	}
 ' "$@";}
 
+#
+# Generate the packaging list.
+#
+# @param &1
+#	The variable to return the plist to
+#
 makeplist:PlistManager.plist() {
 	$caller.setvar "$1" "$(
 		$this.getOptionsSorted options
