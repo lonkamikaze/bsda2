@@ -374,7 +374,6 @@ bsda:obj:createClass makeplist:PlistManager \
 	r:private:stagedir \
 	r:private:prefix \
 	r:private:optionsSorted \
-	r:private:plistFilter \
 	x:private:plistFilter \
 	r:private:plistSubSed \
 	x:private:plistSubSed \
@@ -392,23 +391,24 @@ makeplist:PlistManager.init() {
 		/usr/bin/make -V'SELECTED_OPTIONS:ts\n' \
 		              -V'DESELECTED_OPTIONS:ts\n' \
 		| /usr/bin/sort -n)" || return
-	$this.plistFilter || return
 	$this.plistSubSed || return
 }
 
 makeplist:PlistManager.plistFilter() {
 	local filter
 	filter="$( (
-		/usr/bin/make -V'${_LICENSE_DIR:S,^${PREFIX}/,^,:S,$$,/,:ts\n}' \
+		/usr/bin/make WITH="$2" WITHOUT="$3" \
 		              -V'${DESKTOPDIR:S,^${PREFIX}/,^,:S,$$,/,:ts\n}' \
-		              -V'USE_RC_SUBR:S,^,^etc/rc.d/,:ts\n' \
+		              -V'${USE_RC_SUBR:S,^,^etc/rc.d/,:S,$$,$$,:ts\n}' \
+		              -V'${PLIST_FILES:S,^${PREFIX}/,,:S,^,^,:S,$$,$$,:ts\n}' \
 		| /usr/bin/vis -ce '.[]*?' \
-		&& /usr/bin/make -V'${PORTDOCS:S,^,^${DOCSDIR_REL}/,:ts\n}' \
+		&& /usr/bin/make -WITH="$2" WITHOUT="$3" \
+		                 -V'${PORTDOCS:S,^,^${DOCSDIR_REL}/,:ts\n}' \
 		                 -V'${PORTEXAMPLES:S,^,^${EXAMPLESDIR_REL}/,:ts\n}' \
 		                 -V'${PORTDATA:S,^,^${DATADIR_REL}/,:ts\n}' \
 		   | /usr/bin/sed 's/\*/.*/g;s/\?/./g'
 	) | /usr/bin/grep .)" || return
-	setvar ${this}plistFilter "$filter"
+	$caller.setvar "$1" "$filter"
 }
 
 makeplist:PlistManager.plistSubSed() {
@@ -458,17 +458,16 @@ makeplist:PlistManager.create() {
 	setvar ${this}tail "$plist"
 
 	# Populate new list entry
-	local nl stagedir prefix mtree_file plistFilter
-	nl='
-'
-	$this.getStagedir stagedir
-	$this.getPrefix prefix
-	$this.getMtree_file mtree_file
-	$this.getPlistFilter plistFilter
 	setvar ${plist}retval "$1"
 	setvar ${plist}logfile "$2"
 	setvar ${plist}with "$3"
 	setvar ${plist}without "$4"
+	# Generate list of files
+	local stagedir prefix mtree_file plistFilter
+	$this.getStagedir stagedir
+	$this.getPrefix prefix
+	$this.getMtree_file mtree_file
+	$this.plistFilter plistFilter "$3" "$4"
 	setvar ${plist}files "$( (
 		/usr/bin/find -s "$stagedir" \
 		              \( -type f -o -type l \) \
