@@ -653,7 +653,7 @@ makeplist:Make.run() {
 	$plists.create "$retval" "$logfilename.gz" "$@"
 	if [ 0 -ne $retval ]; then
 		/usr/bin/gzip -9 "$logfilename"
-		/bin/sleep .5 # Sleep to allow user SIGINT
+		/bin/sleep 1 # Sleep to allow user SIGINT
 	fi
 }
 
