@@ -430,7 +430,7 @@ makeplist:PlistManager.plistSubSed() {
 			echo "${#tail} ${sub%%=*}=$tail"
 		done | /usr/bin/sort -rn | /usr/bin/sed 's/^[0-9]* //'
 	)"
-	#
+	# Create sed expressions
 	exprs=
 	$this.getPrefix prefix
 	for sub in $sublist; do case "$sub" in
