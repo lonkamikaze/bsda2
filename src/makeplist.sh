@@ -403,12 +403,12 @@ makeplist:PlistManager.plistFilter() {
 		/usr/bin/make WITH="$2" WITHOUT="$3" \
 		              -V'${USE_RC_SUBR:S,^,^etc/rc.d/,:S,$$,$$,:ts\n}' \
 		              -V'${PLIST_FILES:S,^${PREFIX}/,,:S,^,^,:S,$$,$$,:ts\n}' \
-		| /usr/bin/vis -ce '.[]*?' \
-		&& /usr/bin/make -WITH="$2" WITHOUT="$3" \
-		                 -V'${PORTDOCS:S,^,^${DOCSDIR_REL}/,:ts\n}' \
-		                 -V'${PORTEXAMPLES:S,^,^${EXAMPLESDIR_REL}/,:ts\n}' \
-		                 -V'${PORTDATA:S,^,^${DATADIR_REL}/,:ts\n}' \
-		   | /usr/bin/sed 's/\*/.*/g;s/\?/./g'
+		| /usr/bin/vis -ce '.[]*?' || return
+		/usr/bin/make -WITH="$2" WITHOUT="$3" \
+		              -V'${PORTDOCS:S,^,^${DOCSDIR_REL}/,:ts\n}' \
+		              -V'${PORTEXAMPLES:S,^,^${EXAMPLESDIR_REL}/,:ts\n}' \
+		              -V'${PORTDATA:S,^,^${DATADIR_REL}/,:ts\n}' \
+		| /usr/bin/sed 's/\*/.*/g;s/\?/./g' || return
 	) | /usr/bin/grep .)" || return
 	$caller.setvar "$1" "$filter"
 }
