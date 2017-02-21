@@ -375,12 +375,10 @@ bsda:obj:createClass makeplist:PlistManager \
 	r:private:prefix \
 	r:private:optionsSorted \
 	x:private:plistFilter \
-	r:private:plistSubSed \
 	x:private:plistSubSed \
 	i:private:init \
 	x:public:create \
 	x:public:plist \
-	x:public:report
 
 makeplist:PlistManager.init() {
 	local prefix
@@ -391,7 +389,6 @@ makeplist:PlistManager.init() {
 		/usr/bin/make -V'SELECTED_OPTIONS:ts\n' \
 		              -V'DESELECTED_OPTIONS:ts\n' \
 		| /usr/bin/sort -n)" || return
-	$this.plistSubSed || return
 }
 
 makeplist:PlistManager.plistFilter() {
@@ -418,7 +415,7 @@ makeplist:PlistManager.plistSubSed() {
 	IFS='
 '
 	sublist="$(/usr/bin/make -VPLIST_SUB:ts\\n)" || return
-	# Sort by replacement size so the biggest mach wins
+	# Sort by replacement size so the biggest match wins
 	sublist="$(
 		for sub in $sublist; do
 			tail="${sub#*=}"
@@ -444,7 +441,7 @@ makeplist:PlistManager.plistSubSed() {
 	*)
 		exprs="${exprs}s!${sub#*=}!%%${sub%%=*}%%!;"
 	esac; done
-	setvar ${this}plistSubSed "$exprs"
+	$caller.setvar "$1" "$exprs"
 }
 
 makeplist:PlistManager.create() {
@@ -569,7 +566,7 @@ makeplist:PlistManager.plist_filter() { /usr/bin/awk '
 makeplist:PlistManager.plist() {
 	$caller.setvar "$1" "$(
 		$this.getOptionsSorted options
-		$this.getPlistSubSed subsed
+		$this.plistSubSed subsed
 		$this.First plist
 		while [ -n "$plist" ]; do
 			$plist.getRetval retval
