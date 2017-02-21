@@ -684,6 +684,7 @@ bsda:obj:createClass makeplist:Make \
 	a:private:Plists=makeplist:PlistManager \
 	r:private:logdir \
 	r:private:no_build \
+	r:private:plistFile \
 	i:private:init \
 	x:public:run \
 	x:public:plist
@@ -695,6 +696,7 @@ makeplist:Make.init() {
 		echo "${0##*/}: ERROR: Port origin could not be detected"
 		return 1
 	fi
+	setvar ${this}plistFile "$(/usr/bin/make -VPLIST)" || return
 	makeplist:TmpDir ${this}Logdir ${this}logdir "${0##*/}.$origin" \
 	|| return
 	makeplist:PlistManager ${this}Plists || return
@@ -726,10 +728,25 @@ makeplist:Make.run() {
 }
 
 makeplist:Make.plist() {
-	local plists plist
+	local plists file plist origPlist change
 	$this.Plists plists
+	$this.getPlistFile file
 	$plists.plist plist
-	$caller.setvar "$1" "$plist"
+	if [ -z "$plist" ]; then
+		echo "${0##*/}: The generated plist is empty"
+		return 0
+	fi
+	origPlist="$(/bin/cat "$file")"
+	/usr/bin/tput AF 2
+	echo "$plist" | /usr/bin/grep -vFx "$origPlist" \
+	              | /usr/bin/sed 's/^/+/'
+	/usr/bin/tput AF 1
+	echo "$origPlist" | /usr/bin/grep -vFx "$plist" \
+	                  | /usr/bin/sed 's/^/-/'
+	/usr/bin/tput AF 7
+
+	echo "${0##*/}: Printing plist to $file.${0##*/}"
+	echo "$plist" > "$file.${0##*/}"
 }
 
 bsda:obj:createClass makeplist:Session \
@@ -801,6 +818,5 @@ makeplist:Session.run() {
 	done
 
 	# Generate the resulting plist
-	echo "${0##*/}: Printing to pkg-plist.${0##*/}"
-	$make.plist | /usr/bin/tee "pkg-plist.${0##*/}"
+	$make.plist
 }
