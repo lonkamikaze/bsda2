@@ -398,7 +398,9 @@ makeplist:PlistManager.plistFilter() {
 	local filter
 	filter="$( (
 		/usr/bin/make WITH="$2" WITHOUT="$3" \
-		              -V'${DESKTOPDIR:S,^${PREFIX}/,^,:S,$$,/,:ts\n}' \
+		              -V'${DESKTOP_ENTRIES:S,^/,,:C,[/ ],_,g:C,[^_[:alnum:]],,g:S,$$,.desktop$$,:S,^,${DESKTOPDIR:S,^${PREFIX}/,^,}/,:ts\n}' \
+		| /usr/bin/awk 'NR % 6 == 4' || return
+		/usr/bin/make WITH="$2" WITHOUT="$3" \
 		              -V'${USE_RC_SUBR:S,^,^etc/rc.d/,:S,$$,$$,:ts\n}' \
 		              -V'${PLIST_FILES:S,^${PREFIX}/,,:S,^,^,:S,$$,$$,:ts\n}' \
 		| /usr/bin/vis -ce '.[]*?' \
