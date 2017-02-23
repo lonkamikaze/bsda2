@@ -878,24 +878,6 @@ bsda:obj:callerSetup() {
 	$caller.delete() {
 		delete_${caller}=\"\$1.delete;\${delete_${caller}}\"
 	}
-
-	# Create a function that returns the object ID of the caller.
-	$caller.getObject() {
-		if [ -n \"\$1\" ]; then
-			setvar \"\$1\" '$this'
-		else
-			echo '$this'
-		fi
-	}
-
-	# Create a function that returns the class of the caller.
-	$caller.getClass() {
-		if [ -n \"\$1\" ]; then
-			setvar \"\$1\" '$class'
-		else
-			echo '$class'
-		fi
-	}
 	"
 }
 
@@ -921,8 +903,7 @@ bsda:obj:callerFinish() {
 	unset delete_${caller}
 
 	# Remove the bsda:obj:callerSetvar() wrapper.
-	unset -f $caller.setvar $caller.delete \
-	         $caller.getObject $caller.getClass
+	unset -f $caller.setvar $caller.delete
 	# Decrement the call stack counter.
 	bsda_obj_callStackCount=$(($bsda_obj_callStackCount - 1))
 

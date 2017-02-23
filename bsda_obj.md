@@ -257,8 +257,6 @@ The following methods are offered by the caller:
 |-------------|--------------------------------------------------------------
 | `setvar`    | Sets a variable in the caller context
 | `delete`    | Deletes the given objects when returning to the caller
-| `getObject` | Returns a reference to the calling object
-| `getClass`  | Returns the name of the calling class
 
 The following variable names may not be used in a method:
 
