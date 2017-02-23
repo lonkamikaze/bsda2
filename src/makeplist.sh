@@ -2,6 +2,8 @@ test -n "$_makeplist_" && return 0
 readonly _makeplist_=1
 
 . ${bsda_dir:-.}/bsda_container.sh
+. ${bsda_dir:-.}/pkg_info.sh
+. ${bsda_dir:-.}/bsda_opts.sh
 
 #
 # A static function that outputs all arguments joined by a given
@@ -768,10 +770,20 @@ bsda:obj:createClass makeplist:Session \
 	a:private:Make=makeplist:Make \
 	a:private:Flags=makeplist:options:Flags \
 	a:private:Singles=makeplist:options:Singles \
+	r:private:outfile \
+	x:private:help \
 	x:public:msg \
 	x:public:error \
 	i:private:init \
+	x:private:params \
 	x:private:run
+
+makeplist:Session.help() {
+	local usage
+	$1.usage usage "\t%.2s, %-9s  %s\n"
+	echo "usage: ${0##*/} [-h] [-o outfile] [port]
+$(echo -n "$usage" | /usr/bin/sort -f)"
+}
 
 makeplist:Session.msg() {
 	if [ -t 1 ]; then
@@ -790,10 +802,96 @@ makeplist:Session.error() {
 }
 
 makeplist:Session.init() {
-	makeplist:Make ${this}Make $this || return
+	local outfile
+	$this.params "$@" || return
+	$this.getOutfile outfile
+	makeplist:Make ${this}Make $this "$outfile" || return
 	makeplist:options:Flags ${this}Flags || return
 	makeplist:options:Singles ${this}Singles || return
-	$this.run
+	$this.run || return
+}
+
+makeplist:Session.params() {
+	local options option port
+
+	bsda:opts:Options options \
+	HELP    -h --help    'Print usage and exit' \
+	OUTFILE -o --outfile 'Set the output file for the new plist'
+	$caller.delete $options
+
+	port=
+	while [ $# -gt 0 ]; do
+		$options.getopt option "$1"
+		case "$option" in
+		HELP)
+			$this.help "$options"
+			exit 0
+		;;
+		OUTFILE)
+			if eval "[ -n \"\$${this}outfile\" ]"; then
+				$this.error "More than one output file given: $2"
+				return 1
+			fi
+			case "$2" in
+			/*)
+				setvar ${this}outfile "$2"
+			;;
+			*)
+				setvar ${this}outfile "$PWD/$2"
+			;;
+			esac
+			shift
+		;;
+		OPT_UNKNOWN)
+			$this.error "Unknown parameter \"$1\"."
+			return 1
+		;;
+		OPT_SPLIT)
+			local arg
+			arg="$1"
+			shift
+			set -- "${arg%${arg#-?}}" "-${arg#-?}" "$@"
+			continue
+		;;
+		OPT_NOOPT)
+			if [ -n "$port" ]; then
+				$this.error "Too many arguments: ... $@"
+				return 1
+			fi
+			port="$1"
+		;;
+		*)
+			$this.error "Option not implemented: $option"
+			return 1
+		;;
+		esac
+		shift
+	done
+
+	case "$port" in
+	/*)
+	;;
+	*/*)
+		local portsdir
+		portsdir="$(/usr/bin/make -f /usr/share/mk/bsd.port.mk -VPORTSDIR)"
+		port="$portsdir/$port"
+	;;
+	*)
+		local portsdir origin
+		portsdir="$(/usr/bin/make -f /usr/share/mk/bsd.port.mk -VPORTSDIR)"
+		origin="$(pkg:info:origins "$port")"
+		if [ -z "$origin" ]; then
+			$this.error "Cannot find port via \`pkg info\`: $port"
+			return 1
+		fi
+		port="$portsdir/$origin"
+	;;
+	esac
+
+	if [ -n "$port" ] && ! cd "$port"; then
+		$this.error "Cannot change into port directory: $port"
+		return 1
+	fi
 }
 
 makeplist:Session.run() {
