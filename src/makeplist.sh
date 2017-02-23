@@ -759,8 +759,26 @@ bsda:obj:createClass makeplist:Session \
 	a:private:Make=makeplist:Make \
 	a:private:Flags=makeplist:options:Flags \
 	a:private:Singles=makeplist:options:Singles \
+	x:public:msg \
+	x:public:error \
 	i:private:init \
 	x:private:run
+
+makeplist:Session.msg() {
+	if [ -t 1 ]; then
+		printf '\033[38;5;3mmakeplist:\033[m %s\n' "$*"
+	else
+		printf 'makeplist: %s\n' "$*"
+	fi
+}
+
+makeplist:Session.error() {
+	if [ -t 1 ]; then
+		printf '\033[38;5;3mmakeplist: \033[1;38;5;1mERROR:\033[m %s\n' "$*"
+	else
+		printf 'makeplist: ERROR: %s\n' "$*"
+	fi 1>&2
+}
 
 makeplist:Session.init() {
 	makeplist:Make ${this}Make || return
