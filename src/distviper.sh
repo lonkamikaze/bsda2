@@ -37,7 +37,7 @@ distviper:Session.init() {
 
 	# Read command line arguments
 	bsda:opts:Flags ${this}Flags
-	$this.params "$@"
+	$this.params "$@" || return
 
 	# Perform
 	$this.run
@@ -72,7 +72,7 @@ distviper:Session.params() {
 		;;
 		OPT_UNKNOWN)
 			$this.error "Unknown parameter \"$1\"."
-			exit 1
+			return 1
 		;;
 		OPT_SPLIT)
 			local arg
@@ -87,7 +87,7 @@ distviper:Session.params() {
 			setvar ${this}keep "$1"
 			if $flags.check KEEP -gt 1; then
 				$this.error "Too many arguments: ... $@"
-				exit 3
+				return 3
 			fi
 		;;
 		*)
@@ -100,15 +100,15 @@ distviper:Session.params() {
 
 	if $flags.check VERBOSE -ne 0 && $flags.check QUIET -ne 0; then
 		$this.error "Conflicting options -v and -q supplied."
-		exit 1
+		return 1
 	fi
 
 	if $flags.check QUIET -eq 0; then
 		$term.use 1
 	fi
 
-	$this.getMakeVar ${this}portsdir PORTSDIR
-	$this.getMakeVar ${this}distdir DISTDIR
+	$this.getMakeVar ${this}portsdir PORTSDIR || return
+	$this.getMakeVar ${this}distdir DISTDIR || return
 
 	local keep
 	$this.getKeep keep
@@ -125,7 +125,7 @@ distviper:Session.params() {
 	;;
 	*)
 		$this.error "Unknown category of files to keep: $keep"
-		exit 2
+		return 2
 	;;
 	esac
 }
@@ -182,6 +182,10 @@ distviper:Session.status() {
 #	The variable to return the value to
 # @param 2
 #	The name of the make variable to get
+# @retval 0
+#	The variable was successfully acquired
+# @retval 1
+#	The variable is not a directory
 #
 distviper:Session.getMakeVar() {
 	local term value
@@ -190,11 +194,11 @@ distviper:Session.getMakeVar() {
 	                            -V"$2" 2>&1)"; then
 		$this.error "make -V$2 failed:"
 		$term.stderr "$value"
-		exit 1
+		return 1
 	fi
 	if [ ! -d "$value" ]; then
 		$this.error "The $2 '$value' is not a directory."
-		exit 1
+		return 1
 	fi
 	$caller.setvar $1 "$value"
 }
