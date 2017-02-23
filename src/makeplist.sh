@@ -684,19 +684,24 @@ bsda:obj:createClass makeplist:Make \
 	a:private:Plists=makeplist:PlistManager \
 	r:private:logdir \
 	r:private:no_build \
-	r:private:plistFile \
+	r:private:plistOldFile \
+	r:private:plistNewFile \
 	i:private:init \
 	x:public:run \
 	x:public:plist
 
 makeplist:Make.init() {
-	local origin
+	local origin file
 	origin="$(/usr/bin/make -VPKGORIGIN:S,/,.,g)" || return
 	if [ -z "$origin" ]; then
 		echo "${0##*/}: ERROR: Port origin could not be detected"
 		return 1
 	fi
-	setvar ${this}plistFile "$(/usr/bin/make -VPLIST)" || return
+	echo "${0##*/}: Initialising make for $origin"
+	file="$(/usr/bin/make -VPLIST)" || return
+	setvar ${this}plistOldFile "$file"
+	setvar ${this}plistNewFile "$file.${0##*/}"
+	test -n "$1" && setvar ${this}plistNewFile "$1"
 	makeplist:TmpDir ${this}Logdir ${this}logdir "${0##*/}.$origin" \
 	|| return
 	makeplist:PlistManager ${this}Plists || return
@@ -730,12 +735,12 @@ makeplist:Make.run() {
 makeplist:Make.plist() {
 	local plists file plist origPlist change
 	$this.Plists plists
-	$this.getPlistFile file
 	$plists.plist plist
 	if [ -z "$plist" ]; then
 		echo "${0##*/}: The generated plist is empty"
 		return 0
 	fi
+	$this.getPlistOldFile file
 	origPlist="$(/bin/cat "$file")"
 	/usr/bin/tput AF 2
 	echo "$plist" | /usr/bin/grep -vFx "$origPlist" \
@@ -745,8 +750,9 @@ makeplist:Make.plist() {
 	                  | /usr/bin/sed 's/^/-/'
 	/usr/bin/tput AF 7
 
-	echo "${0##*/}: Printing plist to $file.${0##*/}"
-	echo "$plist" > "$file.${0##*/}"
+	$this.getPlistNewFile file
+	echo "${0##*/}: Printing plist to $file"
+	echo "$plist" > "$file"
 }
 
 bsda:obj:createClass makeplist:Session \
