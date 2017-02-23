@@ -211,8 +211,6 @@ bsda:tty:Async.stderr() {
 #
 # This is called during daemon startup and use() is called.
 #
-# @param cols
-#	Set to the available number of columns
 # @param lines
 #	Set to the available number of lines
 # @param drawLines
@@ -221,8 +219,6 @@ bsda:tty:Async.stderr() {
 #	The number of status lines requested
 #
 bsda:tty:Async.daemon_winch() {
-	cols=$(/usr/bin/tput co 2> /dev/tty || echo 80)
-	/usr/bin/tput xn 2> /dev/tty || cols=$((cols - 1))
 	lines=$(/usr/bin/tput li 2> /dev/tty || echo 24)
 	# Use at most half of the available terminal space
 	drawLines=$((statusLines < (lines / 2) ? statusLines : (lines / 2)))
@@ -231,8 +227,6 @@ bsda:tty:Async.daemon_winch() {
 #
 # Initialises globals required in the daemon process.
 #
-# @param cols
-#	See bsda:tty:Async.daemon_winch()
 # @param lines
 #	See bsda:tty:Async.daemon_winch()
 # @param drawLines
@@ -266,22 +260,22 @@ bsda:tty:Async.daemon_startup() {
 #
 # @param drawLines
 #	The number of status lines to draw
-# @param cols
-#	The number of columns available to draw
 # @param line0 line1 line...
 #	The status line buffers
 #
 bsda:tty:Async.daemon_drawlines() {
-	/usr/bin/tput vi cr cd
-	i=0
-	while [ $i -lt $((drawLines - 1)) ]; do
-		eval "printf '%.${cols}s\n' \"\$line$i\""
-		i=$((i + 1))
-	done
-	if [ $drawLines -gt 0 ]; then
-		eval "printf '%.${cols}s\r' \"\$line$i\""
+	if [ $((drawLines)) -le 0 ]; then
+		return 0
 	fi
-	/usr/bin/tput $($class.daemon_repeat $((statusLines - 1)) up) ve
+	i=$((drawLines - 1))
+	/usr/bin/tput vi cr $($class.daemon_repeat $i do)
+	printf '\033[?7l'
+	while [ $i -gt 0 ]; do
+		eval "printf '%s\033[K\r\033M' \"\$line$i\""
+		i=$((i - 1))
+	done
+	printf '%s\033[K\r\033[?7h' "$line0"
+	/usr/bin/tput ve
 }
 
 #
@@ -311,18 +305,16 @@ bsda:tty:Async.daemon_repeat() {
 #	The status line number to draw on
 # @param drawLines
 #	The number of status lines that may be drawn
-# @param cols
-#	The number of available columns
 # @param line0 line1 line...
 #	The status line buffers
 #
 bsda:tty:Async.daemon_drawline() {
-	if [ $1 -ge $drawLines -o $1 -lt 0 ]; then
+	if [ $1 -ge $drawLines ] || [ $1 -lt 0 ]; then
 		return
 	fi
 	/usr/bin/tput vi cr $($class.daemon_repeat $1 do)
-	eval "printf '%.${cols}s' \"\$line$1\""
-	/usr/bin/tput ce cr $($class.daemon_repeat $1 up) ve
+	eval "printf '\033[?7l%s\033[K\r\033[?7h' \"\$line$1\""
+	/usr/bin/tput $($class.daemon_repeat $1 up) ve
 }
 
 #
