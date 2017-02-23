@@ -482,8 +482,8 @@ bsda:obj:createClass() {
 
 	# Prints an object in a human readable format.
 	eval "$class.dump() {
-		local result var
-		result=\"$class@\$this {${aggregations:+${attributes:+$IFS\$( (
+		local result
+		result=\"$class@\$this {${attributes:+$IFS\$( (
 			$(for alias in $aggregations; do
 				echo "eval \"\\\$\${this}$alias.dump var\""
 				echo "echo \"$alias=\$var\""
@@ -495,7 +495,7 @@ bsda:obj:createClass() {
 				echo "getvar var \"\${this}$attribute\""
 				echo "echo \"$attribute='\$var'\""
 			done)
-		) | /usr/bin/sed 's/^/  /')$IFS}}}\"
+		) | /usr/bin/sed 's/^/  /')$IFS}}\"
 		\$caller.setvar \"\$1\" \"\$result\"
 	}"
 
