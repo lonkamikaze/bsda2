@@ -22,30 +22,32 @@ readonly _bsda_tty_=1
 #
 # A list of useful termcap(5) capabilities, used with tput(1):
 #
-# | Command            | Short    | Problems              |
-# |--------------------|----------|-----------------------|
-# | save_cursor        | sc       |                       |
-# | restore_cursor     | rc       |                       |
-# | cursor_address     | cm #1 #2 |                       |
-# | cursor_home        | ho       |                       |
-# | columns            | co => #  |                       |
-# | lines              | li => #  |                       |
-# | clr_eol            | ce       |                       |
-# | clr_eos            | cd       |                       |
-# | delete_line        | dl       |                       |
-# | parm_insert_line   | AL #1    |                       |
-# | insert_line        | al       |                       |
-# | cursor_invisible   | vi       |                       |
-# | cursor_normal      | ve       |                       |
-# | cursor_visible     | vs       |                       |
-# | parm_down_cursor   | DO #1    | DO 0 glitches in tmux |
-# | parm_up_cursor     | UP #1    | UP 0 glitches in tmux |
-# | carriage_return    | cr       |                       |
-# | newline            | nw       |                       |
-# | cursor_down        | do       |                       |
-# | cursor_up          | up       |                       |
-# | eat_newline_glitch | xn       |                       |
-# | init_tabs          | it => #  |                       |
+# | Command            | Short    | Escape   | Problems              |
+# |--------------------|----------|----------|-----------------------|
+# | save_cursor        | sc       |          |                       |
+# | restore_cursor     | rc       |          |                       |
+# | cursor_address     | cm #1 #2 |          |                       |
+# | cursor_home        | ho       |          |                       |
+# | columns            | co => #  |          |                       |
+# | lines              | li => #  |          |                       |
+# | clr_eol            | ce       | \033[K   |                       |
+# | clr_eos            | cd       | \033[J   |                       |
+# | delete_line        | dl       |          |                       |
+# | parm_insert_line   | AL #1    |          |                       |
+# | insert_line        | al       |          |                       |
+# | cursor_invisible   | vi       |          |                       |
+# | cursor_normal      | ve       |          |                       |
+# | cursor_visible     | vs       |          |                       |
+# | parm_down_cursor   | DO #1    |          | DO 0 glitches in tmux |
+# | parm_up_cursor     | UP #1    |          | UP 0 glitches in tmux |
+# | carriage_return    | cr       | \r       |                       |
+# | newline            | nw       |          |                       |
+# | cursor_down        | do       | \n       |                       |
+# | cursor_up          | up       | \033M    |                       |
+# | eat_newline_glitch | xn       |          |                       |
+# | init_tabs          | it => #  |          |                       |
+# | enter_am_mode      | SA       | \033[?7h | tput SA does not work |
+# | exit_am_mode       | RA       | \033[?7l | tput RA does not work |
 #
 
 #
