@@ -69,6 +69,7 @@ TABLE OF CONTENTS
     1. [Serialising](#9-1-serialising)
     2. [Deserialising](#9-2-deserialising)
     3. [Filtering](#9-3-filtering)
+    4. [Dumping](#9-4-dumping)
 10. [REFLECTION & REFACTORING](#10-reflection-refactoring)
     1. [Attributes](#10-1-attributes)
     2. [Methods](#10-2-methods)
@@ -695,6 +696,49 @@ bsda:obj:serialisedUniq serialised "$serialised"
 |----------|------------------------------------------------------------
 | &1       | The variable to store the resulting string in
 |  2       | The serialised data, can be provided on stdin
+
+### 9.4. Dumping
+
+The `dump()` method provides a human readable serialising format.
+Its purpose is debugging data structures instead of providing a way
+to store and retrieve objects.
+
+The `dump()` method is provided by any object:
+
+~~~ bash
+. bsda_opts.sh
+
+bsda:opts:Options options \
+HELP -h --help "Display usage and exit" \
+FOO  -f --foo  "The foo in foobar" \
+BAR  -b --bar  "The bar in foobar"
+
+$options.dump
+~~~
+
+The above script generates output like the following:
+
+~~~
+bsda:opts:Options@BSDA_OBJ_bsda_obj_bsda_opts_Options_b1b60cca_fa75_11e6_8944_0090f5f2f347_0_ {
+  Next=bsda:opts:Options@BSDA_OBJ_bsda_obj_bsda_opts_Options_b1b60cca_fa75_11e6_8944_0090f5f2f347_1_ {
+    Next=bsda:opts:Options@BSDA_OBJ_bsda_obj_bsda_opts_Options_b1b60cca_fa75_11e6_8944_0090f5f2f347_2_ {
+      Next=
+      ident='BAR'
+      short='-b'
+      long='--bar'
+      desc='The bar in foobar'
+    }
+    ident='FOO'
+    short='-f'
+    long='--foo'
+    desc='The foo in foobar'
+  }
+  ident='HELP'
+  short='-h'
+  long='--help'
+  desc='Display usage and exit'
+}
+~~~
 
 
 
