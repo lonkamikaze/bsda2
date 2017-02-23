@@ -1131,24 +1131,33 @@ bsda:obj:fork
 }
 
 #
-# Ignore nullptr dump.
+# Perform nullptr dump.
+#
+# @param &1
+#	The dump string destination variable, set to empty
 #
 .dump() {
-	:
+	setvar "$1"
 }
 
 #
-# Ignore nullptr copy.
+# Perform nullptr copy.
+#
+# @param &1
+#	The copy reference destination variable, set to empty
 #
 .copy() {
-	:
+	setvar "$1"
 }
 
 #
-# Ignore nullptr serialise.
+# Perform nullptr serialise.
+#
+# @param &1
+#	The serialise string destination variable, set to empty
 #
 .serialise() {
-	:
+	setvar "$1"
 }
 
 #
