@@ -347,6 +347,7 @@ bsda:obj:createClass makeplist:Plist \
 	r:public:with    "The options the build/stage was done with" \
 	r:public:without "The options the build/stage was done without" \
 	r:public:files   "The files found in the staging area" \
+	r:public:session "The Session instance (for printing)" \
 	c:private:report "The destructor reports failed build/stage attempts"
 
 #
@@ -354,14 +355,15 @@ bsda:obj:createClass makeplist:Plist \
 # status.
 #
 makeplist:Plist.report() {
-	local retval with without logfile
+	local retval session with without logfile
 	$this.getRetval retval
 	# Skip successful builds
 	test 0 -eq "$retval" && return 0
+	$this.getSession session
 	$this.getWith with
 	$this.getWithout without
 	$this.getLogfile logfile
-	echo "${0##*/}: ERROR: Building/staging returned $retval"
+	$session.error "Building/staging returned $retval"
 	echo "WITH=\"$with\""
 	echo "WITHOUT=\"$without\""
 	echo "A build log is available: $logfile"
@@ -373,6 +375,7 @@ makeplist:Plist.report() {
 bsda:obj:createClass makeplist:PlistManager \
 	a:private:First=makeplist:Plist \
 	r:private:tail          "The last entry in the list" \
+	r:private:session       "The Session instance (for printing)" \
 	r:private:mtree_file    "The value of MTREE_FILE" \
 	r:private:stagedir      "The value of STAGEDIR" \
 	r:private:prefix        "The value of PREFIX" \
@@ -388,6 +391,7 @@ bsda:obj:createClass makeplist:PlistManager \
 #
 makeplist:PlistManager.init() {
 	local prefix
+	setvar ${this}session "$1"
 	setvar ${this}mtree_file "$(/usr/bin/make -VMTREE_FILE)" || return
 	setvar ${this}stagedir "$(/usr/bin/make -VSTAGEDIR)" || return
 	setvar ${this}prefix "$(/usr/bin/make -VPREFIX)" || return
@@ -510,6 +514,7 @@ makeplist:PlistManager.create() {
 	setvar ${plist}logfile "$2"
 	setvar ${plist}with "$3"
 	setvar ${plist}without "$4"
+	$this.getSession ${plist}session
 	# Generate list of files
 	local stagedir prefix mtree_file plistFilter
 	$this.getStagedir stagedir
@@ -682,6 +687,7 @@ makeplist:TmpDir.clean() {
 bsda:obj:createClass makeplist:Make \
 	a:private:Logdir=makeplist:TmpDir \
 	a:private:Plists=makeplist:PlistManager \
+	r:private:session \
 	r:private:logdir \
 	r:private:no_build \
 	r:private:plistOldFile \
@@ -692,19 +698,21 @@ bsda:obj:createClass makeplist:Make \
 
 makeplist:Make.init() {
 	local origin file
-	origin="$(/usr/bin/make -VPKGORIGIN:S,/,.,g)" || return
+	setvar ${this}session "$1"
+	setvar ${this}plistNewFile "$2"
+	origin="$(/usr/bin/make -VPKGORIGIN)" || return
 	if [ -z "$origin" ]; then
-		echo "${0##*/}: ERROR: Port origin could not be detected"
+		$1.error "Port origin could not be detected"
 		return 1
 	fi
-	echo "${0##*/}: Initialising make for $origin"
+	$1.msg "Initialising make for $origin"
+	origin="$(echo "$origin" | /usr/bin/tr / .)"
 	file="$(/usr/bin/make -VPLIST)" || return
 	setvar ${this}plistOldFile "$file"
-	setvar ${this}plistNewFile "$file.${0##*/}"
-	test -n "$1" && setvar ${this}plistNewFile "$1"
+	test -z "$2" && setvar ${this}plistNewFile "$file.${0##*/}"
 	makeplist:TmpDir ${this}Logdir ${this}logdir "${0##*/}.$origin" \
 	|| return
-	makeplist:PlistManager ${this}Plists || return
+	makeplist:PlistManager ${this}Plists "$1" || return
 	setvar ${this}no_build "$(/usr/bin/make -VNO_BUILD)" || return
 }
 
@@ -733,11 +741,12 @@ makeplist:Make.run() {
 }
 
 makeplist:Make.plist() {
-	local plists file plist origPlist change
+	local plists file plist origPlist change session
+	$this.getSession session
 	$this.Plists plists
 	$plists.plist plist
 	if [ -z "$plist" ]; then
-		echo "${0##*/}: The generated plist is empty"
+		$session.msg "The generated plist is empty"
 		return 0
 	fi
 	$this.getPlistOldFile file
@@ -748,10 +757,10 @@ makeplist:Make.plist() {
 	/usr/bin/tput AF 1
 	echo "$origPlist" | /usr/bin/grep -vFx "$plist" \
 	                  | /usr/bin/sed 's/^/-/'
-	/usr/bin/tput AF 7
+	/usr/bin/tput me
 
 	$this.getPlistNewFile file
-	echo "${0##*/}: Printing plist to $file"
+	$session.msg "Printing plist to $file"
 	echo "$plist" > "$file"
 }
 
@@ -781,7 +790,7 @@ makeplist:Session.error() {
 }
 
 makeplist:Session.init() {
-	makeplist:Make ${this}Make || return
+	makeplist:Make ${this}Make $this || return
 	makeplist:options:Flags ${this}Flags || return
 	makeplist:options:Singles ${this}Singles || return
 	$this.run
@@ -814,7 +823,7 @@ makeplist:Session.run() {
 	with="$with${with:+${option:+ }}$option"
 	$singles.without option
 	without="$without${without:+${option:+ }}$option"
-	echo "${0##*/}: Building plist $((i = 1)) of $count${with:+: $with}"
+	$this.msg "Building plist $((i = 1)) of $count${with:+: $with}"
 	$make.run "$with" "$without"
 
 	# Try all flags
@@ -825,7 +834,7 @@ makeplist:Session.run() {
 		with="$with${with:+${option:+ }}$option"
 		$singles.without option
 		without="$without${without:+${option:+ }}$option"
-		echo "${0##*/}: Building plist $((i += 1)) of $count: $with"
+		$this.msg "Building plist $((i += 1)) of $count: $with"
 		$make.run "$with" "$without"
 	done
 
@@ -837,7 +846,7 @@ makeplist:Session.run() {
 		with="$with${with:+${option:+ }}$option"
 		$singles.without option
 		without="$without${without:+${option:+ }}$option"
-		echo "${0##*/}: Building plist $((i += 1)) of $count: $with"
+		$this.msg "Building plist $((i += 1)) of $count: $with"
 		$make.run "$with" "$without"
 	done
 
