@@ -1179,18 +1179,16 @@ if ! getvar 2> /dev/null; then
 	# The variable is either written to a named variable, or in
 	# absence of one, output to stdout.
 	#
-	# @param 1
-	#	If this is the sole parameter it is a reference to
-	#	the variable to output to stdout. If a second parameter
-	#	exists, it is the name of the variable to write to.
+	# @param &1
+	#	The name of the variable to write to
 	# @param 2
-	#	The reference to the variable to return.
+	#	The reference to the variable to return
 	#
 	getvar() {
-		if [ -n "$2" ]; then
+		if [ -n "$1" ]; then
 			eval "$1=\"\$$2\""
 		else
-			eval "echo \"\$$1\""
+			eval "echo \"\$$2\""
 		fi
 	}
 fi
