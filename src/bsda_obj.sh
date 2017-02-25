@@ -418,7 +418,7 @@ bsda:obj:createClass() {
 		# Create method instances.
 		$bsda_obj_namespace:createMethods $class $classPrefix \$this \"$methods\"
 
-		${clean:+bsda_obj_freeOnExit=\"\$bsda_obj_freeOnExit\$this$IFS\"}
+		${clean:+bsda_obj_freeOnExit=\"\$this$IFS\$bsda_obj_freeOnExit\"}
 
 		# If this object construction is part of a copy() call,
 		# this constructor is done.
