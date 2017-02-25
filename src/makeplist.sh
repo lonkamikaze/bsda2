@@ -808,18 +808,27 @@ makeplist:Make.plist() {
 	echo "$plist" > "$file"
 }
 
+#
+# The session class for makeplist.
+#
 bsda:obj:createClass makeplist:Session \
 	a:private:Make=makeplist:Make \
 	a:private:Flags=makeplist:options:Flags \
 	a:private:Singles=makeplist:options:Singles \
-	r:private:outfile \
-	x:private:help \
-	x:public:msg \
-	x:public:error \
-	i:private:init \
-	x:private:params \
-	x:private:run
+	r:private:outfile "The file to write the new plist to" \
+	x:private:help    "Print usage information" \
+	x:public:msg      "Print a message on stdout" \
+	x:public:error    "Print an error message on stderr" \
+	i:private:init    "Setup the session and run" \
+	x:private:params  "Parse command line arguments" \
+	x:private:run     "Perform plist creation"
 
+#
+# Prints the usage on stdout.
+#
+# @param 1
+#	A bsda:opts:Options instance
+#
 makeplist:Session.help() {
 	local usage
 	$1.usage usage "\t%.2s, %-9s  %s\n"
@@ -827,6 +836,12 @@ makeplist:Session.help() {
 $(echo -n "$usage" | /usr/bin/sort -f)"
 }
 
+#
+# Print a message on stdout.
+#
+# @param *
+#	The message to print
+#
 makeplist:Session.msg() {
 	if [ -t 1 ]; then
 		printf '\033[38;5;3mmakeplist:\033[m %s\n' "$*"
@@ -835,6 +850,12 @@ makeplist:Session.msg() {
 	fi
 }
 
+#
+# Print an error message on stderr.
+#
+# @param *
+#	The message to print
+#
 makeplist:Session.error() {
 	if [ -t 1 ]; then
 		printf '\033[38;5;3mmakeplist: \033[1;38;5;1mERROR:\033[m %s\n' "$*"
@@ -843,6 +864,12 @@ makeplist:Session.error() {
 	fi 1>&2
 }
 
+#
+# Setup the session and run.
+#
+# @param @
+#	The command line arguments
+#
 makeplist:Session.init() {
 	local outfile
 	$this.params "$@" || return
@@ -853,6 +880,12 @@ makeplist:Session.init() {
 	$this.run || return
 }
 
+#
+# Parses the command line arguments.
+#
+# @param @
+#	The command line arguments
+#
 makeplist:Session.params() {
 	local options option port
 
@@ -936,6 +969,9 @@ makeplist:Session.params() {
 	fi
 }
 
+#
+# Permute through the build options and generate a plist.
+#
 makeplist:Session.run() {
 	local make flags singles option with without count i
 	$this.Make make
