@@ -694,18 +694,33 @@ makeplist:TmpDir.clean() {
 	/bin/rmdir "$dirname" 2> /dev/null || :
 }
 
+#
+# Manage build/stage attempts.
+#
 bsda:obj:createClass makeplist:Make \
 	a:private:Logdir=makeplist:TmpDir \
 	a:private:Plists=makeplist:PlistManager \
-	r:private:session \
-	r:private:logdir \
-	r:private:no_build \
-	r:private:plistOldFile \
-	r:private:plistNewFile \
-	i:private:init \
-	x:public:run \
-	x:public:plist
+	r:private:session      "The Session instance (for printing)" \
+	r:private:logdir       "The name of the logging directory" \
+	r:private:no_build     "The value of make -VNO_BUILD" \
+	r:private:plistOldFile "The value of make -VPLIST" \
+	r:private:plistNewFile "The name of the new plist file" \
+	i:private:init         "Construct an instance" \
+	x:public:run           "Perform a build/stage cycle" \
+	x:public:plist         "Generate a plist"
 
+#
+# Initialise all attributes and aggregations
+#
+# @param 1
+#	The Session instance, used for printing
+# @param 2
+#	The optional name of the new plist file
+# @retval 0
+#	Creating a Make instance succeeded
+# @retval *
+#	In case of an error
+#
 makeplist:Make.init() {
 	local origin file
 	setvar ${this}session "$1"
@@ -726,6 +741,15 @@ makeplist:Make.init() {
 	setvar ${this}no_build "$(/usr/bin/make -VNO_BUILD)" || return
 }
 
+#
+# Execute `make` with the given options.
+#
+# Executes `make` keeps logs of failed builds and collects staged
+# files for later plist creation.
+#
+# @param 1,2
+#	The options to build with and without
+#
 makeplist:Make.run() {
 	local retval plists no_build stagedir prefix mtree_file
 	local retval logdir logfilename logfile
@@ -750,6 +774,16 @@ makeplist:Make.run() {
 	fi
 }
 
+#
+# Creates a new plist.
+#
+# Performs the following operations:
+#
+# - Assemble a new plist
+# - List lines removed, compared to old plist
+# - List lines added, compared to old plist
+# - Write new plist to file
+#
 makeplist:Make.plist() {
 	local plists file plist origPlist change session
 	$this.getSession session
