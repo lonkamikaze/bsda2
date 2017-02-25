@@ -945,7 +945,7 @@ makeplist:Session.params() {
 	done
 
 	case "$port" in
-	/*)
+	''|/*)
 	;;
 	*/*)
 		local portsdir
