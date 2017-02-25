@@ -723,12 +723,21 @@ bsda:obj:createClass makeplist:Make \
 #	In case of an error
 #
 makeplist:Make.init() {
-	local origin file
+	local origin wrkdir file
 	setvar ${this}session "$1"
 	setvar ${this}plistNewFile "$2"
 	origin="$(/usr/bin/make -VPKGORIGIN)" || return
 	if [ -z "$origin" ]; then
 		$1.error "Port origin could not be detected"
+		return 1
+	fi
+	wrkdir="$(/usr/bin/make -VWRKDIR)" || return
+	if ! /bin/mkdir -p "$wrkdir" 2> /dev/null; then
+		$1.error "The WRKDIR could not be created: $wrkdir"
+		return 1
+	fi
+	if ! [ -w "$wrkdir" ]; then
+		$1.error "The WRKDIR is not writable: $wrkdir"
 		return 1
 	fi
 	$1.msg "Initialising make for $origin"
