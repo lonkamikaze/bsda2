@@ -14,6 +14,9 @@ src/buildflags.mk.1,0644,%%MAN%%/man1/buildflags.mk.1.gz
 src/distviper,0755,%%PREFIX%%/sbin/distviper
 src/distviper.8,0644,%%MAN%%/man8/distviper.8.gz
 src/distviper.sh,0644,%%DATADIR%%/distviper.sh
+src/makeplist,0755,%%PREFIX%%/sbin/makeplist
+src/makeplist.8,0644,%%MAN%%/man8/makeplist.8.gz
+src/makeplist.sh,0644,%%DATADIR%%/makeplist.sh
 src/pkg_info.sh,0644,%%DATADIR%%/pkg_info.sh
 src/pkg_libchk,0755,%%PREFIX%%/sbin/pkg_libchk
 src/pkg_libchk.1,0644,%%MAN%%/man1/pkg_libchk.1.gz
