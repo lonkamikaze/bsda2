@@ -526,9 +526,9 @@ makeplist:PlistManager.create() {
 	setvar ${plist}files "$( (
 		/usr/bin/find -s "$stagedir" \
 		              \( -type f -o -type l \) \
-		              -not -path "$stagedir$prefix/*" \
+		              -not -path "$stagedir$prefix/*" 2> /dev/null \
 		| /usr/bin/sed "s!^$stagedir!!"
-		/usr/sbin/mtree -cp "$stagedir$prefix/" \
+		/usr/sbin/mtree -cp "$stagedir$prefix/" 2> /dev/null \
 		| /usr/sbin/mtree -f /dev/stdin -f "$mtree_file" \
 		| /usr/bin/sort -n \
 		| /usr/bin/awk '/ (file|link) [^\/]*/{sub(/ (file|link) [^\/]*/, "");print}'
