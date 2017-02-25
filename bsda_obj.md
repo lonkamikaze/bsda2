@@ -716,7 +716,7 @@ $options.dump
 
 The above script generates output like the following:
 
-~~~
+~~~ bash
 bsda:opts:Options@BSDA_OBJ_bsda_obj_bsda_opts_Options_b1b60cca_fa75_11e6_8944_0090f5f2f347_0_ {
   Next=bsda:opts:Options@BSDA_OBJ_bsda_obj_bsda_opts_Options_b1b60cca_fa75_11e6_8944_0090f5f2f347_1_ {
     Next=bsda:opts:Options@BSDA_OBJ_bsda_obj_bsda_opts_Options_b1b60cca_fa75_11e6_8944_0090f5f2f347_2_ {
