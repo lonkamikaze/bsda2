@@ -1,0 +1,172 @@
+.Dd 25 February, 2017
+.Dt MAKEPLIST 8
+.Os
+.Sh NAME
+.Nm makeplist
+.Nd generate a
+.Li pkg-plist
+file for
+.Xr ports 7
+.Sh SYNOPSIS
+.Nm
+.Fl h
+.Nm
+.Op Fl o Ar plist-file
+.Op Ar port-name
+.Sh DESCRIPTION
+The
+.Nm
+script is a tool for
+.Xr ports 7
+maintainers and committers, to generate a
+.Pa pkg-plist
+file.
+.Ss ARGUMENTS
+The following arguments are accepted:
+.Bl -tag -width indent
+.It Ar port-name
+The name or origin of the port to generate a pkg-plist for. This may
+also be the directory the port can be found in.
+.Pp
+If omitted the current directory is used.
+.El
+.Ss OPTIONS
+The following options are support:
+.Bl -tag -width indent
+.It Fl h -help
+Displays the available options.
+.It Fl o -outfile Ar plist-file
+Sets the output file for the generated plist. Defaults to the ports
+.Pa pkg-plist
+with a
+.Pa .makeplist
+suffix appended.
+.El
+.Sh IMPLEMENTATION NOTES
+In order to make effective use of
+.Nm
+some knowledge about it is required.
+.Ss Limitations
+The exponential growth of possible combinations of options puts a
+hard limit on automated plist generation. The
+.Nm
+script does not support cases where files are only installed if a
+combination of options is given.
+.Pp
+The tool is built around the assumption that options do not affect
+each other. The following subsections describe what exactly is supported
+and workarounds for common cases where this is not the case.
+.Ss Configurations
+The core idea of
+.Nm
+is to run
+.Dq Li make stage
+and create a list of the files in the staging area. This functionality
+is provided by the
+.Xr ports 7
+when running
+.Dq Li make makeplist .
+.Pp
+In order to identify all the files installed by each option staging
+is performed for every option. The trivial approach of staging with
+one option at a time is not possible when
+.Li OPTIONS_SINGLE
+or
+.Li OPTIONS_MULTI
+groups are defined, because every such group must be represented in
+all configurations. Even so under the assumption that options do not
+affect each other n + 1 stage cycles suffice to identify all files
+provided by all options (n being the number of options).
+.Ss Staging
+Usually
+.Nm
+calls
+.Dq Li make clean stage
+for each configuration. One exception to this rule is when ports define
+.Li NO_BUILD
+in which case
+.Dq Li make restage
+is called. This means that the
+.Li extract
+target is only performed during the first stage cycle. And it breaks
+if extraction is affected by options.
+.Ss Build Failure
+In case of build failure there is a 1 second window to terminate
+the script before the next build is started. To terminate
+.Nm
+prematurely during a build press
+.Li CTRL-C
+twice.
+.Pp
+In case one or more configurations fail an error message with the
+build options and the name of the log file will be printed after
+the plist is created. Only logs of failed builds are kept. The logs
+are created under
+.Pa /tmp
+and compressed using
+.Xr gzip 1 .
+They can be viewed with the command
+.Dq Li gunzip -c Ar logfile Li | less -R .
+.Ss Plist Accumulation
+After every stage cycle all files installed into the
+.Li STAGEDIR
+are collected for later assembly of the plist.
+.Pp
+Certain files are not included, these files are selected using the
+following
+.Xr ports 7
+variables:
+.Bl -tag -width indent
+.It Li DESKTOP_ENTRIES
+Macro for creating/installing desktop icons.
+.It Li USE_RC_SUBR
+Macro for creating/installing
+.Xr rc 8
+scripts.
+.It Li PLIST_FILES
+A list of files automatically added to the plist.
+.It Li PORTDOCS , PORTEXAMPLES , PORTDATA
+Lists of files / glob patterns in
+.Li DOCSDIR , EXAMPLESDIR
+and
+.Li DATADIR .
+.El
+.Pp
+This can be used to deal with cases that violate the independent
+option principle. E.g. if there is a number of options to switch
+certain modules on/off and a
+.Li DOCS
+option which causes each of these modules to generate some documentation,
+setting
+.Li PORTDOCS=*
+keeps everything in
+.Li DOCSDIR
+out of the plist.
+.Ss Plist Creation
+Files in the generated plist are sorted alphabetically as done by
+.Xr mtree 8 Fl S .
+This means files are sorted in front of directories, i.e. the sorting
+differs from passing the list through
+.Xr sort 1 .
+.Pp
+Common files installed independent of the given options are listed
+first, followed by the option specific files. Option specific files
+appear in alphabetical order of the options.
+.Pp
+In the last stage of plist creation the reverse of the substitutions
+defined in
+.Li PLIST_SUB
+is applied. The substitutions are sorted by size and applied largest
+first. Empty substitutions,
+.Li PREFIX
+substitutions and substitutions starting with an
+.Li @
+character are discarded.
+.Sh SEE ALSO
+.Xr ports 7 , Xr make 1 , Xr pkg-greate 8 , Xr mtree 8
+.Sh HISTORY
+The
+.Nm
+script first appeared in the bsda2-0.2.0 release.
+.Sh AUTHOR
+Dominic Fandrey <kamikaze@bsdforen.de>
