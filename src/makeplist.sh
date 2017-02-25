@@ -745,6 +745,11 @@ makeplist:Make.init() {
 	file="$(/usr/bin/make -VPLIST)" || return
 	setvar ${this}plistOldFile "$file"
 	test -z "$2" && setvar ${this}plistNewFile "$file.${0##*/}"
+	$this.getPlistNewFile file
+	if ! /usr/bin/touch "$file" 2> /dev/null; then
+		$1.error "The target plist-file is not writable: $file"
+		return 1
+	fi
 	makeplist:TmpDir ${this}Logdir ${this}logdir "${0##*/}.$origin" \
 	|| return
 	makeplist:PlistManager ${this}Plists "$1" || return
