@@ -767,24 +767,34 @@ makeplist:Make.init() {
 #
 makeplist:Make.run() {
 	local retval plists no_build stagedir prefix mtree_file
-	local retval logdir logfilename logfile
+	local retval logdir logfilename logfile session oflags
+	$this.getSession session
+	$session.OptsFlags oflags
 	$this.getLogdir logdir
 	logfilename="$logdir/stage${1:+-$(makeplist:_join - $1)}.log"
 	makeplist:File logfile "$logfilename"
 	$caller.delete $logfile
 	$this.Plists plists
 	$this.getNo_build no_build
-	if [ -n "$no_build" ]; then
-		/usr/bin/script -q "$logfilename" \
-		                /usr/bin/make restage WITH="$1" WITHOUT="$2"
-	else
-		/usr/bin/script -q "$logfilename" \
-		                /usr/bin/make clean stage WITH="$1" WITHOUT="$2"
-	fi
+	# Perform build in subprocess to protect outputs
+	(
+		# Close outputs in quiet mode
+		if $oflags.check QUIET -ne 0; then
+			exec 2>&- >&-
+		fi
+		if [ -n "$no_build" ]; then
+			/usr/bin/script -q "$logfilename" \
+			                /usr/bin/make restage WITH="$1" WITHOUT="$2"
+		else
+			/usr/bin/script -q "$logfilename" \
+			                /usr/bin/make clean stage WITH="$1" WITHOUT="$2"
+		fi
+	)
 	retval=$?
 	$plists.create "$retval" "$logfilename.gz" "$@"
 	if [ 0 -ne $retval ]; then
 		/usr/bin/gzip -9 "$logfilename"
+		$session.error "Staging failed, press CTRL-C to cancel"
 		/bin/sleep 1 # Sleep to allow user SIGINT
 	fi
 }
@@ -827,6 +837,7 @@ makeplist:Make.plist() {
 # The session class for makeplist.
 #
 bsda:obj:createClass makeplist:Session \
+	a:public:OptsFlags=bsda:opts:Flags \
 	a:private:Make=makeplist:Make \
 	a:private:Flags=makeplist:options:Flags \
 	a:private:Singles=makeplist:options:Singles \
@@ -887,6 +898,7 @@ makeplist:Session.error() {
 #
 makeplist:Session.init() {
 	local outfile
+	bsda:opts:Flags ${this}OptsFlags || return
 	$this.params "$@" || return
 	$this.getOutfile outfile
 	makeplist:Make ${this}Make $this "$outfile" || return
@@ -902,12 +914,15 @@ makeplist:Session.init() {
 #	The command line arguments
 #
 makeplist:Session.params() {
-	local options option port
+	local options flags option port
 
 	bsda:opts:Options options \
 	HELP    -h --help    'Print usage and exit' \
-	OUTFILE -o --outfile 'Set the output file for the new plist'
+	OUTFILE -o --outfile 'Set the output file for the new plist' \
+	QUIET   -q --quiet   'Suppress build output'
 	$caller.delete $options
+
+	$this.OptsFlags flags
 
 	port=
 	while [ $# -gt 0 ]; do
@@ -951,8 +966,7 @@ makeplist:Session.params() {
 			port="$1"
 		;;
 		*)
-			$this.error "Option not implemented: $option"
-			return 1
+			$flags.add "$option"
 		;;
 		esac
 		shift
