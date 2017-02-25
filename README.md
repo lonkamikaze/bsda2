@@ -27,6 +27,7 @@ TOC
    2. [pkg_trim](#pkg_trim)
    3. [distviper](#distviper)
    4. [buildflags](#buildflags)
+   5. [makeplist](#makeplist)
 2. [bsda:obj](#bsdaobj)
 3. [Install](#install)
 3. [LICENSE](#license)
@@ -118,11 +119,20 @@ PAPERSIZE=a4
 .endif # /usr/ports/*
 ~~~
 
+### makeplist
+
+The makeplist script provides a means for port maintainers and committers
+to automatically generate a `pkg-plist` file.
+
+What sets it apart is its support for options and that it plays nice
+with a lot of `bsd.port.mk` macros like `DESKTOP_ENTRIES`, `USE_RC_SUBR`
+or `PLIST_FILES`.
+
 [bsda:obj](bsda_obj.md)
 -----------------------
 
 The bsda:obj framework dates back to the hacker conference GPN8 
-(Karlsruhe, 2009). It provides OO foo for shell scripts, like classes with
+(Karlsruhe, 2009). It provides OO fu for shell scripts, like classes with
 introspection, return by reference, serialisation or lazy garbage collection.
 
 Along with it comes a bunch of libraries targeted at common tasks like
