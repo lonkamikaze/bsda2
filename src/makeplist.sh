@@ -529,7 +529,8 @@ makeplist:PlistManager.create() {
 		              -not -path "$stagedir$prefix/*" \
 		| /usr/bin/sed "s!^$stagedir!!"
 		/usr/sbin/mtree -cp "$stagedir$prefix/" \
-		| /usr/sbin/mtree -Sf /dev/stdin -f "$mtree_file" \
+		| /usr/sbin/mtree -f /dev/stdin -f "$mtree_file" \
+		| /usr/bin/sort -n \
 		| /usr/bin/awk '/ (file|link) [^\/]*/{sub(/ (file|link) [^\/]*/, "");print}'
 	) | /usr/bin/grep -v "$plistFilter" )"
 }
