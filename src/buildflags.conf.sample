@@ -1,26 +1,25 @@
 #
-# Dear bsdadminscripts user, beware for this example is a copy of my
-# very own buildflags.conf and I'm of a rather experimental nature when it
-# comes to building software. There are things done here that are definitely
-# not supported or recommended.
-#
-# Also note that this file is shared over NFS and thus certain machine
-# specific settings are left in the make.conf(5) file.
+# Dear bsda2 user, beware for this example is a copy of my very own
+# buildflags.conf and I'm of a rather experimental nature when it
+# comes to building software. There are things done here that are
+# definitely not supported or recommended.
 #
 # If some of the variables used here don't make sense to you, search for them
-# in the buildflags.mk(1), ports(7), make.conf(5) or in the file
+# in the buildflags.mk(1), ports(7), make.conf(5), src.conf(5) or in the file
 # %%PORTS%%/Mk/bsd.port.mk.
 #
 # Apart from that, I hope the syntax is easy enough to understand with
 # the help of the buildflags.conf(1) manual page.
+#
+# Note that buildflags need to be enabled manually by making a make.conf
+# entry (see buildflags.mk(1)).
 #
 # - Dominic Fandrey <kamikaze@bsdforen.de>
 #
 
 # ---< configure buildworld/buildkernel >--------------------------------------
 /usr/src | /usr/src/*{
-	USE_DISTCC
-	USE_CCACHE
+	WITH_CCACHE_BUILD
 	THREADS=4
 
 	# Don't clean
@@ -35,14 +34,15 @@
 	USE_CCACHE
 
 	# Common settings that are applied to all ports in hope to do some good
-	OVERRIDE_LINUX_BASE_PORT=c6
-	OVERRIDE_LINUX_NONBASE_PORTS=c6
-	TEX_DEFAULT=texlive
+	DEFAULT_VERSIONS+= ssl=libressl linux=c6
 	PAPERSIZE=a4
 
 	# Problems with ccache/distcc
+	*/audio/cmus             {!USE_CCACHE !USE_DISTCC}
 	*/archivers/lzip         {!USE_CCACHE !USE_DISTCC}
+	*/archivers/unrar        {!USE_CCACHE !USE_DISTCC}
 	*/devel/boost*           {!USE_CCACHE !USE_DISTCC}
+	*/devel/llvm39           {!USE_CCACHE !USE_DISTCC}
 	*/devel/valgrind         {!USE_CCACHE !USE_DISTCC}
 	*/editors/vim*           {!USE_CCACHE !USE_DISTCC}
 	*/emulators/virtualbox-* {!USE_CCACHE !USE_DISTCC}
@@ -50,10 +50,12 @@
 	*/textproc/xmlto         {!USE_CCACHE !USE_DISTCC}
 	*/security/libgpg-error  {!USE_CCACHE !USE_DISTCC}
 	*/sysutils/fusefs-davfs2 {!USE_CCACHE !USE_DISTCC}
+	*/www/node               {!USE_CCACHE !USE_DISTCC}
 	*/www/nspluginwrapper    {!USE_CCACHE !USE_DISTCC}
-	*/www/serf               {!USE_CCACHE !USE_DISTCC}
+	*/www/webkit2-gtk3       {!USE_CCACHE !USE_DISTCC}
 	*/x11/dgs                {!USE_CCACHE !USE_DISTCC}
 	*/x11/gnome-menus        {!USE_CCACHE !USE_DISTCC}
+	*/x11/xbrightness        {!USE_CCACHE !USE_DISTCC}
 
 	# Compiler troubles
 	*/devel/py-orbit         {USE_GCC=any}
