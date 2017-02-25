@@ -767,7 +767,7 @@ makeplist:Make.init() {
 #
 makeplist:Make.run() {
 	local retval plists no_build stagedir prefix mtree_file
-	local retval logdir logfilename logfile session oflags
+	local retval logdir logfilename logfile session oflags signal
 	$this.getSession session
 	$session.OptsFlags oflags
 	$this.getLogdir logdir
@@ -783,19 +783,37 @@ makeplist:Make.run() {
 			exec 2>&- >&-
 		fi
 		if [ -n "$no_build" ]; then
-			/usr/bin/script -q "$logfilename" \
-			                /usr/bin/make restage WITH="$1" WITHOUT="$2"
+			exec /usr/bin/script -q "$logfilename" \
+				/usr/bin/make restage WITH="$1" WITHOUT="$2"
 		else
-			/usr/bin/script -q "$logfilename" \
-			                /usr/bin/make clean stage WITH="$1" WITHOUT="$2"
+			exec /usr/bin/script -q "$logfilename" \
+				/usr/bin/make clean stage WITH="$1" WITHOUT="$2"
 		fi
-	)
+	) &
+	# This is a bit cumbersome, basically when running script
+	# there is no way to catch a signal, so there is no way to
+	# distinguish between a failure and terminating due to a
+	# signal.
+	# So the build is performed in the background instead, this
+	# process sends it a SIGTERM when receiving one of the signals
+	# and exits.
+	signal=
+	trap "kill $!; signal=1" HUP INT TERM
+	wait $!
 	retval=$?
+	bsda:obj:trap # Restore default traps
+	# Terminate for signal
+	if [ -n "$signal" ]; then
+		exit 1
+	fi
+
+	# Collect return status and files
 	$plists.create "$retval" "$logfilename.gz" "$@"
+
+	# Keep logs of failed builds
 	if [ 0 -ne $retval ]; then
+		$session.error "Staging failed with exit status: $retval"
 		/usr/bin/gzip -9 "$logfilename"
-		$session.error "Staging failed, press CTRL-C to cancel"
-		/bin/sleep 1 # Sleep to allow user SIGINT
 	fi
 }
 
