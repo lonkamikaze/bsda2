@@ -795,13 +795,13 @@ makeplist:Make.plist() {
 	fi
 	$this.getPlistOldFile file
 	origPlist="$(/bin/cat "$file")"
-	/usr/bin/tput AF 2
+	test -t 1 && /usr/bin/tput AF 2
 	echo "$plist" | /usr/bin/grep -vFx "$origPlist" \
 	              | /usr/bin/sed 's/^/+/'
-	/usr/bin/tput AF 1
+	test -t 1 && /usr/bin/tput AF 1
 	echo "$origPlist" | /usr/bin/grep -vFx "$plist" \
 	                  | /usr/bin/sed 's/^/-/'
-	/usr/bin/tput me
+	test -t 1 && /usr/bin/tput me
 
 	$this.getPlistNewFile file
 	$session.msg "Printing plist to $file"
