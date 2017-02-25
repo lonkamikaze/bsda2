@@ -662,16 +662,21 @@ makeplist:PlistManager.plist() {
 #
 # Creates a temporary directory.
 #
+# The temporary directory is automatically deleted along with the
+# class instance if it is empty.
+#
 bsda:obj:createClass makeplist:TmpDir \
-	r:private:dirname \
-	i:private:init \
-	c:private:clean
+	r:private:dirname "The name of the directory" \
+	i:private:init    "Create the temporary directory" \
+	c:private:clean   "Remove the temporary directory"
 
+#
+# Creates the temporary directory and returns its name.
 #
 # @param &1
 #	The variable to return the dirname to
 # @param 2
-#	The mktemp template
+#	The optional mktemp template
 #
 makeplist:TmpDir.init() {
 	setvar ${this}dirname "$(/usr/bin/mktemp -d ${2:+-t "$2"})" || return
@@ -680,6 +685,9 @@ makeplist:TmpDir.init() {
 	$caller.setvar "$1" "$dirname"
 }
 
+#
+# Silently try to remove the temporary directory.
+#
 makeplist:TmpDir.clean() {
 	local dirname
 	$this.getDirname dirname
