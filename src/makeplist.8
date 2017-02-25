@@ -11,6 +11,7 @@ file for
 .Nm
 .Fl h
 .Nm
+.Op Fl q
 .Op Fl o Ar plist-file
 .Op Ar port-name
 .Sh DESCRIPTION
@@ -41,6 +42,8 @@ Sets the output file for the generated plist. Defaults to the ports
 with a
 .Pa .makeplist
 suffix appended.
+.It Fl q -quiet
+Suppress build output.
 .El
 .Sh IMPLEMENTATION NOTES
 In order to make effective use of
