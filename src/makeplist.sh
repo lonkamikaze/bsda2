@@ -767,7 +767,7 @@ makeplist:Make.init() {
 #
 makeplist:Make.run() {
 	local retval plists no_build stagedir prefix mtree_file
-	local retval logdir logfilename logfile session oflags signal
+	local retval logdir logfilename logfile session oflags
 	$this.getSession session
 	$session.OptsFlags oflags
 	$this.getLogdir logdir
@@ -778,34 +778,25 @@ makeplist:Make.run() {
 	$this.getNo_build no_build
 	# Perform build in subprocess to protect outputs
 	(
+		# Select staging target
+		if [ -n "$no_build" ]; then
+			targets="restage"
+		else
+			targets="clean stage"
+		fi
 		# Close outputs in quiet mode
 		if $oflags.check QUIET -ne 0; then
 			exec 2>&- >&-
 		fi
-		if [ -n "$no_build" ]; then
-			exec /usr/bin/script -q "$logfilename" \
-				/usr/bin/make restage WITH="$1" WITHOUT="$2"
-		else
-			exec /usr/bin/script -q "$logfilename" \
-				/usr/bin/make clean stage WITH="$1" WITHOUT="$2"
-		fi
-	) &
-	# This is a bit cumbersome, basically when running script
-	# there is no way to catch a signal, so there is no way to
-	# distinguish between a failure and terminating due to a
-	# signal.
-	# So the build is performed in the background instead, this
-	# process sends it a SIGTERM when receiving one of the signals
-	# and exits.
-	signal=
-	trap "kill $!; signal=1" HUP INT TERM
-	wait $!
+		# Call make inside script:
+		# - Call make inside script for logging
+		# - Call port Makefile through interrupt.mk to send
+		#   a signal back, if make is interrupted
+		exec /usr/bin/script -q "$logfilename" \
+		     /usr/bin/make -f"${bsda_dir:-.}/interrupt.mk" BSDA_PID=$$ \
+		                   $targets WITH="$1" WITHOUT="$2"
+	)
 	retval=$?
-	bsda:obj:trap # Restore default traps
-	# Terminate for signal
-	if [ -n "$signal" ]; then
-		exit 1
-	fi
 
 	# Collect return status and files
 	$plists.create "$retval" "$logfilename.gz" "$@"
