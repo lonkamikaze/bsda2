@@ -456,7 +456,7 @@ makeplist:PlistManager.plistFilter() {
 #	Creating the sub list failed
 #
 makeplist:PlistManager.plistSubSed() {
-	local IFS sublist exprs sub prefix
+	local IFS sublist exprs sub prefix W
 	IFS='
 '
 	sublist="$(/usr/bin/make -VPLIST_SUB:ts\\n)" || return
@@ -470,21 +470,23 @@ makeplist:PlistManager.plistSubSed() {
 				continue
 			;;
 			esac
-			tail="$(echo -n "$tail" | /usr/bin/vis -ce '.[]*?!')"
+			tail="$(echo -n "$tail" | /usr/bin/vis -ce '.[]*?!+{}')"
 			echo "${#tail} ${sub%%=*}=$tail"
 		done | /usr/bin/sort -rn | /usr/bin/sed 's/^[0-9]* //'
 	)"
 	# Create sed expressions
+	W='[^[:alnum:]]' # \W does not work, \b and \B neither
 	exprs='/\.sample$/s!^!@sample !;'
 	$this.getPrefix prefix
 	for sub in $sublist; do case "$sub" in
 	LIB32DIR=*|PREFIX=*|*=$prefix)
 	;;
 	*DIR=*)
-		exprs="${exprs}s!${sub#*=}/!%%${sub%%=*}%%/!;"
+		exprs="${exprs}s!(^|$W)${sub#*=}/!\1%%${sub%%=*}%%/!;"
 	;;
 	*)
-		exprs="${exprs}s!${sub#*=}!%%${sub%%=*}%%!;"
+		exprs="${exprs}s!(^|$W)${sub#*=}(\$|$W)!\1%%${sub%%=*}%%\2!;"
+	;;
 	esac; done
 	$caller.setvar "$1" "$exprs"
 }
@@ -656,7 +658,7 @@ makeplist:PlistManager.plist() {
 			echo OPTIONS: $with
 			$plist.getFiles
 			$plist.Next plist
-		done | $class.plist_filter $options | /usr/bin/sed "$subsed"
+		done | $class.plist_filter $options | /usr/bin/sed -E "$subsed"
 	)"
 }
 
