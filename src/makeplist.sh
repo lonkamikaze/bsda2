@@ -776,7 +776,7 @@ makeplist:Make.run() {
 	$caller.delete $logfile
 	$this.Plists plists
 	$this.getNo_build no_build
-	# Perform build in subprocess to protect outputs
+	# Perform build in subprocess to protect outputs and environment
 	(
 		# Select staging target
 		if [ -n "$no_build" ]; then
@@ -786,6 +786,7 @@ makeplist:Make.run() {
 		fi
 		# Close outputs in quiet mode
 		if $oflags.check QUIET -ne 0; then
+			export BATCH=1
 			exec 2>&- >&-
 		fi
 		# Call make inside script:
