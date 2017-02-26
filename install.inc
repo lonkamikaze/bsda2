@@ -14,6 +14,7 @@ src/buildflags.mk.1,0644,%%MAN%%/man1/buildflags.mk.1.gz
 src/distviper,0755,%%PREFIX%%/sbin/distviper
 src/distviper.8,0644,%%MAN%%/man8/distviper.8.gz
 src/distviper.sh,0644,%%DATADIR%%/distviper.sh
+src/interrupt.mk,0644,%%DATADIR%%/interrupt.mk
 src/makeplist,0755,%%PREFIX%%/sbin/makeplist
 src/makeplist.8,0644,%%MAN%%/man8/makeplist.8.gz
 src/makeplist.sh,0644,%%DATADIR%%/makeplist.sh
