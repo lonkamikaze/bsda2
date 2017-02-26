@@ -524,9 +524,9 @@ makeplist:PlistManager.create() {
 	$this.getMtree_file mtree_file
 	$this.plistFilter plistFilter "$3" "$4"
 	setvar ${plist}files "$( (
-		/usr/bin/find -s "$stagedir" \
-		              \( -type f -o -type l \) \
+		/usr/bin/find "$stagedir" \( -type f -o -type l \) \
 		              -not -path "$stagedir$prefix/*" 2> /dev/null \
+		| /usr/bin/sort -n \
 		| /usr/bin/sed "s!^$stagedir!!"
 		/usr/sbin/mtree -cp "$stagedir$prefix/" 2> /dev/null \
 		| /usr/sbin/mtree -f /dev/stdin -f "$mtree_file" \
