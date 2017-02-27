@@ -769,7 +769,7 @@ makeplist:Make.init() {
 #
 makeplist:Make.run() {
 	local retval plists no_build stagedir prefix mtree_file
-	local retval logdir logfilename logfile session oflags
+	local logdir logfilename logfile session oflags
 	$this.getSession session
 	$session.OptsFlags oflags
 	$this.getLogdir logdir
