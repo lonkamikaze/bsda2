@@ -418,7 +418,7 @@ bsda:obj:createClass() {
 		# Create method instances.
 		$bsda_obj_namespace:createMethods $class $classPrefix \$this \"$methods\"
 
-		${clean:+bsda_obj_freeOnExit=\"\$this$IFS\$bsda_obj_freeOnExit\"}
+		${clean:+bsda_obj_freeOnExit=\"\$bsda_obj_freeOnExit\$this$IFS\"}
 
 		# If this object construction is part of a copy() call,
 		# this constructor is done.
@@ -1002,6 +1002,15 @@ bsda:obj:fork() {
 	bsda_obj_freeOnExit=
 	bsda:obj:trap
 
+	# Clear the record of temp objects on the stack below, so
+	# they do not get deleted in the forked process
+	local caller i
+	i=$((bsda_obj_callStackCount))
+	while [ $i -gt 0 ]; do
+		caller="bsda_obj_callStack_$((i -= 1))_"
+		unset delete_${caller}
+	done
+
 	# Update UID
 	bsda_obj_uid="$(/bin/uuidgen | /usr/bin/tr '-' '_')"
 }
@@ -1034,13 +1043,24 @@ bsda:obj:detach() {
 # Objects spawning processes are responsible for killing them in their
 # destructor.
 #
+# @param bsda_obj_callStackCount
+#	The stack depth for unwiding
 # @param bsda_obj_freeOnExit
 #	The list of objects to call
 #
 bsda:obj:exit() {
-	local nl obj
+	local nl obj caller
 	nl='
 '
+	# Stack unwinding, just remove temp objects
+	while [ $((bsda_obj_callStackCount)) -gt 0 ]; do
+		caller="bsda_obj_callStack_$((bsda_obj_callStackCount - 1))_"
+		eval eval "\${delete_${caller}}"
+		unset delete_${caller}
+		: $((bsda_obj_callStackCount -= 1))
+	done
+
+	# Garbage collection
 	while [ -n "$bsda_obj_freeOnExit" ]; do
 		obj="${bsda_obj_freeOnExit%%$nl*}"
 		if ! $obj.delete; then
