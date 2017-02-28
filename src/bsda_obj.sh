@@ -996,6 +996,8 @@ bsda:obj:trap() {
 #	Is set to a new uid
 # @param bsda_obj_freeOnExit
 #	The list of objects to garbage collect when terminating
+# @param bsda_obj_callStackCount
+#	The current call stack depth
 #
 bsda:obj:fork() {
 	# Reset resource collection
