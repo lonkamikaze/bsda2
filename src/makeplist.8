@@ -163,7 +163,18 @@ Files in the generated plist are sorted alphabetically by
 .Pp
 Common files installed independent of the given options are listed
 first, followed by the option specific files. Option specific files
-appear in alphabetical order of the options.
+appear in alphabetical order of the options. The options
+.Li DOCS
+and
+.Li EXAMPLES
+are implicitly replaced with
+.Li PORTDOCS
+and
+.Li PORTEXAMPLES .
+Files with a
+.Pa .sample
+suffix are automatically prefixed with
+.Dq Li @sample\  .
 .Pp
 In the last stage of plist creation the reverse of the substitutions
 defined in
@@ -173,7 +184,14 @@ first. Empty substitutions,
 .Li PREFIX
 substitutions and substitutions starting with an
 .Li @
-character are discarded.
+character are discarded. Lines starting with
+.Li %%DOCSDIR%%
+are prefixed with
+.Li %%PORTDOCS%%
+and
+.Li %%EXAMPLESDIR%%
+with
+.Li %%PORTEXAMPLES%% .
 .Sh SEE ALSO
 .Xr ports 7 , Xr make 1 , Xr pkg-greate 8
 .Sh HISTORY
