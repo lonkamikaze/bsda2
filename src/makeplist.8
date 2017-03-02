@@ -36,6 +36,15 @@ The following options are support:
 .Bl -tag -width indent
 .It Fl h -help
 Displays the available options.
+.It Fl l -licenses
+Usually
+.Nm
+runs with with the
+.Xr ports 7
+license auditing framework disabled. This option turns it on.
+.Pp
+This flag cannot be combined with
+.Fl q .
 .It Fl o -outfile Ar plist-file
 Sets the output file for the generated plist. Defaults to the ports
 .Pa pkg-plist
@@ -43,7 +52,10 @@ with a
 .Pa .makeplist
 suffix appended.
 .It Fl q -quiet
-Suppress build output.
+Suppress build/stage output.
+.Pp
+This flag cannot be combined with
+.Fl l .
 .El
 .Sh IMPLEMENTATION NOTES
 In order to make effective use of

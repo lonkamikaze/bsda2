@@ -791,6 +791,10 @@ makeplist:Make.run() {
 			export BATCH=1
 			exec 2>&- >&-
 		fi
+		# Disable license features unless specifically requested
+		if $oflags.check LICENSES -eq 0; then
+			export DISABLE_LICENSES=1
+		fi
 		# Call make inside script:
 		# - Call make inside script for logging
 		# - Call port Makefile through interrupt.mk to send
@@ -869,9 +873,8 @@ bsda:obj:createClass makeplist:Session \
 #
 makeplist:Session.help() {
 	local usage
-	$1.usage usage "\t%.2s, %-9s  %s\n"
-	echo "usage: ${0##*/} [-h] [-o outfile] [port]
-$(echo -n "$usage" | /usr/bin/sort -f)"
+	$1.usage usage "\t%.2s, %-10s  %s\n"
+	printf "usage: ${0##*/} [-h] [-o outfile] [port]\n%s" "$usage"
 }
 
 #
@@ -929,9 +932,10 @@ makeplist:Session.params() {
 	local options flags option port
 
 	bsda:opts:Options options \
-	HELP    -h --help    'Print usage and exit' \
-	OUTFILE -o --outfile 'Set the output file for the new plist' \
-	QUIET   -q --quiet   'Suppress build output'
+	HELP     -h --help     'Print usage and exit' \
+	LICENSES -l --licenses 'Enable ports(7) license auditing framework' \
+	OUTFILE  -o --outfile  'Set the output file for the new plist' \
+	QUIET    -q --quiet    'Suppress build output'
 	$caller.delete $options
 
 	$this.OptsFlags flags
@@ -983,6 +987,11 @@ makeplist:Session.params() {
 		esac
 		shift
 	done
+
+	if $flags.check LICENSES -ne 0 && $flags.check QUIET -ne 0; then
+		$this.error "The --licenses and --quiet flags are mutually exclusive."
+		return 1
+	fi
 
 	case "$port" in
 	''|/*)
