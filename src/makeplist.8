@@ -146,11 +146,8 @@ keeps everything in
 .Li DOCSDIR
 out of the plist.
 .Ss Plist Creation
-Files in the generated plist are sorted alphabetically as done by
-.Xr mtree 8 Fl S .
-This means files are sorted in front of directories, i.e. the sorting
-differs from passing the list through
-.Xr sort 1 .
+Files in the generated plist are sorted alphabetically by
+.Xr sort 1 Fl n .
 .Pp
 Common files installed independent of the given options are listed
 first, followed by the option specific files. Option specific files
@@ -166,7 +163,7 @@ substitutions and substitutions starting with an
 .Li @
 character are discarded.
 .Sh SEE ALSO
-.Xr ports 7 , Xr make 1 , Xr pkg-greate 8 , Xr mtree 8
+.Xr ports 7 , Xr make 1 , Xr pkg-greate 8
 .Sh HISTORY
 The
 .Nm
