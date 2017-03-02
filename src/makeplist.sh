@@ -488,6 +488,7 @@ makeplist:PlistManager.plistSubSed() {
 		exprs="${exprs}s!(^|$W)${sub#*=}(\$|$W)!\1%%${sub%%=*}%%\2!;"
 	;;
 	esac; done
+	exprs="${exprs}s!^%%(DOCS|EXAMPLES)DIR%%!%%PORT\1%%%%\1DIR%%!;"
 	$caller.setvar "$1" "$exprs"
 }
 
