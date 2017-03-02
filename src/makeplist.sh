@@ -553,9 +553,17 @@ makeplist:PlistManager.create() {
 makeplist:PlistManager.plist_filter() { /usr/bin/awk '
 	# Get the order of options
 	BEGIN {
+		OPTION_STR["DOCS"] =     "%%PORTDOCS%%"
+		OPTION_STR["EXAMPLES"] = "%%PORTEXAMPLES%%"
 		for (i = 1; i < ARGC; ++i) {
 			OPTIONS_ORDERD[i] = ARGV[i]
 			CNT_OPT_FILES[ARGV[i]] = 0
+			if (!(ARGV[i] in OPTION_STR)) {
+				OPTION_STR[ARGV[i]] = "%%" ARGV[i] "%%"
+			}
+			if (!("NO_" ARGV[i] in OPTION_STR)) {
+				OPTION_STR["NO_" ARGV[i]] = "%%NO_" ARGV[i] "%%"
+			}
 			delete ARGV[i]
 		}
 		CNT_FILES = 0
@@ -611,7 +619,7 @@ makeplist:PlistManager.plist_filter() { /usr/bin/awk '
 				# option
 				if (OPT_FILES[option, file] == OPTIONS[option] &&
 				    OPT_FILES[option, file] == FILES[file]) {
-					print "%%" option "%%" file
+					print OPTION_STR[option] file
 					delete FILES[file]
 				}
 			}
@@ -622,7 +630,7 @@ makeplist:PlistManager.plist_filter() { /usr/bin/awk '
 				# this option
 				if (!OPT_FILES[option, file] &&
 				    FILES[file] + OPTIONS[option] == CONFIGS) {
-					print "%%NO_" option "%%" file
+					print OPTION_STR["NO_" option] file
 					delete FILES[file]
 				}
 			}
