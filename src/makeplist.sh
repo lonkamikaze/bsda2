@@ -641,6 +641,13 @@ makeplist:PlistManager.plist_filter() { /usr/bin/awk '
 			file = FILES_ORDERED[i]
 			if (!(file in FILES)) { continue }
 			print "@fail " file " could not be mapped to an option!"
+			msg = "@fail Candidates:"
+			for (p = 1; OPTIONS_ORDERD[p]; ++p) {
+				if (OPT_FILES[OPTIONS_ORDERD[p], file]) {
+					msg = msg " " OPTIONS_ORDERD[p]
+				}
+			}
+			print msg
 		}
 	}
 ' "$@";}
@@ -825,11 +832,94 @@ makeplist:Make.run() {
 }
 
 #
+# A filter transplanting @ keywords from the old plist to the next.
+#
+# Some of the keywords effect the files listed after them (e.g. @owner),
+# so the script tries to place them in the same context in the new
+# plist.
+#
+# Note that an automatically added @sample gets stripped here if
+# the file is present in the old plist without it.
+#
+# @param 1
+#	The new plist file name
+# @param 2
+#	The old plist file name
+#
+makeplist:Make.plist_keywords() { /usr/bin/awk '
+	BEGIN {
+		# List of auto-prefixes
+		AUTO["@sample "]
+	}
+
+	# Index the new plist file
+	NR == FNR {
+		PLIST[NR] = $0
+		PLIST_IND[$0] = NR
+		PLIST_CNT = NR
+		next
+	}
+
+	# Index the old plist file
+	{
+		OLD_PLIST[NR - PLIST_CNT] = $0
+		OLD_PLIST_CNT = NR - PLIST_CNT
+		# Strip auto-prefixes from the new plist if the file
+		# is listed but does not have the prefix.
+		for (auto in AUTO) {
+			if (auto $0 in PLIST_IND) {
+				PLIST[PLIST_IND[auto $0]] = $0
+			}
+		}
+	}
+
+	# Print plist
+	END {
+		PLIST_PRINT = 1
+		# Find keyword in old plist
+		for (NR = 1; NR <= OLD_PLIST_CNT; ++NR) {
+			# Accumulate files that come before the next
+			# keyword.
+			PREVIOUS[OLD_PLIST[NR]]
+
+			# Check for keyword
+			if (OLD_PLIST[NR] ~ /(^|%%)@[[:alnum:]]+ /) {
+				# Skip if already in new plist
+				if (OLD_PLIST[NR] in PLIST_IND) {
+					continue
+				}
+				# Read the new plist file from the
+				# back until a line from the PREVIOUS
+				# list is encountered.
+				for (i = PLIST_CNT; i >= PLIST_PRINT; --i) {
+					if (PLIST[i] in PREVIOUS) {
+						break
+					}
+				}
+				# Print everything before and including
+				# the match.
+				for (; PLIST_PRINT <= i; ++PLIST_PRINT) {
+					print PLIST[PLIST_PRINT]
+				}
+				# Print the current (keyword) line
+				print OLD_PLIST[NR]
+			}
+		}
+
+		# Print remaining plist
+		for (; PLIST_PRINT <= PLIST_CNT; ++PLIST_PRINT) {
+			print PLIST[PLIST_PRINT]
+		}
+	}
+' "$@";}
+
+#
 # Creates a new plist.
 #
 # Performs the following operations:
 #
 # - Assemble a new plist
+# - Transplant @ keywords from the old pkg-plist
 # - List lines removed, compared to old plist
 # - List lines added, compared to old plist
 # - Write new plist to file
@@ -837,25 +927,37 @@ makeplist:Make.run() {
 makeplist:Make.plist() {
 	local plists file plist origPlist change session
 	$this.getSession session
+	# Generate new plist
 	$this.Plists plists
 	$plists.plist plist
 	if [ -z "$plist" ]; then
 		$session.msg "The generated plist is empty"
 		return 0
 	fi
+	# Get old plist
 	$this.getPlistOldFile file
-	origPlist="$(/bin/cat "$file")"
-	test -t 1 && /usr/bin/tput AF 2
-	echo "$plist" | /usr/bin/grep -vFx "$origPlist" \
-	              | /usr/bin/sed 's/^/+/'
+	if origPlist="$(/bin/cat "$file" 2> /dev/null)"; then
+		# Transplant keywords
+		plist="$(echo "$plist" | $class.plist_keywords - "$file")"
+	fi
+	# Print differences
 	test -t 1 && /usr/bin/tput AF 1
-	echo "$origPlist" | /usr/bin/grep -vFx "$plist" \
-	                  | /usr/bin/sed 's/^/-/'
+	echo -n "$origPlist" | /usr/bin/grep -vFx "$plist" \
+	                     | /usr/bin/sed 's/^/-/'
+	test -t 1 && /usr/bin/tput AF 2
+	echo -n "$plist" | /usr/bin/grep -vFx "$origPlist" \
+	                 | /usr/bin/sed 's/^/+/'
 	test -t 1 && /usr/bin/tput me
 
+	# Print plist
 	$this.getPlistNewFile file
 	$session.msg "Printing plist to $file"
-	echo "$plist" > "$file"
+	echo -n "$plist" > "$file"
+
+	# Ask for review
+	if [ "$plist" != "$origPlist" ]; then
+		$session.msg "The generated plist differs, please review!"
+	fi
 }
 
 #

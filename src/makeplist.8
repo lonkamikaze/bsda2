@@ -176,7 +176,7 @@ Files with a
 suffix are automatically prefixed with
 .Dq Li @sample\  .
 .Pp
-In the last stage of plist creation the reverse of the substitutions
+In the next stage of plist creation the reverse of the substitutions
 defined in
 .Li PLIST_SUB
 is applied. The substitutions are sorted by size and applied largest
@@ -192,6 +192,17 @@ and
 .Li %%EXAMPLESDIR%%
 with
 .Li %%PORTEXAMPLES%% .
+.Pp
+In the final stage of plist creation
+.Nm
+attempts to transplant the
+.Li @
+keywords (see
+.Xr pkg-create 8 )
+from the old plist to the new one. The script makes an effort to
+place them in the same context. The prefix
+.Dq Li @sample\ 
+is stripped from all files that appear in the old plist without it.
 .Sh SEE ALSO
 .Xr ports 7 , Xr make 1 , Xr pkg-greate 8
 .Sh HISTORY
