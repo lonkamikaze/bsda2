@@ -381,22 +381,6 @@ makeplist:Options.getName() {
 }
 
 #
-# A static function that outputs all arguments joined by a given
-# separator.
-#
-# @param 1
-#	The separator character
-# @param *
-#	The arguments to join
-#
-makeplist:_join() {
-	local IFS
-	IFS="$1"
-	shift
-	echo "$*"
-}
-
-#
 # This deletes the given file when deleted.
 #
 # This is a simple RAII wrapper.
@@ -872,11 +856,12 @@ makeplist:Make.init() {
 #
 makeplist:Make.run() {
 	local retval plists no_build stagedir prefix mtree_file
-	local logdir logfilename logfile session oflags
+	local logdir logfilename opts logfile session oflags
 	$this.getSession session
 	$session.OptsFlags oflags
 	$this.getLogdir logdir
-	logfilename="$logdir/stage${1:+-$(makeplist:_join - $1)}.log"
+	bsda:util:join opts - $1
+	logfilename="$logdir/stage${opts:+-$opts}.log"
 	makeplist:File logfile "$logfilename"
 	$caller.delete $logfile
 	$this.Plists plists
