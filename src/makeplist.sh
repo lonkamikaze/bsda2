@@ -872,11 +872,6 @@ makeplist:Make.run() {
 		else
 			targets="clean stage"
 		fi
-		# Close outputs in quiet mode
-		if $oflags.check QUIET -ne 0; then
-			export BATCH=1
-			exec 2>&- >&-
-		fi
 		# Disable license features unless specifically requested
 		if $oflags.check LICENSES -eq 0; then
 			export DISABLE_LICENSES=1
@@ -885,6 +880,21 @@ makeplist:Make.run() {
 		echo "WITH=$1" > "$logfilename"
 		echo "WITHOUT=$2" >> "$logfilename"
 		/usr/bin/printenv >> "$logfilename"
+		# Execute make in quiet mode
+		if $oflags.check QUIET -ne 0; then
+			# Cannot be interactive in quiet mode
+			export BATCH=1
+			# Close outputs
+			exec 2>&- >&-
+			# The interrupt.mk trick does not work after
+			# closing the outputs, but because this is
+			# a non-interactive session, backgrounding
+			# and waiting for it works fine.
+			exec /usr/bin/script -aq "$logfilename" \
+			     /usr/bin/make $targets WITH="$1" WITHOUT="$2" &
+			wait $!
+			return $?
+		fi
 		# Call make inside script:
 		# - Call make inside script for logging
 		# - Call port Makefile through interrupt.mk to send
