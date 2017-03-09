@@ -106,13 +106,6 @@ is called. This means that the
 target is only performed during the first stage cycle. And it breaks
 if extraction is affected by options.
 .Ss Build Failure
-In case of build failure there is a 1 second window to terminate
-the script before the next build is started. To terminate
-.Nm
-prematurely during a build press
-.Li CTRL-C
-twice.
-.Pp
 In case one or more configurations fail an error message with the
 build options and the name of the log file will be printed after
 the plist is created. Only logs of failed builds are kept. The logs
