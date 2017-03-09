@@ -4,6 +4,381 @@ readonly _makeplist_=1
 . ${bsda_dir:-.}/bsda_container.sh
 . ${bsda_dir:-.}/pkg_info.sh
 . ${bsda_dir:-.}/bsda_opts.sh
+. ${bsda_dir:-.}/bsda_util.sh
+
+#
+# Each instance represents an option in a linked list.
+#
+# Along with the name of the option, the names of the options in
+# `${opt}_IMPLIES` and `${opt}_PREVENTS` are stored, both of which are
+# taken into consideration by the getPair() method.
+#
+# The reference to the Options instance is used to resolve implied
+# options.
+#
+bsda:obj:createClass makeplist:Option \
+	a:public:Next=makeplist:Option \
+	r:private:options  "The Options instance" \
+	r:public:group     "The group this option is a member of" \
+	r:public:name      "Name of this option" \
+	r:public:implies   "Implied options" \
+	r:public:prevents  "Conflicting options" \
+	i:private:init     "Setup basic settings" \
+	x:public:getPair   "Returns the WITH and WITHOUT pair for this option"
+
+#
+# Initialise all members.
+#
+# @param 1
+#	The options manager instance
+# @param 2
+#	The group the option is a member of
+# @param 3
+#	The option to provide a configuration for
+# @param 4
+#	The implied options
+# @param 5
+#	The prevented options
+#
+makeplist:Option.init() {
+	setvar ${this}options "$1"
+	setvar ${this}group "$2"
+	setvar ${this}name "$3"
+	setvar ${this}implies "$4"
+	setvar ${this}prevents "$5"
+}
+
+#
+# Recursively retrieves the option and its implications.
+#
+# It creates two lists, a `WITH` and `WITHOUT` list of options. The
+# `WITH` list contains the option itself and recursively its implied
+# options. The `WITHOUT` list contains the prevented options and
+# the options prevented by the recursively implied options.
+#
+# If the option is part of an `OPTIONS_SINGLE` group, the siblings
+# are added to the `WITHOUT` list.
+#
+# @param &1
+#	The variable to return the `WITH` selection to
+# @param &2
+#	The variable to return the `WITHOUT` selection to
+# @param 3,4
+#	Options already in `WITH` and `WITHOUT` respectively
+# @retval 0
+#	Returning options succeeded or the option was already in the
+#	list provided by $3, in the latter case nothing is written
+#	to the return variables
+# @retval 1
+#	This configuration is conflicting, i.e. an option is implied
+#	and prevented at the same time. The return variables are
+#	not written
+#
+makeplist:Option.getPair() {
+	local IFS with without name
+	with="$3"
+	without="$4"
+	$this.getName name
+	# Already listed
+	bsda:util:in "$name" $with && return 0
+	# Already listed in prevents?
+	bsda:util:in "$name" $without && return 1
+	# Add self
+	with="${with:+$with }$name"
+
+	# Lists of options are space separated
+	IFS=' '
+
+	# Add prevents to without
+	local prevents prevent
+	$this.getPrevents prevents
+	for prevent in $prevents; do
+		bsda:util:in "$prevent" $without && continue
+		bsda:util:in "$prevent" $with && return 1
+		without="${without:+$without }$prevent"
+	done
+
+	# Add siblings in single groups to without
+	local group groupMap options map members member
+	$this.getOptions options
+	$this.getGroup group
+	if [ -z "${group##OPTIONS_SINGLE_*}" ]; then
+		$options.GroupMap map
+		$map.[ "$group" ] members
+		for member in $members; do
+			test "$member" = "$name" && continue
+			bsda:util:in "$member" $without && continue
+			bsda:util:in "$member" $with && return 1
+			without="${without:+$without }$member"
+		done
+	fi
+
+	# Recursively add implies
+	local implies options map option
+	$this.getImplies implies
+	$options.OptionMap map
+	for name in $implies; do
+		$map.[ "$name" ] option
+		$option.getPair with without "$with" "$without" || return 1
+	done
+	$caller.setvar "$1" "$with"
+	$caller.setvar "$2" "$without"
+	return 0
+}
+
+#
+# Represents all options of the port in the current directory.
+#
+# Every option is stored in a linked list, starting with the First
+# member. The list is simply for storage and for iterating through
+# it to generate build configurations. The OptionMap maps option
+# names to objects in the list.
+#
+# There are two kinds of relationships between options, `${opt}_IMPLIES`
+# and `${opt}_PREVENTS` are stored with each option, common membership
+# in a group is stored in the GroupMap.
+#
+# The names of groups are fully qualified, e.g. `OPTIONS_DEFINE`,
+# `OPTIONS_GROUP_FOO`, `OPTIONS_SINGLE_BAR`. Thus the name of a group
+# also implies the rules governing it. The only rule really mattering
+# here is that `OPTIONS_SINGLE_*` and `OPTIONS_MULTI_*` groups always
+# have to be represented in build configurations.
+#
+bsda:obj:createClass makeplist:Options \
+	a:private:First=makeplist:Option \
+	a:public:GroupMap=bsda:container:Map \
+	a:public:OptionMap=bsda:container:Map \
+	r:private:select   "The currently selected option" \
+	r:private:hasMulti "Set if SINGLE or MULTI groups exist" \
+	i:private:init     "Setup all groups of options" \
+	x:public:next      "Select the next option for testing" \
+	x:public:getPair   "Returns the WITH and WITHOUT pair for the option" \
+	x:public:getName   "Returns the name of the option to test"
+
+#
+# Use `options.mk` to retrieve all options and set everything up.
+#
+makeplist:Options.init() {
+	local groupMap optionMap groups options
+	bsda:container:Map ${this}GroupMap
+	bsda:container:Map ${this}OptionMap
+	setvar ${this}select
+	setvar ${this}hasMulti
+	$this.GroupMap groupMap
+	$this.OptionMap optionMap
+
+	eval "$(/usr/bin/make -f${bsda_dir:-.}/options.mk \
+	                      -V"groups='\${BSDA_GROUPS:ts\\n}'" \
+	                      -V"options='\${BSDA_OPTIONS:ts\\n}'")" || return
+
+	# Create groups
+	local line group members hasMulti
+	hasMulti=
+	for line in $groups; do
+		bsda:util:map "$line" \| group members
+		bsda:util:split members ,
+		# Create group
+		$groupMap.[ "$group" ]= "$members"
+		# Detect single/multi groups
+		case "$group" in
+		OPTIONS_SINGLE_*|OPTIONS_MULTI_*)
+			hasMulti=1
+		;;
+		esac
+	done
+
+	# Create options
+	local line group name implies prevents option last
+	last=
+	for line in $options; do
+		bsda:util:map "$line" \| group name implies prevents
+		bsda:util:split implies ,
+		bsda:util:split prevents ,
+		# Create option
+		makeplist:Option option $this "$group" "$name" "$implies" "$prevents"
+		# Map name → option
+		$optionMap.[ "$name" ]= $option
+		# Update list of options
+		if [ -z "$last" ]; then
+			setvar ${this}First $option
+		else
+			setvar ${last}Next $option
+		fi
+		last=$option
+	done
+
+	# If there are mandatory groups, skip the build attempt without flags.
+	if [ -n "$hasMulti" ]; then
+		setvar ${this}hasMulti 1
+		$this.First ${this}select
+	fi
+}
+
+#
+# Select the next configuration of options.
+#
+# @retval 0
+#	The next option has been selected
+# @retval 1
+#	Select beyond the last configuration, starting over
+#
+makeplist:Options.next() {
+	local select multi
+	$this.getSelect select
+	if ! makeplist:Option.isInstance "$select"; then
+		$this.First select
+	else
+		$select.Next select
+	fi
+	setvar ${this}select "$select"
+	test -n "$select" && return 0
+
+	# Moved beyond the last option, if OPTIONS_SINGLE or OPTIONS_MULTI
+	# groups are present the first option should be selected instead
+	# of trying to build without flags the next time.
+	$this.getHasMulti multi
+	if [ -n "$multi" ]; then
+		$this.First ${this}select
+	fi
+	return 1
+}
+
+#
+# Lambda to retrieve `OPTIONS_SINGLE` and `OPTIONS_MULTI` groups.
+#
+# @param multis
+#	The group members are added to this variable, each group
+#	is followed by the contents of IFS
+# @param IFS
+#	Should be set to a newline
+#
+makeplist:Options.getPair_multis() {
+	case "$1" in
+	OPTIONS_SINGLE_*|OPTIONS_MULTI_*)
+		multis="$multis$2$IFS"
+	;;
+	esac
+}
+
+#
+# Lambda to collect all options that have not yet been selected.
+#
+# @param with
+#	The list of options to build with
+# @param without
+#	All unused options are added to this list
+#
+makeplist:Options.getPair_without() {
+	local IFS member
+	IFS=' '
+	for member in $2; do
+		if ! bsda:util:in "$member" $with $without; then
+			without="${without:+$without }$member"
+		fi
+	done
+}
+
+#
+# Tries to retrieve a valid set of options for the currently selected
+# configuration.
+#
+# The selection contains:
+#
+# - The selected option and its implications
+# - One of each OPTIONS_SINGLE group and their implications
+# - One of each OPTIONS_MULTI group and their implications
+#
+# @param &1
+#	The variable to return the `WITH` selection to
+# @param &2
+#	The variable to return the `WITHOUT` selection to
+# @retval 0
+#	Creating a configuration succeeded
+# @retval 1
+#	A configuration without conflicts was not found, the return
+#	variables have not been written
+#
+makeplist:Options.getPair() {
+	local select with without
+	# Get the selected option
+	$this.getSelect select
+	if [ -n "$select" ]; then
+		$select.getPair with without || return
+	else
+		with=
+		without=
+	fi
+
+	# Get a representative of each SINGLE/MULTI group
+	local IFS groupMap optionMap multis members member
+	local option implies prevents
+	IFS='
+'
+	$this.GroupMap groupMap
+	$this.OptionMap optionMap
+	multis=
+	$groupMap.foreach $class.getPair_multis
+	for members in $multis; do
+		IFS=' '
+		# Skip already represented groups
+		for member in $members; do
+			bsda:util:in "$member" $with && continue 2
+		done
+		# Try to find an option without implications or prevents
+		for member in $members; do
+			$optionMap.[ "$member" ] option
+			$option.getImplies implies
+			$option.getPrevents prevents
+			if [ -z "$implies$prevents" ] && \
+			   $option.getPair with without "$with" "$without"; then
+				# Move on to the next group
+				continue 2
+			fi
+		done
+		# Try to find an option without prevents
+		for member in $members; do
+			$optionMap.[ "$member" ] option
+			$option.getPrevents prevents
+			if [ -z "$prevents" ] && \
+			   $option.getPair with without "$with" "$without"; then
+				# Move on to the next group
+				continue 2
+			fi
+		done
+		# Just try to find an option that works
+		for member in $members; do
+			$optionMap.[ "$member" ] option
+			if $option.getPair with without "$with" "$without"; then
+				# Move on to the next group
+				continue 2
+			fi
+		done
+		# Couldn't find an option that works!
+		return 1
+	done
+
+	# Just add all unused options to without
+	$groupMap.foreach $class.getPair_without
+
+	# Return selection
+	$caller.setvar "$1" "$with"
+	$caller.setvar "$2" "$without"
+	return 0
+}
+
+#
+# Returns the name of the currently selected option.
+#
+# @param &1
+#	The variable to return the name to
+#
+makeplist:Options.getName() {
+	local select name
+	name=
+	$this.getSelect select
+	test -n "$select" && $select.getName name
+	$caller.setvar "$1" "$name"
+}
 
 #
 # A static function that outputs all arguments joined by a given
