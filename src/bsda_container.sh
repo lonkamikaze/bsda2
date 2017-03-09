@@ -265,7 +265,9 @@ bsda:container:Map.init() {
 # The destructor clears the key/value storage.
 #
 bsda:container:Map.clean() {
-	local key
+	local IFS key
+	IFS='
+'
 	for key in $($this.getKeys); do
 		unset ${this}_val_$key
 		unset ${this}_key_$key
@@ -377,7 +379,9 @@ bsda:container:Map.[() {
 #
 bsda:container:Map.foreach() {
 	$class.compress
-	local key keys
+	local IFS key keys
+	IFS='
+'
 	$this.getKeys keys
 	for key in $keys; do
 		eval "$1 \"\${${this}_key_$key}\" \"\${${this}_val_$key}\"" \
@@ -416,7 +420,9 @@ bsda:container:Map.getCount() {
 #
 bsda:container:Map.serialise() {
 	$class.compress
-	local key keys serialised keyvar valvar
+	local IFS key keys serialised keyvar valvar
+	IFS='
+'
 	$this.getKeys keys
 	bsda:obj:serialiseVar serialised ${this}keys
 	serialised="$serialised;${this}addCount=0;${this}rmKeys=;${this}rmCount=0"
