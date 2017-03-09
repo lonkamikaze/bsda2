@@ -1026,7 +1026,7 @@ makeplist:Make.plist() {
 	# Print plist
 	$this.getPlistNewFile file
 	$session.msg "Printing plist to $file"
-	echo -n "$plist" > "$file"
+	echo "$plist" > "$file"
 
 	# Ask for review
 	if [ "$plist" != "$origPlist" ]; then
