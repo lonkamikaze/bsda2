@@ -436,9 +436,7 @@ makeplist:Plist.report() {
 	$this.getWith with
 	$this.getWithout without
 	$this.getLogfile logfile
-	$session.error "Building/staging returned $retval"
-	echo "WITH=\"$with\""
-	echo "WITHOUT=\"$without\""
+	$session.error "Building/staging returned $retval: $with"
 	echo "A build log is available: $logfile"
 }
 
@@ -883,11 +881,15 @@ makeplist:Make.run() {
 		if $oflags.check LICENSES -eq 0; then
 			export DISABLE_LICENSES=1
 		fi
+		# Log configuration
+		echo "WITH=$1" > "$logfilename"
+		echo "WITHOUT=$2" >> "$logfilename"
+		/usr/bin/printenv >> "$logfilename"
 		# Call make inside script:
 		# - Call make inside script for logging
 		# - Call port Makefile through interrupt.mk to send
 		#   a signal back, if make is interrupted
-		exec /usr/bin/script -q "$logfilename" \
+		exec /usr/bin/script -aq "$logfilename" \
 		     /usr/bin/make -f"${bsda_dir:-.}/interrupt.mk" BSDA_PID=$$ \
 		                   $targets WITH="$1" WITHOUT="$2"
 	)
