@@ -397,294 +397,6 @@ makeplist:_join() {
 }
 
 #
-# From a list of arguments pick the argument with the given number,
-# counting from 1.
-#
-# @param 1
-#	The index of the desired argument
-# @param @
-#	The list of items
-#
-makeplist:options:_pick() {
-	local i
-	i=$(($1))
-	shift
-	if [ $((i)) -ne 0 ]; then
-		eval "echo \"\${$i}\""
-	fi
-}
-
-#
-# Outputs all but the selected argument.
-#
-# @param 1
-#	The index of the undesired argument
-# @param @
-#	The list of items
-#
-makeplist:options:_except() {
-	local i item
-	i=$(($1))
-	shift
-	for item in "$@"; do
-		shift
-		if [ $((i -= 1)) -ne 0 ]; then
-			set -- "$@" "$item"
-		fi
-	done
-	echo "$*"
-}
-
-#
-# Instances permute through binary options.
-#
-# This handles the following kinds of options:
-#
-# - `OPTIONS_DEFINE`
-# - `OPTIONS_RADIO`
-# - `OPTIONS_GROUP`
-#
-# These kinds of options are basically independent flags, only grouped
-# for usability purposes.
-#
-# Instead of permuting through all valid combinations, only use each
-# option once. All permutations would be in O(n!), which is exponential
-# growth and hence problematic for even a small amount of options.
-#
-bsda:obj:createClass makeplist:options:Flags \
-	r:private:flags  "All options to permute through" \
-	r:private:select "The index of the currently selected flag" \
-	i:private:init   "Acquire all flags from make" \
-	x:public:next    "Select the next permutation" \
-	x:public:with    "List the flag activated for this permutation" \
-	x:public:without "List flags not activated for this permutation"
-
-#
-# Acquire all flags from make.
-#
-makeplist:options:Flags.init() {
-	local flags group
-	flags="$(/usr/bin/make -VOPTIONS_DEFINE)" || return
-	for group in $(/usr/bin/make -VOPTIONS_GROUP); do
-		flags="${flags:+$flags }$(/usr/bin/make -VOPTIONS_GROUP_$group)" \
-		|| return
-	done
-	for group in $(/usr/bin/make -VOPTIONS_RADIO); do
-		flags="${flags:+$flags }$(/usr/bin/make -VOPTIONS_RADIO_$group)" \
-		|| return
-	done
-	setvar ${this}select 0
-	setvar ${this}flags "$flags"
-}
-
-#
-# Select the next permutation.
-#
-# Selects the next flag. Starts over after going through all flags.
-#
-# @retval 0
-#	Selecting the next flag succeeded
-# @retval 1
-#	No more flags left, starting over
-#
-makeplist:options:Flags.next() {
-	local i flags flag
-	$this.getSelect i
-	setvar ${this}select $((i += 1))
-	$this.getFlags flags
-	flag="$(makeplist:options:_pick $i $flags)"
-	if [ -z "$flag" ]; then
-		setvar ${this}select 0
-		return 1
-	fi
-}
-
-#
-# Returns the selected flag.
-#
-# @param &1
-#	The variable to return the flag to
-#
-makeplist:options:Flags.with() {
-	local i flags
-	$this.getSelect i
-	$this.getFlags flags
-	$caller.setvar "$1" "$(makeplist:options:_pick $i $flags)"
-}
-
-#
-# Returns all but the selected flag.
-#
-# @param &1
-#	The variable to return the flags to.
-#
-makeplist:options:Flags.without() {
-	local i flags
-	$this.getSelect i
-	$this.getFlags flags
-	$caller.setvar "$1" "$(makeplist:options:_except $i $flags)"
-}
-
-#
-# Instances permute through single and multi option groups.
-#
-# This handles the following kinds of options:
-#
-# - `OPTIONS_SINGLE`
-# - `OPTIONS_MULTI`
-#
-# Of each group of options one has to be selected. This permutation
-# makes sure every option is selected at least once.
-#
-bsda:obj:createClass makeplist:options:Singles \
-	a:private:Groups=bsda:container:Map \
-	r:private:group  "The currently selected group" \
-	r:private:select "The index of the option selected from the group" \
-	i:private:init   "Acquire option groups from make" \
-	x:public:next    "Select the next option" \
-	x:public:with    "The selected option of every group" \
-	x:public:without "The options not selected"
-
-#
-# Acquire all option groups from make.
-#
-makeplist:options:Singles.init() {
-	bsda:container:Map ${this}Groups
-	local group groups
-	$this.Groups groups
-	for group in $(/usr/bin/make -VOPTIONS_SINGLE); do
-		$groups.[ $group ]= "$(/usr/bin/make -VOPTIONS_SINGLE_$group)"
-	done
-	for group in $(/usr/bin/make -VOPTIONS_MULTI); do
-		$groups.[ $group ]= "$(/usr/bin/make -VOPTIONS_MULTI_$group)"
-	done
-	setvar ${this}select 1
-}
-
-#
-# Iterates through the map of groups until the group following the
-# current selection is found.
-#
-# @param group
-#	Must be set to current group, returns set to the next group
-# @param 1,2
-#	The group and its options
-# @retval 0
-#	Iterated beyond the last group
-# @retval 1
-#	The next group has been selected
-#
-makeplist:options:Singles.next_lambda() {
-	if [ -z "$group" ]; then
-		group="$1"
-		return 1
-	fi
-	if [ "$group" = "$1" ]; then
-		group=
-	fi
-}
-
-#
-# Select the next permutation.
-#
-# Select the next option. Starts over after going through all options.
-#
-# @retval 0
-#	Selecting the next option succeeded
-# @retval 1
-#	No more option left, starting over
-#
-makeplist:options:Singles.next() {
-	local groups group select options option complete
-	complete=0
-	$this.Groups groups
-	$this.getGroup group
-	$this.getSelect select
-	# Select the next option
-	$groups.[ "$group" ] options
-	select=$((select + 1))
-	option="$(makeplist:options:_pick $select $options)"
-	# If no option is left in the group select the next group
-	if [ -z "$option" ]; then
-		select=2
-		if $groups.foreach $class.next_lambda; then
-			complete=1
-		fi
-	fi
-	setvar ${this}group "$group"
-	setvar ${this}select "$select"
-	return $complete
-}
-
-#
-# Accumulates selected options from the map of groups.
-#
-# @param group,select
-#	Must be set to current group and selection index
-# @param with
-#	Accumulates the selected options
-# @param 1,2
-#	The group and its options
-#
-makeplist:options:Singles.with_lambda() {
-	if [ "$group" = "$1" ]; then
-		with="${with:+$with }$(makeplist:options:_pick $select $2)"
-	else
-		with="${with:+$with }$(makeplist:options:_pick 1 $2)"
-	fi
-}
-
-#
-# Returns the selected options.
-#
-# @param &1
-#	The variable to return the options to
-#
-makeplist:options:Singles.with() {
-	local groups group select with
-	$this.Groups groups
-	$this.getGroup group
-	$this.getSelect select
-	with=
-	$groups.foreach $class.with_lambda
-	$caller.setvar "$1" "$with"
-}
-
-#
-# Accumulates unselected options from the map of groups.
-#
-# @param group,select
-#	Must be set to current group and selection index
-# @param without
-#	Accumulates the unselected options
-# @param 1,2
-#	The group and its options
-#
-makeplist:options:Singles.without_lambda() {
-	if [ "$group" = "$1" ]; then
-		without="${without:+$without }$(makeplist:options:_except $select $2)"
-	else
-		without="${without:+$without }$(makeplist:options:_except 1 $2)"
-	fi
-}
-
-#
-# Returns everything but the selected options.
-#
-# @param &1
-#	The variable to return the options to
-#
-makeplist:options:Singles.without() {
-	local groups group select without
-	$this.Groups groups
-	$this.getGroup group
-	$this.getSelect select
-	without=
-	$groups.foreach $class.without_lambda
-	$caller.setvar "$1" "$without"
-}
-
-#
 # This deletes the given file when deleted.
 #
 # This is a simple RAII wrapper.
@@ -1341,8 +1053,7 @@ makeplist:Make.plist() {
 bsda:obj:createClass makeplist:Session \
 	a:public:OptsFlags=bsda:opts:Flags \
 	a:private:Make=makeplist:Make \
-	a:private:Flags=makeplist:options:Flags \
-	a:private:Singles=makeplist:options:Singles \
+	a:private:Options=makeplist:Options \
 	r:private:outfile "The file to write the new plist to" \
 	x:private:help    "Print usage information" \
 	x:public:msg      "Print a message on stdout" \
@@ -1403,8 +1114,7 @@ makeplist:Session.init() {
 	$this.params "$@" || return
 	$this.getOutfile outfile
 	makeplist:Make ${this}Make $this "$outfile" || return
-	makeplist:options:Flags ${this}Flags || return
-	makeplist:options:Singles ${this}Singles || return
+	makeplist:Options ${this}Options || return
 	$this.run || return
 }
 
@@ -1509,17 +1219,13 @@ makeplist:Session.params() {
 # Permute through the build options and generate a plist.
 #
 makeplist:Session.run() {
-	local make flags singles option with without count i
+	local make options option with without count i
 	$this.Make make
-	$this.Flags flags
-	$this.Singles singles
+	$this.Options options
 
 	# Go through all permutations to count them
 	count=1
-	while $flags.next; do
-		count=$((count + 1))
-	done
-	while $singles.next; do
+	while $options.next; do
 		count=$((count + 1))
 	done
 
@@ -1529,37 +1235,25 @@ makeplist:Session.run() {
 
 	# Get the initial state with no flags and all singles set
 	# to the first option
-	$flags.with with
-	$flags.without without
-	$singles.with option
-	with="$with${with:+${option:+ }}$option"
-	$singles.without option
-	without="$without${without:+${option:+ }}$option"
-	$this.msg "Building plist $((i = 1)) of $count${with:+: $with}"
-	$make.run "$with" "$without"
-
-	# Try all flags
-	while $flags.next; do
-		$flags.with with
-		$flags.without without
-		$singles.with option
-		with="$with${with:+${option:+ }}$option"
-		$singles.without option
-		without="$without${without:+${option:+ }}$option"
-		$this.msg "Building plist $((i += 1)) of $count: $with"
+	i=1
+	if $options.getPair with without; then
+		$this.msg "Building plist $i of $count${with:+: $with}"
 		$make.run "$with" "$without"
-	done
+	else
+		$options.getName option
+		$this.error "Could not find a valid configuration to test $option"
+	fi
 
-	# Try every single/multi flag once
-	while $singles.next; do
-		$flags.with with
-		$flags.without without
-		$singles.with option
-		with="$with${with:+${option:+ }}$option"
-		$singles.without option
-		without="$without${without:+${option:+ }}$option"
-		$this.msg "Building plist $((i += 1)) of $count: $with"
-		$make.run "$with" "$without"
+	# Try all options
+	while $options.next; do
+		i=$((i + 1))
+		if $options.getPair with without; then
+			$this.msg "Building plist $i of $count${with:+: $with}"
+			$make.run "$with" "$without"
+		else
+			$options.getName option
+			$this.error "Could not find a valid configuration to test $option"
+		fi
 	done
 
 	# Generate the resulting plist
