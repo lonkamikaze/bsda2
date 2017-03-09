@@ -1147,7 +1147,7 @@ makeplist:Session.params() {
 			shift
 		;;
 		OPT_UNKNOWN)
-			$this.error "Unknown parameter \"$1\"."
+			$this.error "Unknown parameter: \"$1\""
 			return 1
 		;;
 		OPT_SPLIT)
