@@ -162,6 +162,10 @@ bsda:obj:createClass() {
 	: ${bsda_obj_namespace='bsda:obj'}
 
 	# Get the class name and shift it off the parameter list.
+	if [ -z "$1" ]; then
+		echo "bsda:obj:createClass: ERROR: No class name supplied!" 1>&2
+		return 1
+	fi
 	class="$1"
 	shift
 
