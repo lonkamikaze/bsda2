@@ -84,6 +84,7 @@ TABLE OF CONTENTS
     3. [bash - setvar](#14-3-bash-setvar)
     4. [bash - Command Substitution Variable Scope](#14-4-bash-command-substitution-variable-scope)
     5. [bash - alias](#14-5-bash-alias)
+    6. [bash - Return Status While Executing an EXIT Trap](#14-6-bash-return-status-while-executing-an-exit-trap)
 
 
 
@@ -992,3 +993,24 @@ The `alias` command in `bash`, used for inheritance in the framework, only
 works in interactive mode. Hence all uses of `alias` had to be substituted with
 slightly slower function wrappers.
 
+### 14.6. bash - Return Status While Executing an EXIT Trap
+
+Calling `return` without arguments usually preserves the return status
+`$?`. This can be and is used to return from functions in case of an
+error, but deferring the error handling to the calling function:
+
+~~~ bash
+foobar || return
+~~~
+
+The one exception to this rule is in an `EXIT` handler. Executing
+`return` without arguments in the scope of an `EXIT` handler always
+returns 0. In `bsda:obj` this affects all functions/methods called
+during terminal stack unwinding and garbage collection. I.e. all
+cleanup methods and everything called by them.
+
+In this case the correct way to call `return` is:
+
+~~~ bash
+foobar || return $?
+~~~
