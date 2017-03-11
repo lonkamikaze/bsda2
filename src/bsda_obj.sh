@@ -60,7 +60,6 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 # The following static methods are reserved:
 # - deserialise()
 # - isInstance()
-# - isClass()
 # - getAttributes()
 # - getMethods()
 #
@@ -564,11 +563,6 @@ bsda:obj:createClass() {
 		;;
 		esac
 		return 1
-	}"
-
-	# Return whether this is a class.
-	eval "$class.isClass() {
-		return 0
 	}"
 
 	# A static method that returns the attributes of a class.
