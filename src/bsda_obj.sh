@@ -401,7 +401,7 @@ bsda:obj:createClass() {
 	#   Access is allowed by all objects with the same class.
 	setvar ${classPrefix}private "
 		if [ \\\"\\\$class\\\" != \\\"$class\\\" ]; then
-			echo \\\"$class.\${method##*:}(): Terminated because of access attempt to a private method\\\${class:+ by \\\$class}!\\\" 1>&2
+			echo \\\"$class.\${method##*:}: Terminated because of access attempt to a private method\\\${class:+ by \\\$class}!\\\" 1>&2
 			return 255
 		fi
 	"
