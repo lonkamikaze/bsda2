@@ -172,7 +172,7 @@ bsda:opts:Options.append() {
 	$this.Next next
 	if [ -n "$next" ]; then
 		$next.append "$@"
-		return
+		return $?
 	fi
 	$class ${this}Next "$@"
 }

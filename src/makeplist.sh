@@ -169,7 +169,7 @@ makeplist:Options.init() {
 
 	eval "$(/usr/bin/make -f${bsda_dir:-.}/options.mk \
 	                      -V"groups='\${BSDA_GROUPS:ts\\n}'" \
-	                      -V"options='\${BSDA_OPTIONS:ts\\n}'")" || return
+	                      -V"options='\${BSDA_OPTIONS:ts\\n}'")" || return $?
 
 	# Create groups
 	local line group members hasMulti
@@ -303,7 +303,7 @@ makeplist:Options.getPair() {
 	# Get the selected option
 	$this.getSelect select
 	if [ -n "$select" ]; then
-		$select.getPair with without || return
+		$select.getPair with without || return $?
 	else
 		with=
 		without=
@@ -397,7 +397,7 @@ bsda:obj:createClass makeplist:File \
 #	The filename
 #
 makeplist:File.init() {
-	test -n "$1" || return
+	test -n "$1" || return $?
 	setvar ${this}filename "$1"
 }
 
@@ -463,13 +463,13 @@ bsda:obj:createClass makeplist:PlistManager \
 makeplist:PlistManager.init() {
 	local prefix
 	setvar ${this}session "$1"
-	setvar ${this}mtree_file "$(/usr/bin/make -VMTREE_FILE)" || return
-	setvar ${this}stagedir "$(/usr/bin/make -VSTAGEDIR)" || return
-	setvar ${this}prefix "$(/usr/bin/make -VPREFIX)" || return
+	setvar ${this}mtree_file "$(/usr/bin/make -VMTREE_FILE)" || return $?
+	setvar ${this}stagedir "$(/usr/bin/make -VSTAGEDIR)" || return $?
+	setvar ${this}prefix "$(/usr/bin/make -VPREFIX)" || return $?
 	setvar ${this}optionsSorted "$(
 		/usr/bin/make -V'SELECTED_OPTIONS:ts\n' \
 		              -V'DESELECTED_OPTIONS:ts\n' \
-		| /usr/bin/sort -n)" || return
+		| /usr/bin/sort -n)" || return $?
 }
 
 #
@@ -500,17 +500,17 @@ makeplist:PlistManager.plistFilter() {
 	filter="$( (
 		/usr/bin/make WITH="$2" WITHOUT="$3" \
 		              -V'${DESKTOP_ENTRIES:S,^/,,:C,[/ ],_,g:C,[^_[:alnum:]],,g:S,$$,.desktop$$,:S,^,${DESKTOPDIR:S,^${PREFIX}/,^,}/,:ts\n}' \
-		| /usr/bin/awk 'NR % 6 == 4' || return
+		| /usr/bin/awk 'NR % 6 == 4' || return $?
 		/usr/bin/make WITH="$2" WITHOUT="$3" \
 		              -V'${USE_RC_SUBR:S,^,^etc/rc.d/,:S,$$,$$,:ts\n}' \
 		              -V'${PLIST_FILES:S,^${PREFIX}/,,:S,^,^,:S,$$,$$,:ts\n}' \
-		| /usr/bin/vis -ce '.[]*?' || return
+		| /usr/bin/vis -ce '.[]*?' || return $?
 		/usr/bin/make -WITH="$2" WITHOUT="$3" \
 		              -V'${PORTDOCS:S,^,^${DOCSDIR_REL}/,:ts\n}' \
 		              -V'${PORTEXAMPLES:S,^,^${EXAMPLESDIR_REL}/,:ts\n}' \
 		              -V'${PORTDATA:S,^,^${DATADIR_REL}/,:ts\n}' \
-		| /usr/bin/sed 's/\*/.*/g;s/\?/./g' || return
-	) | /usr/bin/grep .)" || return
+		| /usr/bin/sed 's/\*/.*/g;s/\?/./g' || return $?
+	) | /usr/bin/grep .)" || return $?
 	$caller.setvar "$1" "$filter"
 }
 
@@ -528,7 +528,7 @@ makeplist:PlistManager.plistSubSed() {
 	local IFS sublist exprs sub prefix W
 	IFS='
 '
-	sublist="$(/usr/bin/make -VPLIST_SUB:ts\\n)" || return
+	sublist="$(/usr/bin/make -VPLIST_SUB:ts\\n)" || return $?
 	# Sort by replacement size so the biggest match wins
 	sublist="$(
 		for sub in $sublist; do
@@ -767,7 +767,7 @@ bsda:obj:createClass makeplist:TmpDir \
 #	The optional mktemp template
 #
 makeplist:TmpDir.init() {
-	setvar ${this}dirname "$(/usr/bin/mktemp -d ${2:+-t "$2"})" || return
+	setvar ${this}dirname "$(/usr/bin/mktemp -d ${2:+-t "$2"})" || return $?
 	local dirname
 	$this.getDirname dirname
 	$caller.setvar "$1" "$dirname"
@@ -813,12 +813,12 @@ makeplist:Make.init() {
 	local origin wrkdir file
 	setvar ${this}session "$1"
 	setvar ${this}plistNewFile "$2"
-	origin="$(/usr/bin/make -VPKGORIGIN)" || return
+	origin="$(/usr/bin/make -VPKGORIGIN)" || return $?
 	if [ -z "$origin" ]; then
 		$1.error "Port origin could not be detected"
 		return 1
 	fi
-	wrkdir="$(/usr/bin/make -VWRKDIR)" || return
+	wrkdir="$(/usr/bin/make -VWRKDIR)" || return $?
 	if ! /bin/mkdir -p "$wrkdir" 2> /dev/null; then
 		$1.error "The WRKDIR could not be created: $wrkdir"
 		return 1
@@ -829,7 +829,7 @@ makeplist:Make.init() {
 	fi
 	$1.msg "Initialising make for $origin"
 	origin="$(echo "$origin" | /usr/bin/tr / .)"
-	file="$(/usr/bin/make -VPLIST)" || return
+	file="$(/usr/bin/make -VPLIST)" || return $?
 	setvar ${this}plistOldFile "$file"
 	test -z "$2" && setvar ${this}plistNewFile "$file.${0##*/}"
 	$this.getPlistNewFile file
@@ -838,9 +838,9 @@ makeplist:Make.init() {
 		return 1
 	fi
 	makeplist:TmpDir ${this}Logdir ${this}logdir "${0##*/}.$origin" \
-	|| return
-	makeplist:PlistManager ${this}Plists "$1" || return
-	setvar ${this}no_build "$(/usr/bin/make -VNO_BUILD)" || return
+	|| return $?
+	makeplist:PlistManager ${this}Plists "$1" || return $?
+	setvar ${this}no_build "$(/usr/bin/make -VNO_BUILD)" || return $?
 }
 
 #
@@ -1107,12 +1107,12 @@ makeplist:Session.error() {
 #
 makeplist:Session.init() {
 	local outfile
-	bsda:opts:Flags ${this}OptsFlags || return
-	$this.params "$@" || return
+	bsda:opts:Flags ${this}OptsFlags || return $?
+	$this.params "$@" || return $?
 	$this.getOutfile outfile
-	makeplist:Make ${this}Make $this "$outfile" || return
-	makeplist:Options ${this}Options || return
-	$this.run || return
+	makeplist:Make ${this}Make $this "$outfile" || return $?
+	makeplist:Options ${this}Options || return $?
+	$this.run || return $?
 }
 
 #

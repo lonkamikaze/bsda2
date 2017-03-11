@@ -49,9 +49,9 @@ bsda:obj:createClass bsda:fifo:Fifo \
 bsda:fifo:Fifo.init() {
 	local fifo desc lock
 	# Create a named pipe
-	fifo="$(/usr/bin/mktemp -ut $this)" || return
-	bsda:obj:getDesc desc || return
-	/usr/bin/mkfifo "$fifo" || return
+	fifo="$(/usr/bin/mktemp -ut $this)" || return $?
+	bsda:obj:getDesc desc || return $?
+	/usr/bin/mkfifo "$fifo" || return $?
 	# Open a file descriptor
 	eval "exec $desc<> '$fifo'"
 	# Remove file system node for the named pipe
@@ -59,8 +59,8 @@ bsda:fifo:Fifo.init() {
 	setvar ${this}desc "$desc"
 
 	# Create a named pipe for the write lock
-	bsda:obj:getDesc lock || return
-	/usr/bin/mkfifo "$fifo" || return
+	bsda:obj:getDesc lock || return $?
+	/usr/bin/mkfifo "$fifo" || return $?
 	# Open a file descriptor
 	eval "exec $lock<> '$fifo'"
 	# Remove file system node for the named pipe

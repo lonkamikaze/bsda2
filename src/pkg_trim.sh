@@ -645,7 +645,7 @@ pkg:trim:Session.run() {
 			# Proceed to new packages
 			$state.next
 			if $state.isComplete; then
-				$this.runReview "$state" "$dialog" || return
+				$this.runReview "$state" "$dialog" || return $?
 			fi
 			;;
 		3) # Back
@@ -677,13 +677,13 @@ pkg:trim:Session.run() {
 	$dialog.menu action "Perform the following action" \
 	             Autoremove "Mark selected packages for 'pkg autoremove'" \
 	             Delete     "Perform 'pkg delete' with selected packages" \
-	|| return
+	|| return $?
 	# Perform action
 	yes=
 	$flags.check PKG_YES -ne 0 && yes=-y
 	# Always remove autoremove flag from unchecked packages
 	if [ -n "$unchecked" ]; then
-		/usr/sbin/pkg set $yes -A0 $unchecked || return
+		/usr/sbin/pkg set $yes -A0 $unchecked || return $?
 	fi
 	# Delete or set autoremove flag
 	case "$action" in
@@ -691,12 +691,12 @@ pkg:trim:Session.run() {
 		# Only want changed packages
 		checked="$(echo "$flipped" | /usr/bin/grep -Fx "$checked")"
 		if [ -n "$checked" ]; then
-			/usr/sbin/pkg set $yes -A1 $checked || return
+			/usr/sbin/pkg set $yes -A1 $checked || return $?
 		fi
 	;;
 	Delete)
 		if [ -n "$checked" ]; then
-			/usr/sbin/pkg delete $yes $checked || return
+			/usr/sbin/pkg delete $yes $checked || return $?
 		fi
 	;;
 	esac

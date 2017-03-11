@@ -37,7 +37,7 @@ distviper:Session.init() {
 
 	# Read command line arguments
 	bsda:opts:Flags ${this}Flags
-	$this.params "$@" || return
+	$this.params "$@" || return $?
 
 	# Perform
 	$this.run
@@ -107,8 +107,8 @@ distviper:Session.params() {
 		$term.use 1
 	fi
 
-	$this.getMakeVar ${this}portsdir PORTSDIR || return
-	$this.getMakeVar ${this}distdir DISTDIR || return
+	$this.getMakeVar ${this}portsdir PORTSDIR || return $?
+	$this.getMakeVar ${this}distdir DISTDIR || return $?
 
 	local keep
 	$this.getKeep keep

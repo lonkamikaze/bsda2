@@ -106,7 +106,7 @@ bsda:container:Array.foreach() {
 	$this.getCount count
 	key=0
 	while [ $key -lt $count ]; do
-		eval "$1 \"${key}\" \"\${${this}_val_$key}\"" || return
+		eval "$1 \"${key}\" \"\${${this}_val_$key}\"" || return $?
 		key=$((key + 1))
 	done
 }
@@ -385,7 +385,7 @@ bsda:container:Map.foreach() {
 	$this.getKeys keys
 	for key in $keys; do
 		eval "$1 \"\${${this}_key_$key}\" \"\${${this}_val_$key}\"" \
-		|| return
+		|| return $?
 	done
 }
 

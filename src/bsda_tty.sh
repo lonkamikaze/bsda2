@@ -77,7 +77,7 @@ bsda:obj:createClass bsda:tty:Async \
 #
 bsda:tty:Async.init() {
 	if [ -w /dev/tty ]; then
-		bsda:fifo:Fifo ${this}Fifo || return
+		bsda:fifo:Fifo ${this}Fifo || return $?
 		setvar ${this}active 1
 		$class.daemon &
 		setvar ${this}dpid $!

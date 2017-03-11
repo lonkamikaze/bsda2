@@ -253,7 +253,7 @@ pkg:libchk:Session.print() {
 	# Honour quiet output flag
 	if $flags.check PKG_QUIET -ne 0; then
 		$($this.Term).stdout "$pkg"
-		return
+		return $?
 	fi
 
 	# Give a detailed account of every file missing a library

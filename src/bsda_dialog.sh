@@ -34,7 +34,7 @@ bsda:obj:createClass bsda:dialog:Dialog \
 #
 bsda:dialog:Dialog.init() {
 	local desc
-	bsda:obj:getDesc desc || return
+	bsda:obj:getDesc desc || return $?
 	setvar ${this}desc "$desc"
 	eval "exec $desc>&1"
 	$this.setArgs "$@"
