@@ -462,7 +462,7 @@ bsda:obj:createClass() {
 	# Create destructor.
 	eval "$class.delete() {
 		${clean:+
-		$clean \"\$@\" || return
+		$clean \"\$@\" || return \$?
 		# Unregister cleanup function from EXIT trap
 		local nl
 		nl='$IFS'
