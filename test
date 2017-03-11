@@ -1,0 +1,25 @@
+#!/bin/sh
+
+#
+# Executes the given tests.
+#
+# Run `./test \*` to run all tests.
+#
+
+dir="${0%${0##*/}}"
+cd "${dir%/}/tests" || return 1
+
+for test in $@; do
+	echo "Running: sh $test"
+	if sh -e "$test"; then
+		echo "Passed: sh $test"
+	else
+		echo "Failed: sh $test"
+	fi
+	echo "Running: bash $test"
+	if bash -e "$test"; then
+		echo "Passed: bash $test"
+	else
+		echo "Failed: bash $test"
+	fi
+done
