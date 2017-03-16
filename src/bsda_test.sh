@@ -6,10 +6,12 @@ readonly _bsda_test_=1
 #
 # @param 1
 #	This should be $LINENO
+# @param 2
+#	The error number
 #
 bsda:test:err() {
-	echo "Failed in line: $1"
-	exit 1
+	echo "Error $2 in line: $1"
+	exit $2
 }
 
 #
