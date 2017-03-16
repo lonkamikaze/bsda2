@@ -39,6 +39,174 @@ bsda:test:match() {
 }
 
 #
+# Each line is matched against a set of glob patterns.
+#
+# The return value depends on a relationship critereria that specifies
+# how lines from the string should related to glob patterns:
+#
+# | Relationship | Description                                              |
+# |--------------|----------------------------------------------------------|
+# | all:any      | All lines match a pattern                                |
+# | all:all      | All lines match a pattern, each pattern is matched       |
+# | all:once     | All lines match a pattern, each pattern matches one line |
+# | any:any      | At least one line matches a pattern                      |
+# | any:all      | All patterns match at least one line                     |
+# | any:once     | All patterns match one line                              |
+#
+# @param 1
+#	The string to match against the patterns
+# @param 2
+#	The relationship between string lines and patterns
+# @param @
+#	The glob patterns to match against
+# @retval 0
+#	The relationship is satisfied
+# @retval 1
+#	The relationship is not satisfied
+# @retval 13
+#	The string line part of the relationship is unknown
+# @retval 23
+#	The pattern part of the relationship is unknown
+#
+bsda:test:xmatch() {
+	local IFS rel str i
+	IFS='
+'
+	str="$1"
+	rel="$2"
+	shift 2
+	i=0
+	while [ $i -lt $# ]; do
+		local count_$i
+		i=$((i + 1))
+	done
+	case "$rel" in
+	all:any)
+		for str in $str; do
+			bsda:test:xmatch_any "$str" "$@" || return $?
+		done
+		return 0
+	;;
+	any:any)
+		for str in $str; do
+			bsda:test:xmatch_any "$str" "$@" && return 0
+		done
+		return 1
+	;;
+	all:*)
+		for str in $str; do
+			bsda:test:xmatch_count "$str" "$@" || return $?
+		done
+	;;
+	any:*)
+		for str in $str; do
+			bsda:test:xmatch_count "$str" "$@"
+		done
+	;;
+	*)
+		# Unsupported relation
+		return 13
+	;;
+	esac
+	# Check counts
+	case "$rel" in
+	*:all)
+		i=0
+		while [ $i -lt $# ]; do
+			# Bail out if a pattern was not matched
+			if [ $((count_$i)) -eq 0 ]; then
+				return 1
+			fi
+			i=$((i + 1))
+		done
+		return 0
+	;;
+	*:once)
+		i=0
+		while [ $i -lt $# ]; do
+			# Bail out if a pattern was not matched once
+			if [ $((count_$i)) -ne 1 ]; then
+				return 1
+			fi
+			i=$((i + 1))
+		done
+		return 0
+	;;
+	esac
+	# Unsupported relation
+	return 23
+}
+
+#
+# Helper function to bsda:test:xmatch().
+#
+# Checks the given line against the given patterns.
+#
+# @param 1
+#	The string line to match against patterns
+# @param @
+#	The patterns to match against
+# @retval 0
+#	A pattern match was encountered
+# @retval 1
+#	None of the patterns are a match
+#
+bsda:test:xmatch_any() {
+	local line pattern
+	line="$1"
+	pattern="$2"
+	# Terminate recursion, when running out of patterns to mach
+	if ! shift 2; then
+		return 1
+	fi
+	# Try the current pattern
+	case "$line" in
+	$pattern)
+		return 0
+	;;
+	esac
+	# Try next pattern
+	bsda:test:xmatch_any "$line" "$@"
+}
+
+#
+# Helper function to bsda:test:xmatch().
+#
+# Counts the matches of each pattern.
+#
+# @param [count_0..count_$#)
+#	Store the number of matches for each pattern
+# @param 1
+#	The string line to match against patterns
+# @param @
+#	The patterns to match against
+# @retval 0
+#	At least one pattern match was encountered
+# @retval 1
+#	None of the patterns are a match
+#
+bsda:test:xmatch_count() {
+	local line pattern ret
+	line="$1"
+	pattern="$2"
+	# Terminate recursion, when running out of patterns to mach
+	if ! shift 2; then
+		return 1
+	fi
+	# Recurse to next pattern
+	bsda:test:xmatch_count "$line" "$@"
+	ret=$?
+	# Try the current pattern
+	case "$line" in
+	$pattern)
+		: $((count_$# += 1))
+		return 0
+	;;
+	esac
+	return $ret
+}
+
+#
 # Return the function type of the given function.
 #
 # | Type       | Description                                       |
