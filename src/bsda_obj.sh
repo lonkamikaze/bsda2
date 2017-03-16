@@ -782,7 +782,9 @@ bsda:obj:isSimpleFloat() {
 #	A list of method names.
 #
 bsda:obj:createMethods() {
-	local method scope
+	local IFS method scope
+	IFS='
+'
 	for method in $4; do
 		scope=${method%:*}
 		# Get scope check from class.
@@ -814,7 +816,9 @@ bsda:obj:createMethods() {
 #	A list of method names.
 #
 bsda:obj:deleteMethods() {
-	local method
+	local IFS method
+	IFS='
+'
 	for method in $2; do
 		method=${method##*:}
 		unset -f "$1.$method"
@@ -834,7 +838,9 @@ bsda:obj:deleteMethods() {
 #	A list of attribute names.
 #
 bsda:obj:deleteAttributes() {
-	local attribute
+	local IFS attribute
+	IFS='
+'
 	for attribute in $2; do
 		unset "${1}$attribute"
 	done
