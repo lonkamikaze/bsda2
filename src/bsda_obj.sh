@@ -1071,10 +1071,7 @@ bsda:obj:exit() {
 		obj="${bsda_obj_freeOnExit%%$nl*}"
 		if ! $obj.delete; then
 			echo "bsda:obj:exit: WARNING: Delete of $obj failed!" 1>&2
-			local head tail
-			head="${bsda_obj_freeOnExit%%$obj*}"
-			tail="${bsda_obj_freeOnExit#*$obj$nl}"
-			bsda_obj_freeOnExit="$head$tail"
+			bsda_obj_freeOnExit="${bsda_obj_freeOnExit#$obj$nl}"
 		fi
 	done
 	# Wait if any children stick around.
