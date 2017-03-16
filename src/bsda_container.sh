@@ -3,6 +3,7 @@ test -n "$_bsda_container_" && return 0
 readonly _bsda_container_=1
 
 . ${bsda_dir:-.}/bsda_obj.sh
+. ${bsda_dir:-.}/bsda_util.sh
 
 #
 # A package containing container classes.
@@ -390,16 +391,6 @@ bsda:container:Map.foreach() {
 }
 
 #
-# A helper function that outputs the number of arguments it has.
-#
-# @param @
-#	A number of arguments
-#
-bsda:container:Map.argCount() {
-	echo $#
-}
-
-#
 # Returns the number of key/value pairs stored in the map.
 #
 # @param &1
@@ -407,9 +398,12 @@ bsda:container:Map.argCount() {
 #
 bsda:container:Map.getCount() {
 	$class.compress
-	local keys
+	local IFS count keys
+	IFS='
+'
 	$this.getKeys keys
-	$caller.setvar "$1" "$($class.argCount ${keys})"
+	bsda:util:count count $keys
+	$caller.setvar "$1" "$count"
 }
 
 #
