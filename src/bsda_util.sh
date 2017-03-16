@@ -49,6 +49,20 @@ bsda:util:split() {
 }
 
 #
+# Count the number of arguments.
+#
+# The destination variable is not counted.
+#
+# @param &1
+#	The destination variable for the argument count
+# @param @
+#	The arguments to count
+#
+bsda:util:count() {
+	setvar "$1" $(($# - 1))
+}
+
+#
 # Test whether the first argument occurs in the following argument list.
 #
 # @param 1
