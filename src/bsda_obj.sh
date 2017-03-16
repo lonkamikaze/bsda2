@@ -547,6 +547,12 @@ bsda:obj:createClass() {
 	eval "$class.deserialise() {
 		# Create method instances.
 		$bsda_obj_namespace:createMethods $class $classPrefix \$1 \"$methods\"
+		${clean:+
+		if [ -z \"\$bsda_obj_freeOnExit\" ] || \
+		   [ -n \"\${bsda_obj_freeOnExit%%*\$1*\}\" ]; then
+			bsda_obj_freeOnExit=\"\$bsda_obj_freeOnExit\$1$IFS\"
+		fi
+		}
 	}"
 
 	# A static type checker.
