@@ -34,7 +34,7 @@ bsda:obj:createClass bsda:container:Array \
 #
 # @param @
 #	A list of values
-# 
+#
 bsda:container:Array.init() {
 	setvar ${this}count 0
 	while [ $# -gt 0 ]; do
@@ -120,7 +120,7 @@ bsda:container:Array.foreach() {
 #	$array.[ 2 ]= "monkey" # Assign monkey
 #	$array.[ 2 ]           # Output monkey
 #	$array.[ 2 ] island    # Assign monkey to island
-# 
+#
 # @param 1
 #	The array key (index) to access
 # @param 2
@@ -129,7 +129,6 @@ bsda:container:Array.foreach() {
 #	The value to assign for write access
 # @param &3
 #	The variable to assign the value to
-#
 # @retval 0
 #	Operation completed
 # @retval 1
@@ -164,6 +163,24 @@ bsda:container:Array.[() {
 }
 
 #
+# Clears out array items that would not be overwritten by the coming
+# seserialisation.
+#
+# @param 1
+#	The object ID of the array about to be deserialised
+# @param 2
+#	The length of the array about to be deserialised
+#
+bsda:container:Array.serialise_clear() {
+	local i
+	i=$2
+	while [ $i -lt $((${1}count)) ]; do
+		unset ${1}_val_$i
+		i=$((i + 1))
+	done
+}
+
+#
 # Serialise the array.
 #
 # @parma &1
@@ -172,7 +189,7 @@ bsda:container:Array.[() {
 bsda:container:Array.serialise() {
 	local i count serialised svar
 	$this.getCount count
-	serialised="${this}count=$((count))"
+	serialised="$class.serialise_clear $this $((count));${this}count=$((count))"
 	i=0
 	while [ $i -lt $count ]; do
 		bsda:obj:serialiseVar svar ${this}_val_$i
@@ -407,6 +424,18 @@ bsda:container:Map.getCount() {
 }
 
 #
+# Try to clear map before it is overwritten by serialisation.
+#
+# This prevents leaking stale data.
+#
+# @param 1
+#	The object ID of the map about to be deserialised
+#
+bsda:container:Map.serialise_clear() {
+	class=bsda:container:Map $1.clean 2>&- ||:
+}
+
+#
 # Serialise the map.
 #
 # @parma &1
@@ -419,7 +448,7 @@ bsda:container:Map.serialise() {
 '
 	$this.getKeys keys
 	bsda:obj:serialiseVar serialised ${this}keys
-	serialised="$serialised;${this}addCount=0;${this}rmKeys=;${this}rmCount=0"
+	serialised="$class.serialise_clear $this;$serialised;${this}addCount=0;${this}rmKeys=;${this}rmCount=0"
 	for key in $keys; do
 		bsda:obj:serialiseVar keyvar ${this}_key_$key
 		bsda:obj:serialiseVar valvar ${this}_val_$key
