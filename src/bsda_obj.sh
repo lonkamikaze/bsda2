@@ -413,7 +413,7 @@ bsda:obj:createClass() {
 		${classPrefix}${bsda_obj_uid}_nextId=\$((\$${classPrefix}${bsda_obj_uid}_nextId + 1))
 
 		# Create method instances.
-		$bsda_obj_namespace:createMethods $class $classPrefix \$this \"$methods\"
+		$bsda_obj_namespace:createMethods $class $classPrefix \"\$this\" '$methods'
 
 		${clean:+bsda_obj_freeOnExit=\"\$bsda_obj_freeOnExit\$this$IFS\"}
 
@@ -422,9 +422,9 @@ bsda:obj:createClass() {
 		if [ -n \"\$bsda_obj_doCopy\" ]; then
 			# Return the object reference.
 			if [ -n \"\$1\" ]; then
-				setvar \"\$1\" \$this
+				setvar \"\$1\" \"\$this\"
 			else
-				echo \$this
+				echo \"\$this\"
 			fi
 			return 0
 		fi
@@ -442,16 +442,16 @@ bsda:obj:createClass() {
 		bsda:obj:callerFinish
 		# Destroy the object on failure.
 		if [ \$_return -ne 0 ]; then
-			\$this.delete
+			\"\$this\".delete
 			return \$_return
 		fi
 		}
 
 		# Return the object reference.
 		if [ -n \"\$_var\" ]; then
-			setvar \"\$_var\" \$this
+			setvar \"\$_var\" \"\$this\"
 		else
-			echo \$this
+			echo \"\$this\"
 		fi
 		return 0
 	}"
@@ -468,13 +468,13 @@ bsda:obj:createClass() {
 
 		${aggregations:+eval \"$(
 		for alias in $aggregations; do
-			echo \\\$\${this}$alias.delete
+			echo \\\"\\\$\${this}$alias\\\".delete
 		done
 		)\"}
 
 		# Delete methods and attributes.
-		$bsda_obj_namespace:deleteMethods \$this \"$methods\"
-		$bsda_obj_namespace:deleteAttributes \$this \"$attributes\"
+		$bsda_obj_namespace:deleteMethods \"\$this\" '$methods'
+		$bsda_obj_namespace:deleteAttributes \"\$this\" '$attributes'
 	}"
 
 	# Prints an object in a human readable format.
@@ -482,7 +482,7 @@ bsda:obj:createClass() {
 		local result
 		result=\"$class@\$this {${attributes:+$IFS\$( (
 			$(for alias in $aggregations; do
-				echo "eval \"\\\$\${this}$alias.dump var\""
+				echo "eval \"\\\"\\\$\${this}$alias\\\".dump var\""
 				echo "echo \"$alias=\$var\""
 			done)
 			$(for attribute in $attributes; do
@@ -493,7 +493,7 @@ bsda:obj:createClass() {
 				echo "echo \"$attribute='\$var'\""
 			done)
 		) | /usr/bin/sed 's/^/  /')$IFS}}\"
-		\$caller.setvar \"\$1\" \"\$result\"
+		\"\$caller\".setvar \"\$1\" \"\$result\"
 	}"
 
 	# Create copy method.
@@ -506,7 +506,7 @@ bsda:obj:createClass() {
 		$class reference
 
 		# Store the new object reference in the target variable.
-		\$caller.setvar \"\$1\" \$reference
+		\"\$caller\".setvar \"\$1\" \"\$reference\"
 
 		# For each attribute copy the value over to the
 		# new object.
@@ -518,10 +518,9 @@ bsda:obj:createClass() {
 
 		${aggregations:+eval \"$(
 		for alias in $aggregations; do
-			echo "\\\$\${this}$alias.copy \${reference}$alias"
+			echo "\\\"\\\$\${this}$alias\\\".copy \${reference}$alias"
 		done
 		)\"}
-
 	}"
 
 	# A serialise method.
@@ -536,17 +535,17 @@ bsda:obj:createClass() {
 		serialised=\"\$serialised;$class.deserialise \$this\"
 
 		$(for alias in $aggregations; do
-			echo eval \"\\\$\${this}$alias.serialise svar\"
+			echo eval \"\\\"\\\$\${this}$alias\\\".serialise svar\"
 			echo 'serialised="$svar;$serialised"'
 		done)
 
-		\$caller.setvar \"\$1\" \"\$serialised\"
+		\"\$caller\".setvar \"\$1\" \"\$serialised\"
 	}"
 
 	# A static deserialise method.
 	eval "$class.deserialise() {
 		# Create method instances.
-		$bsda_obj_namespace:createMethods $class $classPrefix \$1 \"$methods\"
+		$bsda_obj_namespace:createMethods $class $classPrefix \"\$1\" '$methods'
 		${clean:+
 		if [ -z \"\$bsda_obj_freeOnExit\" ] || \
 		   [ -n \"\${bsda_obj_freeOnExit%%*\$1*\}\" ]; then
@@ -903,11 +902,11 @@ bsda:obj:callerSetup() {
 #
 bsda:obj:callerFinish() {
 	# Delete objects
-	eval eval "\${delete_${caller}}"
-	unset delete_${caller}
+	eval "eval \"\${delete_${caller}}\""
+	unset "delete_${caller}"
 
 	# Remove the bsda:obj:callerSetvar() wrapper.
-	unset -f $caller.setvar $caller.delete
+	unset -f "$caller.setvar" "$caller.delete"
 	# Decrement the call stack counter.
 	bsda_obj_callStackCount=$(($bsda_obj_callStackCount - 1))
 
@@ -949,9 +948,9 @@ bsda:obj:callerSetvar() {
 	test -z "$1" && echo "$2" && return
 
 	# Store value.
-	setvar $caller$1 "$2"
+	setvar "$caller$1" "$2"
 	# Register variable.
-	eval "setvars_${caller}=\$setvars_${caller}\${setvars_${caller}:+ }$1"
+	eval "setvars_${caller}=\"\$setvars_${caller}\${setvars_${caller}:+ }$1\""
 }
 
 #
@@ -1014,7 +1013,7 @@ bsda:obj:fork() {
 	i=$((bsda_obj_callStackCount))
 	while [ $i -gt 0 ]; do
 		caller="bsda_obj_callStack_$((i -= 1))_"
-		unset delete_${caller}
+		unset "delete_${caller}"
 	done
 
 	# Update UID
@@ -1061,15 +1060,15 @@ bsda:obj:exit() {
 	# Stack unwinding, just remove temp objects
 	while [ $((bsda_obj_callStackCount)) -gt 0 ]; do
 		caller="bsda_obj_callStack_$((bsda_obj_callStackCount - 1))_"
-		eval eval "\${delete_${caller}}"
-		unset delete_${caller}
+		eval "eval \"\${delete_${caller}}\""
+		unset "delete_${caller}"
 		: $((bsda_obj_callStackCount -= 1))
 	done
 
 	# Garbage collection
 	while [ -n "$bsda_obj_freeOnExit" ]; do
 		obj="${bsda_obj_freeOnExit%%$nl*}"
-		if ! $obj.delete; then
+		if ! "$obj".delete; then
 			echo "bsda:obj:exit: WARNING: Delete of $obj failed!" 1>&2
 			bsda_obj_freeOnExit="${bsda_obj_freeOnExit#$obj$nl}"
 		fi
