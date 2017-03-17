@@ -1,6 +1,11 @@
 . ../src/bsda_test.sh
 . ../src/bsda_obj.sh
 
+# Evil IFS, to make sure everything is IFS safe. Using _ in IFS means
+# every object reference needs to be quoted, which is annoying, but
+# at least the backend should support this.
+IFS=':._'
+
 # Try setvar/getvar
 setvar x 1337 && test "$x" = 1337
 getvar y x && test "$y" = "$x"
@@ -28,12 +33,12 @@ Bar.getMethods | grep -qFx public:dump
 Foo foo
 
 # Test empty obj dump format
-dump=$($foo.dump)
+dump=$("$foo".dump)
 bsda:test:match 'Foo@* {}' "$dump"
 
 # Test deleting
-$foo.delete
-! error=$($foo.delete 2>&1)
+"$foo".delete
+! error=$("$foo".delete 2>&1)
 bsda:test:match "* not found" "$error"
 
 # Test setters'n'getters
@@ -41,10 +46,10 @@ bsda:obj:createClass Baz w:value
 Baz.getMethods | grep -qFx public:getValue
 Baz.getMethods | grep -qFx public:setValue
 Baz baz
-$baz.getValue x && test -z "$x"
-$baz.setValue 13
-$baz.getValue x && test "$x" = 13
-$baz.delete
+"$baz".getValue x && test -z "$x"
+"$baz".setValue 13
+"$baz".getValue x && test "$x" = 13
+"$baz".delete
 # Test private/public
 bsda:obj:createClass Baz w:private:value
 Baz.getMethods | grep -qFx private:getValue
@@ -78,31 +83,31 @@ Baz.getMethods | grep -qFx private:setValue
 
 # Test private
 Baz baz
-! error=$($baz.setValue 42 2>&1 )
+! error=$("$baz".setValue 42 2>&1 )
 bsda:test:match "Baz.setValue:*access*private*" "$error"
 # Fake private
 class=Baz
-$baz.setValue 42
+"$baz".setValue 42
 unset class
-$baz.getValue x && test "$x" = 42
+"$baz".getValue x && test "$x" = 42
 
 # Test copy
-$baz.copy baz1
-$baz1.getValue x && test "$x" = 42
-$baz1.delete
+"$baz".copy baz1
+"$baz1".getValue x && test "$x" = 42
+"$baz1".delete
 # Test serialise
-$baz.serialise serialised
+"$baz".serialise serialised
 x=0
-getvar x ${baz}value && test "$x" = 42
-$baz.delete
-getvar x ${baz}value && test -z "$x"
+getvar x "${baz}"value && test "$x" = 42
+"$baz".delete
+getvar x "${baz}"value && test -z "$x"
 ! error=$($baz.getValue x 2>&1 )
 bsda:test:match "* not found" "$error"
 bsda:obj:deserialise baz "$serialised"
 x=0
-$baz.getValue x && test "$x" = 42
+"$baz".getValue x && test "$x" = 42
 # Test dump format
-$baz.dump dump
+"$baz".dump dump
 bsda:test:match "Baz@* {\n  value='42'\n}" "$dump"
 
 # Test methods
@@ -110,24 +115,24 @@ bsda:obj:createClass Boom x:foo
 Boom.foo() { call="Boom.foo"; }
 Boom boom
 call=
-$boom.foo && test "$call" = "Boom.foo"
+"$boom".foo && test "$call" = "Boom.foo"
 # Test $caller.setvar
-Boom.foo() { $caller.setvar "$1" "Boom.foo"; }
+Boom.foo() { "$caller".setvar "$1" "Boom.foo"; }
 call=
-$boom.foo call && test "$call" = "Boom.foo"
-call=$($boom.foo) && test "$call" = "Boom.foo"
+"$boom".foo call && test "$call" = "Boom.foo"
+call=$("$boom".foo) && test "$call" = "Boom.foo"
 # Test recursion using fibonacci function
 Boom.foo() {
 	if [ $2 -le 2 ]; then
-		$caller.setvar "$1" 1
+		"$caller".setvar "$1" 1
 		return
 	fi
 	local a b
-	$this.foo a $(($2 - 1))
-	$this.foo b $(($2 - 2))
-	$caller.setvar "$1" $((a + b))
+	"$this".foo a $(($2 - 1))
+	"$this".foo b $(($2 - 2))
+	"$caller".setvar "$1" $((a + b))
 }
-$boom.foo x 7
+"$boom".foo x 7
 test "$x" = 13
 
 # Test initialiser/finaliser
@@ -137,7 +142,7 @@ Black.clean() { call="Black.clean"; }
 call=
 Black black
 test "$call" = "Black.init"
-$black.delete
+"$black".delete
 test "$call" = "Black.clean"
 
 # Test $caller.delete
@@ -146,11 +151,11 @@ call=
 White.run() {
 	local black
 	Black black
-	$caller.delete "$black"
+	"$caller".delete "$black"
 	test "$call" = "Black.init"
 }
 White white
-$white.run
+"$white".run
 test "$call" = "Black.clean"
 
 # Test double initialiser function
@@ -167,86 +172,86 @@ bsda:obj:createClass Bob \
 	x:private:func \
 	i:private:init
 Bob.init() {
-	setvar ${this}rval _rval_
-	setvar ${this}wval _wval_
+	setvar "${this}"rval _rval_
+	setvar "${this}"wval _wval_
 }
 # Test if everything got setup properly
 Bob bob
-bsda:test:isFunction $bob.getRval
-bsda:test:isFunction $bob.setWval
-bsda:test:isFunction $bob.getWval
-bsda:test:isFunction $bob.func
-bsda:test:isFunction $bob.init
-bsda:test:isFunction $bob.copy
-bsda:test:isFunction $bob.dump
-bsda:test:isFunction $bob.serialise
-bsda:test:isFunction $bob.delete
-getvar val ${bob}rval && test "$val" = _rval_
-getvar val ${bob}wval && test "$val" = _wval_
+bsda:test:isFunction "$bob".getRval
+bsda:test:isFunction "$bob".setWval
+bsda:test:isFunction "$bob".getWval
+bsda:test:isFunction "$bob".func
+bsda:test:isFunction "$bob".init
+bsda:test:isFunction "$bob".copy
+bsda:test:isFunction "$bob".dump
+bsda:test:isFunction "$bob".serialise
+bsda:test:isFunction "$bob".delete
+getvar val "${bob}"rval && test "$val" = _rval_
+getvar val "${bob}"wval && test "$val" = _wval_
 # Test if everything gets removed properly
-$bob.delete
-bsda:test:isNone $bob.getRval
-bsda:test:isNone $bob.setWval
-bsda:test:isNone $bob.getWval
-bsda:test:isNone $bob.func
-bsda:test:isNone $bob.init
-bsda:test:isNone $bob.copy
-bsda:test:isNone $bob.dump
-bsda:test:isNone $bob.serialise
-bsda:test:isNone $bob.delete
-! bsda:test:isSet ${bob}rval
-! bsda:test:isSet ${bob}wval
+"$bob".delete
+bsda:test:isNone "$bob".getRval
+bsda:test:isNone "$bob".setWval
+bsda:test:isNone "$bob".getWval
+bsda:test:isNone "$bob".func
+bsda:test:isNone "$bob".init
+bsda:test:isNone "$bob".copy
+bsda:test:isNone "$bob".dump
+bsda:test:isNone "$bob".serialise
+bsda:test:isNone "$bob".delete
+! bsda:test:isSet "${bob}"rval
+! bsda:test:isSet "${bob}"wval
 
 # Test aggregation
 bsda:obj:createClass A
 bsda:obj:createClass B a:a=A i:private:init
 bsda:obj:createClass C a:b=B a:a=A i:private:init
 B.init() {
-	A ${this}a
+	A "${this}"a
 }
 C.init() {
-	B ${this}b
-	A ${this}a
+	B "${this}"b
+	A "${this}"a
 }
 # Create aggregation
 C c
 # Check structure
-$c.dump dump
+"$c".dump dump
 bsda:test:match "C@*_0_ {\n  b=B@*_0_ {\n    a=A@*_0_ {}\n  }\n  a=A@*_1_ {}\n}" "$dump"
-bsda:test:isFunction $c.serialise
-bsda:test:isFunction $c.copy
+bsda:test:isFunction "$c".serialise
+bsda:test:isFunction "$c".copy
 # Copy and check copy
-$c.copy c1
-$c1.dump dump1
+"$c".copy c1
+"$c1".dump dump1
 bsda:test:match "C@*_1_ {\n  b=B@*_1_ {\n    a=A@*_2_ {}\n  }\n  a=A@*_3_ {}\n}" "$dump1"
-$c1.delete
+"$c1".delete
 # Check recursive delete
-$c.b cb
-$c.a ca
-$cb.a cba
-$c.delete
-! bsda:test:isSet ${c}b
-! bsda:test:isSet ${c}a
-! bsda:test:isSet ${cb}a
-bsda:test:isNone $c.b
-bsda:test:isNone $c.a
-bsda:test:isNone $c.delete
-bsda:test:isNone $cb.a
-bsda:test:isNone $cb.delete
-bsda:test:isNone $cba.delete
+"$c".b cb
+"$c".a ca
+"$cb".a cba
+"$c".delete
+! bsda:test:isSet "${c}"b
+! bsda:test:isSet "${c}"a
+! bsda:test:isSet "${cb}"a
+bsda:test:isNone "$c".b
+bsda:test:isNone "$c".a
+bsda:test:isNone "$c".delete
+bsda:test:isNone "$cb".a
+bsda:test:isNone "$cb".delete
+bsda:test:isNone "$cba".delete
 # Check aggregation without type
 bsda:obj:createClass D a:foo
 D d
-bsda:test:isNone $d.serialise
-bsda:test:isNone $d.copy
-$d.delete
+bsda:test:isNone "$d".serialise
+bsda:test:isNone "$d".copy
+"$d".delete
 # Check aggregation with non copyable type
 bsda:obj:createClass E c:private:clean
 bsda:obj:createClass F a:a=A a:e=E
 F f
-bsda:test:isNone $f.copy
-bsda:test:isNone $f.serialise
-$f.delete
+bsda:test:isNone "$f".copy
+bsda:test:isNone "$f".serialise
+"$f".delete
 
 # Test stack unwinding
 bsda:obj:createClass SUa c:private:clean
@@ -261,15 +266,15 @@ bsda:obj:createClass SU \
 SU.init() {
 	local obj
 	SUa obj
-	$caller.delete $obj
-	$this.run
+	"$caller".delete "$obj"
+	"$this".run
 }
 SU.run() {
 	local obj
 	SUb obj
-	$caller.delete $obj
+	"$caller".delete "$obj"
 	SUc obj
-	$caller.delete $obj
+	"$caller".delete "$obj"
 }
 unwind="$(SU obj)"
 bsda:test:match 'C\nB\nA' "$unwind"
@@ -278,9 +283,9 @@ bsda:test:match 'C\nB\nA' "$unwind"
 SU.run() {
 	local obj
 	SUb obj
-	$caller.delete $obj
+	"$caller".delete "$obj"
 	SUc obj
-	$caller.delete $obj
+	"$caller".delete "$obj"
 	exit
 }
 unwind="$(bsda:obj:fork; SU obj)"
