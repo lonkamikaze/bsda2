@@ -5,13 +5,15 @@ readonly _bsda_test_=1
 # Print failure and exit.
 #
 # @param 1
-#	This should be $LINENO
+#	The file name
 # @param 2
+#	This should be $LINENO
+# @param 3
 #	The error number
 #
 bsda:test:err() {
-	echo "Error $2 in line: $1"
-	exit $2
+	echo "$1:$2: ERROR: $3" >&2
+	exit $3
 }
 
 #

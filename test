@@ -16,8 +16,9 @@ nl='
 for test in $@; do
 	# Inject bsda:test and add `|| bsda:test:err $LINENO` to every line
 	code="bsda_dir='../src';readonly bsda_dir;. ../src/bsda_test.sh;$(
-		awk '/((^|then|do|[({])|[ \t]*\\)$/{print;next}
-		     {print $0 " || bsda:test:err $LINENO $?"}' "$test")"
+		awk -vFILE="$test" \
+		    '/((^|then|do|[({])|[ \t]*\\)$/{print;next}
+		     {print $0 " || bsda:test:err \"" FILE "\" $LINENO $?"}' "$test")"
 	echo "Running: sh $test"
 	if sh -ec "$code"; then
 		echo "Passed: sh $test"
