@@ -62,7 +62,7 @@ pkg:libchk:Session.init() {
 	bsda:tty:Async ${this}Term
 
 	# Set defaults
-	setvar ${this}jobs $(($(/sbin/sysctl -n hw.ncpu 2> /dev/null || echo 1) + 1))
+	setvar ${this}jobs $(($(/sbin/sysctl -n hw.ncpu 2>&- || echo 1) + 1))
 
 	# Read command line arguments
 	bsda:opts:Flags ${this}Flags
@@ -120,7 +120,7 @@ pkg:libchk:Session.params() {
 				jobs="$2"
 				shift
 			fi
-			if ! [ "$jobs" -eq "$jobs" ] 2> /dev/null; then
+			if ! [ "$jobs" -eq "$jobs" ] 2>&-; then
 				$($this.Term).stderr \
 					"The -j option must be followed by a number."
 				exit 4
@@ -360,7 +360,7 @@ pkg:libchk:Session.job() {
 	files="$(pkg:info:files $1)"
 
 	# Get misses
-	misses="$(/usr/bin/ldd $files 2> /dev/null | /usr/bin/awk "
+	misses="$(/usr/bin/ldd $files 2>&- | /usr/bin/awk "
 		/^[^ ].*:\$/{sub(/:\$/,\"\");file=\$0}
 		/not found/${compat:+||/\/lib\/compat\//}{print file \"|\" \$1 \"|\"}
 	")"

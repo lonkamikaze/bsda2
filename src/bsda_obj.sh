@@ -1168,14 +1168,14 @@ bsda:obj:fork
 #
 
 # Emulate setvar for shells that don't have it, i.e. bash.
-if ! setvar 2> /dev/null; then
+if ! setvar 2>&-; then
 	setvar() {
 		eval "$1=\"\$2\""
 	}
 fi
 
 # Setup getvar for symmetry with setvar
-if ! getvar 2> /dev/null; then
+if ! getvar 2>&-; then
 	#
 	# Returns a variable from a given reference.
 	#

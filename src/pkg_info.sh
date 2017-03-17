@@ -110,13 +110,13 @@ pkg:info:Env.match() {
 	if $flags.check PKG_ALL -eq 0; then
 		# Get dependencies if requested
 		if $flags.check PKG_DEPENDENCIES -ne 0; then
-			dep="$(/usr/sbin/pkg info -qd $pkgs 2> /dev/null)"
+			dep="$(/usr/sbin/pkg info -qd $pkgs 2>&-)"
 			pkgs="$pkgs${dep:+$IFS}$dep"
 			pkgs="$(echo "$pkgs" | /usr/bin/awk '!a[$0]++')"
 		fi
 		# Get required by packages if requested
 		if $flags.check PKG_REQUIRED_BY -ne 0; then
-			req="$(/usr/sbin/pkg info -qr $pkgs 2> /dev/null)"
+			req="$(/usr/sbin/pkg info -qr $pkgs 2>&-)"
 			pkgs="$pkgs${req:+$IFS}$req"
 			pkgs="$(echo "$pkgs" | /usr/bin/awk '!a[$0]++')"
 		fi
@@ -126,7 +126,7 @@ pkg:info:Env.match() {
 	# used internally as well, so we do not have to convert for
 	# display.
 	if $flags.check PKG_ORIGIN -ne 0; then
-		pkgs="$(/usr/sbin/pkg info -qo $pkgs 2> /dev/null)"
+		pkgs="$(/usr/sbin/pkg info -qo $pkgs 2>&-)"
 	fi
 
 	# Return the collected packages

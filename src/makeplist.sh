@@ -597,10 +597,10 @@ makeplist:PlistManager.create() {
 	$this.plistFilter plistFilter "$3" "$4"
 	setvar ${plist}files "$( (
 		/usr/bin/find "$stagedir" \( -type f -o -type l \) \
-		              -not -path "$stagedir$prefix/*" 2> /dev/null \
+		              -not -path "$stagedir$prefix/*" 2>&- \
 		| /usr/bin/sort -n \
 		| /usr/bin/sed "s!^$stagedir!!"
-		/usr/sbin/mtree -cp "$stagedir$prefix/" 2> /dev/null \
+		/usr/sbin/mtree -cp "$stagedir$prefix/" 2>&- \
 		| /usr/sbin/mtree -f /dev/stdin -f "$mtree_file" \
 		| /usr/bin/sort -n \
 		| /usr/bin/awk '/ (file|link) [^\/]*/{sub(/ (file|link) [^\/]*/, "");print}'
@@ -779,7 +779,7 @@ makeplist:TmpDir.init() {
 makeplist:TmpDir.clean() {
 	local dirname
 	$this.getDirname dirname
-	/bin/rmdir "$dirname" 2> /dev/null || :
+	/bin/rmdir "$dirname" 2>&- || :
 }
 
 #
@@ -819,7 +819,7 @@ makeplist:Make.init() {
 		return 1
 	fi
 	wrkdir="$(/usr/bin/make -VWRKDIR)" || return $?
-	if ! /bin/mkdir -p "$wrkdir" 2> /dev/null; then
+	if ! /bin/mkdir -p "$wrkdir" 2>&-; then
 		$1.error "The WRKDIR could not be created: $wrkdir"
 		return 1
 	fi
@@ -833,7 +833,7 @@ makeplist:Make.init() {
 	setvar ${this}plistOldFile "$file"
 	test -z "$2" && setvar ${this}plistNewFile "$file.${0##*/}"
 	$this.getPlistNewFile file
-	if ! /usr/bin/touch "$file" 2> /dev/null; then
+	if ! /usr/bin/touch "$file" 2>&-; then
 		$1.error "The target plist-file is not writable: $file"
 		return 1
 	fi
@@ -1020,7 +1020,7 @@ makeplist:Make.plist() {
 	fi
 	# Get old plist
 	$this.getPlistOldFile file
-	if origPlist="$(/bin/cat "$file" 2> /dev/null)"; then
+	if origPlist="$(/bin/cat "$file" 2>&-)"; then
 		# Transplant keywords
 		plist="$(echo "$plist" | $class.plist_keywords - "$file")"
 	fi
