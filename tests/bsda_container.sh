@@ -2,8 +2,8 @@
 . ../src/bsda_test.sh
 . ../src/bsda_util.sh
 
-# Looks awkward because ML strings are not allowed in tests
-NL="$(printf '\n.')";NL="${NL%.}"
+NL='
+'
 # Comma separated fields
 IFS=","
 
