@@ -51,21 +51,21 @@ bsda:fifo:Fifo.init() {
 	# Create a named pipe
 	fifo="$(/usr/bin/mktemp -ut $this)" || return $?
 	bsda:obj:getDesc desc || return $?
+	setvar ${this}desc "$desc"
 	/usr/bin/mkfifo "$fifo" || return $?
 	# Open a file descriptor
 	eval "exec $desc<> '$fifo'"
 	# Remove file system node for the named pipe
 	/bin/rm "$fifo"
-	setvar ${this}desc "$desc"
 
 	# Create a named pipe for the write lock
 	bsda:obj:getDesc lock || return $?
+	setvar ${this}lock "$lock"
 	/usr/bin/mkfifo "$fifo" || return $?
 	# Open a file descriptor
 	eval "exec $lock<> '$fifo'"
 	# Remove file system node for the named pipe
 	/bin/rm "$fifo"
-	setvar ${this}lock "$lock"
 	# Release the lock for starters
 	echo >&$lock
 
