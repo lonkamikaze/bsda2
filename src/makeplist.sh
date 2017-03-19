@@ -519,7 +519,7 @@ makeplist:PlistManager.plistFilter() {
 	$this.getSession session
 	$session.OptsFlags flags
 	if $flags.check ORIG -eq 0; then
-		filter=".orig\$
+		filter="\\.orig\$
 $filter"
 	fi
 	# Return the filter list
