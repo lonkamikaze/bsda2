@@ -91,9 +91,9 @@ bsda:fifo:Fifo.init() {
 bsda:fifo:Fifo.clean() {
 	local desc
 	$this.getDesc desc
-	eval "exec $desc>&-"
+	eval "${desc:+exec $desc>&-}"
 	bsda:obj:releaseDesc $desc
 	$this.getLock desc
-	eval "exec $desc>&-"
+	eval "${desc:+exec $desc>&-}"
 	bsda:obj:releaseDesc $desc
 }
