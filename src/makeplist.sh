@@ -486,6 +486,9 @@ makeplist:PlistManager.init() {
 # | `PORTEXAMPLES`    | A list of files / glob patterns in EXAMPLESDIR   |
 # | `PORTDATA`        | A list of files / glob patterns in DATADIR       |
 #
+# This also adds a filter against including .orig files, unless the ORIG
+# flag is set.
+#
 # @param &1
 #	The variable to return the filter list to
 # @param 2,3
@@ -496,7 +499,8 @@ makeplist:PlistManager.init() {
 #	Creating the filter list failed
 #
 makeplist:PlistManager.plistFilter() {
-	local filter
+	local filter session flags
+	# Create make based filter list
 	filter="$( (
 		/usr/bin/make WITH="$2" WITHOUT="$3" \
 		              -V'${DESKTOP_ENTRIES:S,^/,,:C,[/ ],_,g:C,[^_[:alnum:]],,g:S,$$,.desktop$$,:S,^,${DESKTOPDIR:S,^${PREFIX}/,^,}/,:ts\n}' \
@@ -511,6 +515,14 @@ makeplist:PlistManager.plistFilter() {
 		              -V'${PORTDATA:S,^,^${DATADIR_REL}/,:ts\n}' \
 		| /usr/bin/sed 's/\*/.*/g;s/\?/./g' || return $?
 	) | /usr/bin/grep .)" || return $?
+	# Filter .orig files unless requested
+	$this.getSession session
+	$session.OptsFlags flags
+	if $flags.check ORIG -eq 0; then
+		filter=".orig\$
+$filter"
+	fi
+	# Return the filter list
 	$caller.setvar "$1" "$filter"
 }
 
@@ -1127,6 +1139,7 @@ makeplist:Session.params() {
 	bsda:opts:Options options \
 	HELP     -h --help     'Print usage and exit' \
 	LICENSES -l --licenses 'Enable ports(7) license auditing framework' \
+	ORIG     -O --orig     'Include .orig files in the plist' \
 	OUTFILE  -o --outfile  'Set the output file for the new plist' \
 	QUIET    -q --quiet    'Suppress build output'
 	$caller.delete $options
