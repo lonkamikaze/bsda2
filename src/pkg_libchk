@@ -6,6 +6,7 @@ namespace="$(echo "$prefix" | /usr/bin/tr '_' ':')"
 bsda_dir="%%DATADIR%%"
 #HACK
 bsda_dir="${0%${0##*/}}";bsda_dir="${bsda_dir%/}"
+test -n "${bsda_dir##/*}" && bsda_dir="$PWD/$bsda_dir"
 #hack
 readonly bsda_dir
 
