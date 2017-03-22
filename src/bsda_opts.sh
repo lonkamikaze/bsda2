@@ -27,7 +27,7 @@ readonly _bsda_opts_=1
 #
 
 #
-# This class provides a growable collection of command line options.
+# This class provides a growable forward list of command line options.
 #
 # Command line arguments can be passed to the getopt() method and an
 # identifier for the first match is returned.
@@ -40,8 +40,10 @@ readonly _bsda_opts_=1
 # | OPT_SPLIT   | The argument is a chain of options that need to be split up |
 # | OPT_NOOPT   | The argument is not an option                               |
 #
-bsda:obj:createClass bsda:opts:Options \
-	a:private:Next=bsda:opts:Options \
+# This class should be utilised by creating an instance of bsda:opts:Options.
+#
+bsda:obj:createClass bsda:opts:Option \
+	a:private:Next=bsda:opts:Option \
 	r:private:ident  "The identifier to return for a match" \
 	r:private:short  "The short version of the option" \
 	r:private:long   "The long version of the option" \
@@ -64,17 +66,21 @@ bsda:obj:createClass bsda:opts:Options \
 #	The description for this option
 # @param @
 #	More tuples defining options
+# @retval 0
+#	Creating options succeeded
+# @retval 1
+#	Failure due to incomplete tuples
 #
-bsda:opts:Options.init() {
+bsda:opts:Option.init() {
 	setvar ${this}ident "$1"
 	setvar ${this}short "$2"
 	setvar ${this}long "$3"
 	setvar ${this}desc "$4"
 
-	shift 4
+	shift 4 || return 1
 	# Recursively create the next option
 	if [ $# -gt 0 ]; then
-		bsda:opts:Options ${this}Next "$@"
+		bsda:opts:Option ${this}Next "$@"
 	fi
 }
 
@@ -86,8 +92,8 @@ bsda:opts:Options.init() {
 # @param 2
 #	The command line argument to check
 #
-bsda:opts:Options.getopt() {
-	local ident sopt lopt next retvar
+bsda:opts:Option.getopt() {
+	local ident sopt lopt next retvar ret
 	retvar="$1"
 	shift
 	$this.getShort sopt
@@ -107,28 +113,28 @@ bsda:opts:Options.getopt() {
 	$this.Next next
 	if [ -n "$next" ]; then
 		$next.getopt ident "$@"
+		ret=$?
 		$caller.setvar "$retvar" "$ident"
-		return 0
+		return $ret
 	fi
 	# No options left
-	if [ -n "$1" ] && [ -z "${1##-?}" ]; then
+	case "$1" in
+	-?|--?*)
 		$caller.setvar "$retvar" OPT_UNKNOWN
-		return 0
-	fi
-	if [ -n "$1" ] && [ -z "${1##--*}" ]; then
-		$caller.setvar "$retvar" OPT_UNKNOWN
-		return 0
-	fi
-	if [ -n "$1" ] && [ -z "${1##-*}" ]; then
+	;;
+	-??*)
 		$caller.setvar "$retvar" OPT_SPLIT
-		return 0
-	fi
-	$caller.setvar "$retvar" OPT_NOOPT
-	return 1
+	;;
+	*)
+		$caller.setvar "$retvar" OPT_NOOPT
+		return 1
+	;;
+	esac
+	return 0
 }
 
 #
-# Returns a formatted string containing all the options and there
+# Returns a formatted string containing all the options and their
 # descriptions.
 #
 # Options occur in the order of definition, options without a description
@@ -141,7 +147,7 @@ bsda:opts:Options.getopt() {
 #	short option, the second the long option and the third the
 #       description
 #
-bsda:opts:Options.usage() {
+bsda:opts:Option.usage() {
 	local next sopt lopt desc
 	result=
 	$this.Next next
@@ -167,7 +173,7 @@ $result"
 # @param @
 #	See the init() constructor
 #
-bsda:opts:Options.append() {
+bsda:opts:Option.append() {
 	local next
 	$this.Next next
 	if [ -n "$next" ]; then
@@ -175,6 +181,78 @@ bsda:opts:Options.append() {
 		return $?
 	fi
 	$class ${this}Next "$@"
+}
+
+#
+# Manages a linked list of Option instances.
+#
+# The one difference using this wrapper makes is that an empty instance
+# without any options can be created.
+#
+bsda:obj:createClass bsda:opts:Options \
+	a:private:First=bsda:opts:Option \
+	i:private:init  "The constructor" \
+	x:public:getopt "Wrapper around bsda:opts:Option.getopt()" \
+	x:public:usage  "Wrapper around bsda:opts:Option.usage()" \
+	x:public:append "Wrapper around bsda:opts:Option.append()"
+
+#
+# Creates the linked list of options.
+#
+# @param @
+#	If given arguments are passed to bsda:opts:Option
+#
+bsda:opts:Options.init() {
+	if [ $# -gt 0 ]; then
+		bsda:opts:Option ${this}First "$@"
+	fi
+}
+
+#
+# Calls bsda:opts:Option.getopt().
+#
+# @retval 2
+#	If no options have been defined
+#
+bsda:opts:Options.getopt() {
+	local first
+	$this.First first
+	if [ -n "$first" ]; then
+		$first.getopt "$@"
+		return $?
+	fi
+	return 2
+}
+
+#
+# Calls bsda:opts:Option.usage().
+#
+# @retval 2
+#	If no options have been defined
+#
+bsda:opts:Options.usage() {
+	local first
+	$this.First first
+	if [ -n "$first" ]; then
+		$first.usage "$@"
+		return $?
+	fi
+	return 2
+}
+
+#
+# Creates or appends to the list of options.
+#
+# @see bsda:opts:Option.append()
+#
+bsda:opts:Options.append() {
+	local first
+	$this.First first
+	if [ -n "$first" ]; then
+		$first.append "$@"
+		return $?
+	fi
+	bsda:opts:Option ${this}First "$@"
 }
 
 #
