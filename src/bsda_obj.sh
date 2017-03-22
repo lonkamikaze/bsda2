@@ -142,6 +142,8 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 #	If there is more than one cleanup method (c:) specified
 # @retval 3
 #	If there was an unknown scope operator
+# @retval 4
+#	If an aggregation with an undefined class occurred
 #
 bsda:obj:createClass() {
 	local IFS class methods method attributes getters setters arg
@@ -149,7 +151,7 @@ bsda:obj:createClass() {
 	local namespacePrefix classPrefix instancePattern
 	local previousMethod scope
 	local aggregations alias classname
-	local has_copy has_serialise
+	local amethods has_copy has_serialise
 
 	# Default framework namespace.
 	: ${bsda_obj_namespace='bsda:obj'}
@@ -260,6 +262,10 @@ bsda:obj:createClass() {
 			has_copy=
 			has_serialise=
 		elif [ "$classname" != "$class" ]; then
+			if ! $classname.getMethods amethods 2>&-; then
+				echo "bsda:obj:createClass: ERROR: Aggregation with undefined class: $classname" 1>&2
+				return 4
+			fi
 			$classname.getMethods \
 			| /usr/bin/grep -qFx public:copy || has_copy=
 			$classname.getMethods \
