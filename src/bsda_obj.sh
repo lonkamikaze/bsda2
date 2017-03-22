@@ -868,20 +868,16 @@ bsda:obj:callerSetup() {
 	caller="bsda_obj_callStack_${bsda_obj_callStackCount}_"
 	bsda_obj_callStackCount=$(($bsda_obj_callStackCount + 1))
 
-	# Create functions to interact with the caller.
-	eval "
 	# Create a wrapper around bsda:obj:callerSetvar for access
-	# through the caller prefix. I do not have the slightest idea
-	# why alias does not work for this.
-	$caller.setvar() {
+	# through the caller prefix.
+	eval "$caller.setvar() {
 		bsda:obj:callerSetvar \"\$@\"
-	}
+	}"
 
 	# Delete the given object when returning to the caller.
-	$caller.delete() {
+	eval "$caller.delete() {
 		delete_${caller}=\"\$1.delete;\${delete_${caller}}\"
-	}
-	"
+	}"
 }
 
 #
