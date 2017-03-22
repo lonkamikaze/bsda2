@@ -18,14 +18,14 @@ for test in $@; do
 	code="bsda_dir='../src';readonly bsda_dir;. ../src/bsda_test.sh;$(
 		awk -f../src/testify.awk "$test")" || return 1
 	echo "Running: sh $test"
-	if sh -ec "$code"; then
+	if sh -c "$code"; then
 		echo "Passed: sh $test"
 	else
 		echo "Failed: sh $test"
 	fi
 	which bash >&- || continue
 	echo "Running: bash $test"
-	if bash -ec "$nl$code"; then
+	if bash -c "$nl$code"; then
 		echo "Passed: bash $test"
 	else
 		echo "Failed: bash $test"
