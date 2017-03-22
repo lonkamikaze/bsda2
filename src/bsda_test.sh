@@ -43,17 +43,17 @@ bsda:test:match() {
 #
 # Each line is matched against a set of glob patterns.
 #
-# The return value depends on a relationship critereria that specifies
-# how lines from the string should related to glob patterns:
+# The return value depends on a relationship criteria that specifies
+# how lines from the string should relate to glob patterns. The relationship
+# is a tuple of two variables: `<lines>:<patterns>`
 #
-# | Relationship | Description                                              |
-# |--------------|----------------------------------------------------------|
-# | all:any      | All lines match a pattern                                |
-# | all:all      | All lines match a pattern, each pattern is matched       |
-# | all:once     | All lines match a pattern, each pattern matches one line |
-# | any:any      | At least one line matches a pattern                      |
-# | any:all      | All patterns match at least one line                     |
-# | any:once     | All patterns match one line                              |
+# | Relationship | Meaning                                              |
+# |--------------|------------------------------------------------------|
+# | all:*        | All the lines must be matched by a pattern           |
+# | any:*        | At least one line must be matched by a pattern       |
+# |   *:all      | All the patterns must match at least one line        |
+# |   *:any      | Any of the patterns can be matched                   |
+# |   *:once     | All the patterns must be matched by exactly one line |
 #
 # @param 1
 #	The string to match against the patterns
