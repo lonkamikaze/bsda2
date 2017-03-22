@@ -1219,7 +1219,7 @@ makeplist:Session.params() {
 	;;
 	esac
 
-	if [ -n "$port" ] && ! cd "$port"; then
+	if [ -n "$port" ] && ! cd "$port" 2>&-; then
 		$this.error "Cannot change into port directory: $port"
 		return 1
 	fi
