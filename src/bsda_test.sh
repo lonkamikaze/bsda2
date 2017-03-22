@@ -32,8 +32,8 @@ bsda:test:err() {
 #	The string does not match the pattern
 #
 bsda:test:match() {
-	case "$2" in
-	$(printf "$1"))
+	case "$2." in
+	$(printf "%b." "$1"))
 		return 0
 	;;
 	esac
