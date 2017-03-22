@@ -96,7 +96,7 @@ pkg:libchk:Session.params() {
 	JOBS      -j* --jobs      'Number of parallel jobs' \
 	NO_FILTER -m  --no-filter 'Do not perform false positive filtering' \
 	NO_COMPAT -n  --no-compat 'Do not report compat dependencies' \
-	VERBOSE   -v  --verbose   'Verbose output' \
+	VERBOSE   -v  --verbose   'Verbose output'
 
 	$this.Flags flags
 
