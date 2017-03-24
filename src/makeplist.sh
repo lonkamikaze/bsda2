@@ -1138,7 +1138,7 @@ makeplist:Session.params() {
 	HELP     -h --help     'Print usage and exit' \
 	LICENSES -l --licenses 'Enable ports(7) license auditing framework' \
 	ORIG     -O --orig     'Include .orig files in the plist' \
-	OUTFILE  -o --outfile  'Set the output file for the new plist' \
+	OUTFILE  -o* --outfile 'Set the output file for the new plist' \
 	QUIET    -q --quiet    'Suppress build output'
 	$caller.delete $options
 
@@ -1153,19 +1153,28 @@ makeplist:Session.params() {
 			exit 0
 		;;
 		OUTFILE)
+			local outfile
 			if eval "[ -n \"\$${this}outfile\" ]"; then
 				$this.error "More than one output file given: $2"
 				return 1
 			fi
-			case "$2" in
-			/*)
-				setvar ${this}outfile "$2"
+			case "$1" in
+			-o?*)
+				outfile="${1#-o}"
 			;;
 			*)
-				setvar ${this}outfile "$PWD/$2"
+				outfile="$2"
+				shift
 			;;
 			esac
-			shift
+			case "$outfile" in
+			/*)
+				setvar ${this}outfile "$outfile"
+			;;
+			*)
+				setvar ${this}outfile "$PWD/$outfile"
+			;;
+			esac
 		;;
 		OPT_UNKNOWN)
 			$this.error "Unknown parameter: \"$1\""
