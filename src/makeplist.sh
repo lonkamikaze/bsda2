@@ -168,9 +168,9 @@ makeplist:Options.init() {
 	$this.GroupMap groupMap
 	$this.OptionMap optionMap
 
-	eval "$(/usr/bin/make -f${bsda_dir:-.}/options.mk \
-	                      -V"groups='\${BSDA_GROUPS:ts\\n}'" \
-	                      -V"options='\${BSDA_OPTIONS:ts\\n}'")" || return $?
+	eval "$(bsda:bsdmake -f${bsda_dir:-.}/options.mk \
+	                     -V"groups='\${BSDA_GROUPS:ts\\n}'" \
+	                     -V"options='\${BSDA_OPTIONS:ts\\n}'")" || return $?
 
 	# Create groups
 	local line group members hasMulti
@@ -463,12 +463,12 @@ bsda:obj:createClass makeplist:PlistManager \
 makeplist:PlistManager.init() {
 	local prefix
 	setvar ${this}session "$1"
-	setvar ${this}mtree_file "$(/usr/bin/make -VMTREE_FILE)" || return $?
-	setvar ${this}stagedir "$(/usr/bin/make -VSTAGEDIR)" || return $?
-	setvar ${this}prefix "$(/usr/bin/make -VPREFIX)" || return $?
+	setvar ${this}mtree_file "$(bsda:bsdmake -VMTREE_FILE)" || return $?
+	setvar ${this}stagedir "$(bsda:bsdmake -VSTAGEDIR)" || return $?
+	setvar ${this}prefix "$(bsda:bsdmake -VPREFIX)" || return $?
 	setvar ${this}optionsSorted "$(
-		/usr/bin/make -V'SELECTED_OPTIONS:ts\n' \
-		              -V'DESELECTED_OPTIONS:ts\n' \
+		bsda:bsdmake -V'SELECTED_OPTIONS:ts\n' \
+		             -V'DESELECTED_OPTIONS:ts\n' \
 		| /usr/bin/sort -n)" || return $?
 }
 
@@ -815,12 +815,12 @@ makeplist:Make.init() {
 	local origin wrkdir file
 	setvar ${this}session "$1"
 	setvar ${this}plistNewFile "$2"
-	origin="$(/usr/bin/make -VPKGORIGIN)" || return $?
+	origin="$(bsda:bsdmake -VPKGORIGIN)" || return $?
 	if [ -z "$origin" ]; then
 		$1.error "Port origin could not be detected"
 		return 1
 	fi
-	wrkdir="$(/usr/bin/make -VWRKDIR)" || return $?
+	wrkdir="$(bsda:bsdmake -VWRKDIR)" || return $?
 	if ! /bin/mkdir -p "$wrkdir" 2>&-; then
 		$1.error "The WRKDIR could not be created: $wrkdir"
 		return 1
@@ -831,7 +831,7 @@ makeplist:Make.init() {
 	fi
 	$1.msg "Initialising make for $origin"
 	origin="$(echo "$origin" | /usr/bin/tr / .)"
-	file="$(/usr/bin/make -VPLIST)" || return $?
+	file="$(bsda:bsdmake -VPLIST)" || return $?
 	setvar ${this}plistOldFile "$file"
 	test -z "$2" && setvar ${this}plistNewFile "$file.${0##*/}"
 	$this.getPlistNewFile file
@@ -842,7 +842,7 @@ makeplist:Make.init() {
 	makeplist:TmpDir ${this}Logdir ${this}logdir "${0##*/}.$origin" \
 	|| return $?
 	makeplist:PlistManager ${this}Plists "$1" || return $?
-	setvar ${this}no_build "$(/usr/bin/make -VNO_BUILD)" || return $?
+	setvar ${this}no_build "$(bsda:bsdmake -VNO_BUILD)" || return $?
 }
 
 #
@@ -893,7 +893,7 @@ makeplist:Make.run() {
 			# a non-interactive session, backgrounding
 			# and waiting for it works fine.
 			exec /usr/bin/script -aq "$logfilename" \
-			     /usr/bin/make $targets WITH="$1" WITHOUT="$2" &
+			     "$bsda_bsdmake" $targets WITH="$1" WITHOUT="$2" &
 			wait $!
 			return $?
 		fi
@@ -902,8 +902,8 @@ makeplist:Make.run() {
 		# - Call port Makefile through interrupt.mk to send
 		#   a signal back, if make is interrupted
 		exec /usr/bin/script -aq "$logfilename" \
-		     /usr/bin/make -f"${bsda_dir:-.}/interrupt.mk" BSDA_PID=$$ \
-		                   $targets WITH="$1" WITHOUT="$2"
+		     "$bsda_bsdmake" -f"${bsda_dir:-.}/interrupt.mk" \
+		                     BSDA_PID=$$ $targets WITH="$1" WITHOUT="$2"
 	)
 	retval=$?
 
@@ -1230,12 +1230,12 @@ makeplist:Session.params() {
 	;;
 	*/*)
 		local portsdir
-		portsdir="$(/usr/bin/make -f /usr/share/mk/bsd.port.mk -VPORTSDIR)"
+		portsdir="$(bsda:bsdmake -f/usr/share/mk/bsd.port.mk -VPORTSDIR)"
 		port="$portsdir/$port"
 	;;
 	*)
 		local portsdir origin
-		portsdir="$(/usr/bin/make -f /usr/share/mk/bsd.port.mk -VPORTSDIR)"
+		portsdir="$(bsda:bsdmake -f/usr/share/mk/bsd.port.mk -VPORTSDIR)"
 		origin="$(pkg:info:origins "$port")"
 		if [ -z "$origin" ]; then
 			$this.error "Cannot find port via \`pkg info\`: $port"
