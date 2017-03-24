@@ -11,7 +11,8 @@ file for
 .Nm
 .Fl h
 .Nm
-.Op Fl q
+.Op Fl lOq
+.Op Fl I Ar make-vars
 .Op Fl o Ar plist-file
 .Op Ar port-name
 .Sh DESCRIPTION
@@ -36,6 +37,26 @@ The following options are support:
 .Bl -tag -width indent
 .It Fl h -help
 Displays the available options.
+.It Fl I -ignore-vars Ar make-vars
+Takes a comma separated list of make variables to ignore when postprocessing
+the generated plist. The following variables may be specified:
+.Pp
+.Bl -bullet -compact
+.It
+.Li DESKTOP_ENTRIES
+.It
+.Li PLIST_FILES
+.It
+.Li PLIST_SUB
+.It
+.Li PORTDATA
+.It
+.Li PORTDOCS
+.It
+.Li PORTEXAMPLES
+.It
+.Li USE_RC_SUBR
+.El
 .It Fl l -licenses
 Usually
 .Nm

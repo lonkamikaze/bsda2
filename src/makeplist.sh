@@ -5,6 +5,7 @@ readonly _makeplist_=1
 . ${bsda_dir:-.}/pkg_info.sh
 . ${bsda_dir:-.}/bsda_opts.sh
 . ${bsda_dir:-.}/bsda_util.sh
+. ${bsda_dir:-.}/bsda_bsdmake.sh
 
 #
 # Each instance represents an option in a linked list.
@@ -492,30 +493,24 @@ makeplist:PlistManager.init() {
 #	The variable to return the filter list to
 # @param 2,3
 #	The options to build WITH and WITHOUT
-# @retval 0
-#	Creating the filter list succeeded
-# @retval *
-#	Creating the filter list failed
 #
 makeplist:PlistManager.plistFilter() {
 	local filter session flags
+	$this.getSession session
 	# Create make based filter list
 	filter="$( (
-		/usr/bin/make WITH="$2" WITHOUT="$3" \
-		              -V'${DESKTOP_ENTRIES:S,^/,,:C,[/ ],_,g:C,[^_[:alnum:]],,g:S,$$,.desktop$$,:S,^,${DESKTOPDIR:S,^${PREFIX}/,^,}/,:ts\n}' \
-		| /usr/bin/awk 'NR % 6 == 4' || return $?
-		/usr/bin/make WITH="$2" WITHOUT="$3" \
-		              -V'${USE_RC_SUBR:S,^,^etc/rc.d/,:S,$$,$$,:ts\n}' \
-		              -V'${PLIST_FILES:S,^${PREFIX}/,,:S,^,^,:S,$$,$$,:ts\n}' \
-		| /usr/bin/vis -ce '.[]*?' || return $?
-		/usr/bin/make -WITH="$2" WITHOUT="$3" \
-		              -V'${PORTDOCS:S,^,^${DOCSDIR_REL}/,:ts\n}' \
-		              -V'${PORTEXAMPLES:S,^,^${EXAMPLESDIR_REL}/,:ts\n}' \
-		              -V'${PORTDATA:S,^,^${DATADIR_REL}/,:ts\n}' \
-		| /usr/bin/sed 's/\*/.*/g;s/\?/./g' || return $?
-	) | /usr/bin/grep .)" || return $?
+		$session.Vars vars
+		($vars.get '' 'DESKTOP_ENTRIES:S,^/,,:C,[/ ],_,g:C,[^_[:alnum:]],,g:S,$$,.desktop$$,:S,^,${DESKTOPDIR:S,^${PREFIX}/,^,}/,:ts\n' \
+		           -- WITH="$2" WITHOUT="$3" | /usr/bin/awk 'NR % 6 == 4'
+		 $vars.get '' 'PLIST_FILES:S,^${PREFIX}/,,:S,^,^,:S,$$,$$,:ts\n' \
+		              'USE_RC_SUBR:S,^,^etc/rc.d/,:S,$$,$$,:ts\n' \
+		           -- WITH="$2" WITHOUT="$3") | /usr/bin/vis -ce '.[]*?'
+		($vars.get '' 'PORTDOCS:S,^,^${DOCSDIR_REL}/,:ts\n' \
+		              'PORTEXAMPLES:S,^,^${EXAMPLESDIR_REL}/,:ts\n' \
+		              'PORTDATA:S,^,^${DATADIR_REL}/,:ts\n' \
+		           -- WITH="$2" WITHOUT="$3") | /usr/bin/sed 's/\*/.*/g;s/\?/./g'
+	) | /usr/bin/grep .)"
 	# Filter .orig files unless requested
-	$this.getSession session
 	$session.OptsFlags flags
 	if $flags.check ORIG -eq 0; then
 		filter="\\.orig\$
@@ -530,15 +525,12 @@ $filter"
 #
 # @param &1
 #	The variable to return the sub list to.
-# @retval 0
-#	Creating the sub list succeeded
-# @retval *
-#	Creating the sub list failed
 #
 makeplist:PlistManager.plistSubSed() {
-	local IFS sublist exprs sub prefix W
+	local IFS vars sublist exprs sub prefix W
 	IFS=$'\n'
-	sublist="$(/usr/bin/make -VPLIST_SUB:ts\\n)" || return $?
+	$($this.getSession).Vars vars
+	$vars.get sublist PLIST_SUB:ts\\n
 	# Sort by replacement size so the biggest match wins
 	sublist="$(
 		for sub in $sublist; do
@@ -1059,6 +1051,7 @@ makeplist:Make.plist() {
 #
 bsda:obj:createClass makeplist:Session \
 	a:public:OptsFlags=bsda:opts:Flags \
+	a:public:Vars=bsda:bsdmake:Vars \
 	a:private:Make=makeplist:Make \
 	a:private:Options=makeplist:Options \
 	r:private:outfile "The file to write the new plist to" \
@@ -1077,7 +1070,7 @@ bsda:obj:createClass makeplist:Session \
 #
 makeplist:Session.help() {
 	local usage
-	$1.usage usage "\t%.2s, %-10s  %s\n"
+	$1.usage usage "\t%.2s, %-13s  %s\n"
 	printf "usage: ${0##*/} [-h] [-o outfile] [port]\n%s" "$usage"
 }
 
@@ -1118,6 +1111,7 @@ makeplist:Session.error() {
 makeplist:Session.init() {
 	local outfile
 	bsda:opts:Flags ${this}OptsFlags || return $?
+	bsda:bsdmake:Vars ${this}Vars || return $?
 	$this.params "$@" || return $?
 	$this.getOutfile outfile
 	makeplist:Make ${this}Make $this "$outfile" || return $?
@@ -1132,17 +1126,19 @@ makeplist:Session.init() {
 #	The command line arguments
 #
 makeplist:Session.params() {
-	local options flags option port
+	local IFS options flags option port vars var ignore
 
 	bsda:opts:Options options \
-	HELP     -h --help     'Print usage and exit' \
-	LICENSES -l --licenses 'Enable ports(7) license auditing framework' \
-	ORIG     -O --orig     'Include .orig files in the plist' \
-	OUTFILE  -o* --outfile 'Set the output file for the new plist' \
-	QUIET    -q --quiet    'Suppress build output'
+	HELP        -h  --help        'Print usage and exit' \
+	IGNORE_VARS -I* --ignore-vars 'A comma separated list of variables to ignore' \
+	LICENSES    -l  --licenses    'Enable ports(7) license auditing framework' \
+	ORIG        -O  --orig        'Include .orig files in the plist' \
+	OUTFILE     -o* --outfile     'Set the output file for the new plist' \
+	QUIET       -q  --quiet       'Suppress build output'
 	$caller.delete $options
 
 	$this.OptsFlags flags
+	$this.Vars vars
 
 	port=
 	while [ $# -gt 0 ]; do
@@ -1175,6 +1171,29 @@ makeplist:Session.params() {
 				setvar ${this}outfile "$PWD/$outfile"
 			;;
 			esac
+		;;
+		IGNORE_VARS)
+			case "$1" in
+			-I?*)
+				ignore="$ignore${1#-I},"
+			;;
+			*)
+				ignore="$ignore$2,"
+				shift
+			;;
+			esac
+			IFS=,
+			for var in $ignore; do case "$var" in
+			DESKTOP_ENTRIES|USE_RC_SUBR|PLIST_FILES| \
+			PORTDOCS|PORTEXAMPLES|PORTDATA|PLIST_SUB)
+				# This is the list of allowed variables.
+			;;
+			*)
+				$this.error "Ignoring make variable $var is not supported: $1"
+				return 1
+			;;
+			esac; done
+			$vars.ignore $ignore
 		;;
 		OPT_UNKNOWN)
 			$this.error "Unknown parameter: \"$1\""
