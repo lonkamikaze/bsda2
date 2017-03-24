@@ -277,7 +277,7 @@ SU.run() {
 	"$caller".delete "$obj"
 }
 unwind="$(SU obj)"
-bsda:test:match 'C\nB\nA' "$unwind"
+test $'C\nB\nA' = "$unwind"
 
 # Test terminal stack unwinding
 SU.run() {
@@ -289,7 +289,7 @@ SU.run() {
 	exit
 }
 unwind="$(bsda:obj:fork; SU obj)"
-bsda:test:match 'C\nB\nA' "$unwind"
+test $'C\nB\nA' = "$unwind"
 
 # Test GC
 bsda:obj:createClass GCa c:private:clean
@@ -306,7 +306,7 @@ GC.init() {
 }
 GC.clean() { echo GC; }
 harvest="$(bsda:obj:fork; GC obj)"
-bsda:test:match 'C\nB\nA\nGC\nGCa' "$harvest"
+test $'C\nB\nA\nGC\nGCa' = "$harvest"
 
 # Test GC with unimplemented cleanup method
 warn=$( (bsda:obj:fork;Bar bar) 2>&1 )

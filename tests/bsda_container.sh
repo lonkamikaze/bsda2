@@ -23,7 +23,7 @@ memdump0="$(true;set)"
 bsda:container:Array arr a b c d e
 kvs=
 $arr.foreach lambda
-bsda:test:match "0→a,1→b,2→c,3→d,4→e" "$kvs"
+test "0→a,1→b,2→c,3→d,4→e" = "$kvs"
 
 # Check item count
 $arr.getCount val && test "$val" = 5
@@ -40,13 +40,13 @@ $arr.getCount val && test "$val" = 5
 # Verify
 kvs=
 $arr.foreach lambda
-bsda:test:match "0→a,1→b,2→c,3→D,4→E" "$kvs"
+test "0→a,1→b,2→c,3→D,4→E" = "$kvs"
 
 # Copy
 $arr.copy arr1
 kvs=
 $arr1.foreach lambda
-bsda:test:match "0→a,1→b,2→c,3→D,4→E" "$kvs"
+test "0→a,1→b,2→c,3→D,4→E" = "$kvs"
 # Check serialise/deserialise
 $arr1.serialise arr1s
 # Restore modified object from serialised string
@@ -56,14 +56,14 @@ bsda:obj:deserialise arr1 "$arr1s"
 $arr1.getCount val && test "$val" = 5
 kvs=
 $arr1.foreach lambda
-bsda:test:match "0→a,1→b,2→c,3→D,4→E" "$kvs"
+test "0→a,1→b,2→c,3→D,4→E" = "$kvs"
 # Delete and restore
 $arr1.delete
 unset arr1
 bsda:obj:deserialise arr1 "$arr1s"
 kvs=
 $arr1.foreach lambda
-bsda:test:match "0→a,1→b,2→c,3→D,4→E" "$kvs"
+test "0→a,1→b,2→c,3→D,4→E" = "$kvs"
 # Clean up
 $arr1.delete
 $arr.delete

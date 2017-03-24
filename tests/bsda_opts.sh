@@ -31,7 +31,7 @@ NEXT -n --next "Next desc"
 
 # Test if all the information is contained
 $opts.usage str "%s,%s,%s\n"
-bsda:test:match '-t,--test,Test desc\n-n,--next,Next desc\n' "$str" 
+test $'-t,--test,Test desc\n-n,--next,Next desc\n' = "$str"
 
 # Test appending incomplete tuples
 ! $opts.append FOO
@@ -42,7 +42,7 @@ $opts.append FOO -f --foo "Foo desc"
 
 # Check object completeness
 $opts.usage str "%s,%s,%s\n"
-bsda:test:match '-t,--test,Test desc\n-n,--next,Next desc\n-f,--foo,Foo desc\n' "$str" 
+test $'-t,--test,Test desc\n-n,--next,Next desc\n-f,--foo,Foo desc\n' = "$str"
 
 # Fail with more incomplete tuples
 ! $opts.append BAR -b --bar "Bar desc"  XXX
@@ -53,14 +53,14 @@ $opts.append BAR -b --bar "Bar desc"  XXX -x --xxx "Xxx desc"
 
 # Check object completeness
 $opts.usage str "%s,%s,%s\n"
-bsda:test:match '-t,--test,Test desc\n-n,--next,Next desc\n-f,--foo,Foo desc\n-b,--bar,Bar desc\n-x,--xxx,Xxx desc\n' "$str" 
+test $'-t,--test,Test desc\n-n,--next,Next desc\n-f,--foo,Foo desc\n-b,--bar,Bar desc\n-x,--xxx,Xxx desc\n' = "$str"
 
 # Append an option with an argument
 $opts.append ARG -a* --arg "Arg desc"
 
 # Check object completeness
 $opts.usage str "%s,%s,%s\n"
-bsda:test:match '-t,--test,Test desc\n-n,--next,Next desc\n-f,--foo,Foo desc\n-b,--bar,Bar desc\n-x,--xxx,Xxx desc\n-a\*,--arg,Arg desc\n' "$str" 
+test $'-t,--test,Test desc\n-n,--next,Next desc\n-f,--foo,Foo desc\n-b,--bar,Bar desc\n-x,--xxx,Xxx desc\n-a*,--arg,Arg desc\n' = "$str"
 
 # Check matching stuff
 $opts.getopt opt -x
