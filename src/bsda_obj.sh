@@ -146,6 +146,8 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 #	If an aggregation with an undefined class occurred
 # @retval 5
 #	No class name was given
+# @retval 6
+#	Forbidden characters in attribute name, [a-zA-Z0-9_] are allowed
 #
 bsda:obj:createClass() {
 	local IFS class methods method attributes getters setters arg
@@ -276,7 +278,16 @@ bsda:obj:createClass() {
 	done
 
 	# Remove duplicated attributes.
-	attributes="$(echo "$attributes" | /usr/bin/awk '!a[$0]++')"
+	attribute="$attributes"
+	attributes=
+	for attribute in $(echo "$attribute" | /usr/bin/awk '!a[$0]++'); do
+		attributes="$attributes$attribute$IFS"
+		# Verify attribute names.
+		if ! echo "$attribute" | /usr/bin/grep -qx '[a-zA-Z0-9_]*'; then
+			echo "bsda:obj:createClass: ERROR: $class: Attributes must only contain the characters [a-zA-Z0-9_]: $attribute" 1>&2
+			return 6
+		fi
+	done
 
 	# Only classes without a custom destructor get copy() and
 	# serialise() members.
