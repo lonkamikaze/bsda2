@@ -2,8 +2,7 @@
 . ../src/bsda_test.sh
 . ../src/bsda_util.sh
 
-NL='
-'
+NL=$'\n'
 # Comma separated fields
 IFS=","
 

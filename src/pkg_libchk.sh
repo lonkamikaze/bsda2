@@ -100,8 +100,7 @@ pkg:libchk:Session.params() {
 
 	$this.Flags flags
 
-	nl='
-'
+	nl=$'\n'
 
 	while [ $# -gt 0 ]; do
 		$options.getopt option "$1"
@@ -212,8 +211,7 @@ pkg:libchk:Session.packages() {
 			$($this.Term).stderr "Checking all packages ..."
 		else
 			local IFS
-			IFS='
-'
+			IFS=$'\n'
 			$($this.Term).stderr "Checking packages:" \
 			                        "------------------" \
 			                        "$pkgs" \
@@ -257,8 +255,7 @@ pkg:libchk:Session.print() {
 	fi
 
 	# Give a detailed account of every file missing a library
-	IFS='
-'
+	IFS=$'\n'
 	output=
 	for miss in $misses; {
 		file="${miss%%|*}"
@@ -283,8 +280,7 @@ pkg:libchk:Session.run() {
 	local IFS pkg pkgs result maxjobs jobs term fmt count num fifo
 
 	# Initialise dispatcher
-	IFS='
-'
+	IFS=$'\n'
 
 	$this.Term term
 	$this.getJobs maxjobs
@@ -351,8 +347,7 @@ pkg:libchk:Session.run() {
 pkg:libchk:Session.job() {
 	local IFS file files lib misses miss res pfiles flags
 	local compat
-	IFS='
-'
+	IFS=$'\n'
 	$this.Flags flags
 	$flags.check NO_COMPAT -eq 0 && compat=1 || compat=
 

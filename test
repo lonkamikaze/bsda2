@@ -12,8 +12,7 @@ dir="${0%${0##*/}}"
 cd "${dir%/}/tests" || return 1
 
 # Inject into bash, because LINENO in `bash -c` is off by one
-nl='
-'
+nl=$'\n'
 
 fails=0
 for test in $@; do

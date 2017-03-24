@@ -284,8 +284,7 @@ bsda:container:Map.init() {
 #
 bsda:container:Map.clean() {
 	local IFS key
-	IFS='
-'
+	IFS=$'\n'
 	for key in $($this.getKeys); do
 		unset ${this}_val_$key
 		unset ${this}_key_$key
@@ -300,8 +299,7 @@ bsda:container:Map.clean() {
 #
 bsda:container:Map.addKey() {
 	local keys count NL
-	NL='
-'
+	NL=$'\n'
 	$this.getRmCount count
 	if [ $((count)) -gt 0 ]; then
 		$class.compress
@@ -323,8 +321,7 @@ bsda:container:Map.addKey() {
 #
 bsda:container:Map.rmKey() {
 	local keys count NL
-	NL='
-'
+	NL=$'\n'
 	$this.getRmKeys keys
 	$this.getRmCount count
 	setvar ${this}rmKeys "${keys}${keys:+$NL}$1"
@@ -398,8 +395,7 @@ bsda:container:Map.[() {
 bsda:container:Map.foreach() {
 	$class.compress
 	local IFS key keys
-	IFS='
-'
+	IFS=$'\n'
 	$this.getKeys keys
 	for key in $keys; do
 		eval "$1 \"\${${this}_key_$key}\" \"\${${this}_val_$key}\"" \
@@ -416,8 +412,7 @@ bsda:container:Map.foreach() {
 bsda:container:Map.getCount() {
 	$class.compress
 	local IFS count keys
-	IFS='
-'
+	IFS=$'\n'
 	$this.getKeys keys
 	bsda:util:count count $keys
 	$caller.setvar "$1" "$count"
@@ -444,8 +439,7 @@ bsda:container:Map.serialise_clear() {
 bsda:container:Map.serialise() {
 	$class.compress
 	local IFS key keys serialised keyvar valvar
-	IFS='
-'
+	IFS=$'\n'
 	$this.getKeys keys
 	bsda:obj:serialiseVar serialised ${this}keys
 	serialised="$class.serialise_clear $this;$serialised;${this}addCount=0;${this}rmKeys=;${this}rmCount=0"

@@ -69,8 +69,7 @@ bsda:test:gmatch() {
 #
 bsda:test:xmatch() {
 	local IFS rel str i
-	IFS='
-'
+	IFS=$'\n'
 	str="$1"
 	rel="$2"
 	shift 2

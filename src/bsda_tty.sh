@@ -117,8 +117,7 @@ bsda:tty:Async.line() {
 	if eval "[ -n \"\$${this}active\" ]"; then
 		eval "$this.line() {
 			local NL str line
-			NL='
-'
+			NL=$'\n'
 			str=\"\$(echo -n \"\${2%%\$NL*}\" | bsda:obj:escape)\"
 			line=\$((\$1))
 			$($this.Fifo).sink 'echo \"line\$line \$str\"'

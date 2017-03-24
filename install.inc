@@ -32,8 +32,7 @@ LICENSE.md,0644,%%DOCSDIR%%/LICENSE.md
 README.md,0644,%%DOCSDIR%%/README.md
 "
 
-IFS='
-'
+IFS=$'\n'
 
 for parameter in "$@"; {
 	case "${parameter%%=*}" in
@@ -73,9 +72,6 @@ replace="
 "
 
 replace_cmd="sed -e '/#HACK/,/#hack/d'"
-
-IFS='
-'
 
 argsel() {
 	i="$1"

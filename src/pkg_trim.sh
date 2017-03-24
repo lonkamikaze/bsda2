@@ -43,8 +43,7 @@ bsda:obj:createClass pkg:trim:State \
 #
 pkg:trim:State.all() {
 	local IFS state result val
-	IFS='
-'
+	IFS=$'\n'
 	result=
 	state=$this
 	while [ -n "$state" ]; do
@@ -148,8 +147,7 @@ pkg:trim:StateManager.cache() {
 
 	# Determine which packages are not cached
 	local IFS cached uncached
-	IFS='
-'
+	IFS=$'\n'
 	$this.getPkgcached cached
 	uncached="$(echo "$show" | /usr/bin/grep -vFx "$cached")"
 	if [ -z "$uncached" ]; then
@@ -608,8 +606,7 @@ pkg:trim:Session.runReview() {
 #
 pkg:trim:Session.run() {
 	local IFS flags ret fmt dialog
-	IFS='
-'
+	IFS=$'\n'
 	$this.Flags flags
 
 	# Use name-version packages unless PKG_ORIGIN is set

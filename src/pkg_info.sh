@@ -59,8 +59,7 @@ pkg:info:Env.init() {
 #
 pkg:info:Env.match() {
 	local IFS retvar flags args pkgs ret dep req
-	IFS='
-'
+	IFS=$'\n'
 
 	retvar="$1"
 	shift

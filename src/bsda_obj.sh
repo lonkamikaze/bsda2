@@ -168,8 +168,7 @@ bsda:obj:createClass() {
 	class="$1"
 	shift
 
-	IFS='
-'
+	IFS=$'\n'
 
 	# There are some default methods.
 	methods="delete${IFS}dump${IFS}"
@@ -665,8 +664,7 @@ bsda:obj:deserialise() {
 	fi
 
 	local IFS
-	IFS='
-'
+	IFS=$'\n'
 	eval "$2"
 }
 
@@ -801,8 +799,7 @@ bsda:obj:isSimpleFloat() {
 #
 bsda:obj:createMethods() {
 	local IFS method scope
-	IFS='
-'
+	IFS=$'\n'
 	for method in $4; do
 		scope=${method%:*}
 		# Get scope check from class.
@@ -835,8 +832,7 @@ bsda:obj:createMethods() {
 #
 bsda:obj:deleteMethods() {
 	local IFS method
-	IFS='
-'
+	IFS=$'\n'
 	for method in $2; do
 		method=${method##*:}
 		unset -f "$1.$method"
@@ -857,8 +853,7 @@ bsda:obj:deleteMethods() {
 #
 bsda:obj:deleteAttributes() {
 	local IFS attribute
-	IFS='
-'
+	IFS=$'\n'
 	for attribute in $2; do
 		unset "${1}$attribute"
 	done
@@ -1070,8 +1065,7 @@ bsda:obj:detach() {
 #
 bsda:obj:exit() {
 	local nl obj caller
-	nl='
-'
+	nl=$'\n'
 	# Stack unwinding, just remove temp objects
 	while [ $((bsda_obj_callStackCount)) -gt 0 ]; do
 		caller="bsda_obj_callStack_$((bsda_obj_callStackCount - 1))_"

@@ -312,8 +312,7 @@ makeplist:Options.getPair() {
 	# Get a representative of each SINGLE/MULTI group
 	local IFS groupMap optionMap multis members member
 	local option implies prevents
-	IFS='
-'
+	IFS=$'\n'
 	$this.GroupMap groupMap
 	$this.OptionMap optionMap
 	multis=
@@ -538,8 +537,7 @@ $filter"
 #
 makeplist:PlistManager.plistSubSed() {
 	local IFS sublist exprs sub prefix W
-	IFS='
-'
+	IFS=$'\n'
 	sublist="$(/usr/bin/make -VPLIST_SUB:ts\\n)" || return $?
 	# Sort by replacement size so the biggest match wins
 	sublist="$(

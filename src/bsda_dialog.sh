@@ -83,8 +83,7 @@ bsda:dialog:Dialog.call() {
 #
 bsda:dialog:Dialog.setArgs() {
 	local IFS
-	IFS='
-'
+	IFS=$'\n'
 	setvar ${this}args "$*"
 }
 

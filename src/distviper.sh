@@ -258,8 +258,7 @@ distviper:Session.run_find_present() {
 #
 distviper:Session.run() {
 	local IFS term flags keep portsdir distdir keepSums keepFiles
-	IFS='
-'
+	IFS=$'\n'
 	$this.Term term
 	$this.Flags flags
 	$this.getKeep keep
