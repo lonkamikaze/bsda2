@@ -152,7 +152,7 @@ bsda:obj:createClass() {
 	local getter setter attribute init clean
 	local namespacePrefix classPrefix instancePattern
 	local previousMethod scope
-	local aggregations alias classname
+	local aggregations aggregation alias classname
 	local amethods has_copy has_serialise
 
 	# Default framework namespace.
@@ -223,40 +223,40 @@ bsda:obj:createClass() {
 	done
 
 	# Create aggregations.
-	alias="$aggregations"
+	aggregation="$aggregations"
 	aggregations=
-	for alias in $alias; do
-		# Get scope of the getter method
-		case "$alias" in
-		public:* | private:*)
-			scope="${alias%%:*}"
-			alias="${alias#*:}"
-		;;
-		*)
-			scope=public
-		;;
-		esac
-
-		# Get alias and class
-		case "$alias" in
+	for aggregation in $aggregation; do
+		# Get class
+		case "$aggregation" in
 		*=*)
-			classname="${alias#*=}"
-			alias="${alias%%=*}"
+			classname="${aggregation#*=}"
+			aggregation="${aggregation%%=*}"
 		;;
 		*)
 			classname=
 		;;
 		esac
 
-		aggregations="$aggregations$alias$IFS"
-		attributes="$attributes$alias$IFS"
-		methods="$methods$scope:$alias$IFS"
+		# Get scope of the getter method
+		case "$aggregation" in
+		*:*)
+			scope="${aggregation%%:*}"
+			aggregation="${aggregation#*:}"
+		;;
+		*)
+			scope=public
+		;;
+		esac
 
-		eval "$class.$alias() {
+		aggregations="$aggregations$aggregation$IFS"
+		attributes="$attributes$aggregation$IFS"
+		methods="$methods$scope:$aggregation$IFS"
+
+		eval "$class.$aggregation() {
 			if [ -n \"\$1\" ]; then
-				eval \"\$1=\\\"\\\$\${this}$alias\\\"\"
+				eval \"\$1=\\\"\\\$\${this}$aggregation\\\"\"
 			else
-				eval \"echo \\\"\\\$\${this}$alias\\\"\"
+				eval \"echo \\\"\\\$\${this}$aggregation\\\"\"
 			fi
 		}"
 
