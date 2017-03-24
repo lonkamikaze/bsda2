@@ -152,7 +152,7 @@ bsda:obj:createClass() {
 	local getter setter attribute init clean
 	local namespacePrefix classPrefix instancePattern
 	local previousMethod scope
-	local aggregations aggregation alias classname
+	local aggregations aggregation classname
 	local amethods has_copy has_serialise
 
 	# Default framework namespace.
@@ -475,8 +475,8 @@ bsda:obj:createClass() {
 		}
 
 		${aggregations:+eval \"$(
-		for alias in $aggregations; do
-			echo \\\"\\\$\${this}$alias\\\".delete
+		for aggregation in $aggregations; do
+			echo \\\"\\\$\${this}$aggregation\\\".delete
 		done
 		)\"}
 
@@ -489,13 +489,13 @@ bsda:obj:createClass() {
 	eval "$class.dump() {
 		local result
 		result=\"$class@\$this {${attributes:+$IFS\$( (
-			$(for alias in $aggregations; do
-				echo "eval \"\\\"\\\$\${this}$alias\\\".dump var\""
-				echo "echo \"$alias=\$var\""
+			$(for aggregation in $aggregations; do
+				echo "eval \"\\\"\\\$\${this}$aggregation\\\".dump var\""
+				echo "echo \"$aggregation=\$var\""
 			done)
 			$(for attribute in $attributes; do
-				for alias in $aggregations; do
-					test "$alias" = "$attribute" && continue 2
+				for aggregation in $aggregations; do
+					test "$aggregation" = "$attribute" && continue 2
 				done
 				echo "getvar var \"\${this}$attribute\""
 				echo "echo \"$attribute='\$var'\""
@@ -525,8 +525,8 @@ bsda:obj:createClass() {
 		)\"}
 
 		${aggregations:+eval \"$(
-		for alias in $aggregations; do
-			echo "\\\"\\\$\${this}$alias\\\".copy \${reference}$alias"
+		for aggregation in $aggregations; do
+			echo "\\\"\\\$\${this}$aggregation\\\".copy \${reference}$aggregation"
 		done
 		)\"}
 	}"
@@ -542,8 +542,8 @@ bsda:obj:createClass() {
 		done)
 		serialised=\"\$serialised;$class.deserialise \$this\"
 
-		$(for alias in $aggregations; do
-			echo eval \"\\\"\\\$\${this}$alias\\\".serialise svar\"
+		$(for aggregation in $aggregations; do
+			echo eval \"\\\"\\\$\${this}$aggregation\\\".serialise svar\"
 			echo 'serialised="$svar;$serialised"'
 		done)
 
