@@ -91,6 +91,20 @@ class=Baz
 unset class
 "$baz".getValue x && test "$x" = 42
 
+# Fail invalid scope
+error="$(bsda:obj:createClass X x:protected:foobar 2>&1; test $? -eq 3)"
+bsda:test:gmatch "bsda:obj:createClass: ERROR:*scope*protected*" "$error"
+error="$(bsda:obj:createClass X r:protected:foobar 2>&1; test $? -eq 3)"
+bsda:test:gmatch "bsda:obj:createClass: ERROR:*scope*protected*" "$error"
+error="$(bsda:obj:createClass X w:protected:foobar 2>&1; test $? -eq 3)"
+bsda:test:gmatch "bsda:obj:createClass: ERROR:*scope*protected*" "$error"
+error="$(bsda:obj:createClass X a:protected:foobar 2>&1; test $? -eq 3)"
+bsda:test:gmatch "bsda:obj:createClass: ERROR:*scope*protected*" "$error"
+error="$(bsda:obj:createClass X a:protected:foobar=Baz 2>&1; test $? -eq 3)"
+bsda:test:gmatch "bsda:obj:createClass: ERROR:*scope*protected*" "$error"
+error="$(bsda:obj:createClass X -:protected:foobar 2>&1; test $? -eq 6)"
+bsda:test:gmatch "bsda:obj:createClass: ERROR:*characters*" "$error"
+
 # Test copy
 "$baz".copy baz1
 "$baz1".getValue x && test "$x" = 42
@@ -201,6 +215,11 @@ bsda:test:isNone "$bob".serialise
 bsda:test:isNone "$bob".delete
 ! bsda:test:isSet "${bob}"rval
 ! bsda:test:isSet "${bob}"wval
+
+# Aggregation with undefined class should fail
+error="$(bsda:obj:createClass X a:y=Y 2>&1; test $? -eq 4)"
+bsda:test:gmatch "bsda:obj:createClass: ERROR: *" "$error"
+bsda:obj:createClass X a:y=Y 2>&- || test $? -eq 4
 
 # Test aggregation
 bsda:obj:createClass A
