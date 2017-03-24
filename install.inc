@@ -1,3 +1,5 @@
+set -f
+
 files="
 src/bsda_container.sh,0644,%%DATADIR%%/bsda_container.sh
 src/bsda_dialog.sh,0644,%%DATADIR%%/bsda_dialog.sh
