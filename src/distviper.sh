@@ -4,6 +4,7 @@ readonly _distviper_=1
 . ${bsda_dir:-.}/bsda_tty.sh
 . ${bsda_dir:-.}/bsda_opts.sh
 . ${bsda_dir:-.}/pkg_info.sh
+. ${bsda_dir:-.}/bsda_bsdmake.sh
 
 #
 # The session class for distviper.
@@ -190,9 +191,9 @@ distviper:Session.status() {
 distviper:Session.getMakeVar() {
 	local term value
 	$this.Term term
-	if ! value="$(/usr/bin/make -f/usr/share/mk/bsd.port.mk \
-	                            -V"$2" 2>&1)"; then
-		$this.error "make -V$2 failed:"
+	if ! value="$(bsda:bsdmake -f/usr/share/mk/bsd.port.mk \
+	                           -V"$2" 2>&1)"; then
+		$this.error "$bsda_bsdmake -V$2 failed:"
 		$term.stderr "$value"
 		return 1
 	fi
