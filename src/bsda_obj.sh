@@ -144,6 +144,8 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 #	If there was an unknown scope operator
 # @retval 4
 #	If an aggregation with an undefined class occurred
+# @retval 5
+#	No class name was given
 #
 bsda:obj:createClass() {
 	local IFS class methods method attributes getters setters arg
@@ -159,7 +161,7 @@ bsda:obj:createClass() {
 	# Get the class name and shift it off the parameter list.
 	if [ -z "$1" ]; then
 		echo "bsda:obj:createClass: ERROR: No class name supplied!" 1>&2
-		return 1
+		return 5
 	fi
 	class="$1"
 	shift
