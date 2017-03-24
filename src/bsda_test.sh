@@ -19,9 +19,6 @@ bsda:test:err() {
 #
 # Check a string against a glob pattern.
 #
-# The glob pattern is passed through printf so special escapes like
-# '\n' are supported. The '%' character must be duplicated.
-#
 # @param 1
 #	The glob pattern to match
 # @param 2
@@ -31,9 +28,9 @@ bsda:test:err() {
 # @retval 1
 #	The string does not match the pattern
 #
-bsda:test:match() {
-	case "$2." in
-	$(printf "%b." "$1"))
+bsda:test:gmatch() {
+	case "$2" in
+	$1)
 		return 0
 	;;
 	esac

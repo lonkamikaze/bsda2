@@ -11,8 +11,8 @@ setvar x 1337 && test "$x" = 1337
 getvar y x && test "$y" = "$x"
 
 # Calling bsda:obj:createClass() without arguments
-! error=$(bsda:obj:createClass 2>&1)
-bsda:test:match "bsda:obj:createClass: ERROR: *" "$error"
+error=$(bsda:obj:createClass 2>&1; test $? -eq 5)
+bsda:test:gmatch "bsda:obj:createClass: ERROR: *" "$error"
 
 # Checking class creation
 bsda:obj:createClass Foo
@@ -34,12 +34,12 @@ Foo foo
 
 # Test empty obj dump format
 dump=$("$foo".dump)
-bsda:test:match 'Foo@* {}' "$dump"
+bsda:test:gmatch 'Foo@* {}' "$dump"
 
 # Test deleting
 "$foo".delete
 ! error=$("$foo".delete 2>&1)
-bsda:test:match "* not found" "$error"
+bsda:test:gmatch "* not found" "$error"
 
 # Test setters'n'getters
 bsda:obj:createClass Baz w:value
@@ -84,7 +84,7 @@ Baz.getMethods | grep -qFx private:setValue
 # Test private
 Baz baz
 ! error=$("$baz".setValue 42 2>&1 )
-bsda:test:match "Baz.setValue:*access*private*" "$error"
+bsda:test:gmatch "Baz.setValue:*access*private*" "$error"
 # Fake private
 class=Baz
 "$baz".setValue 42
@@ -102,13 +102,13 @@ getvar x "${baz}"value && test "$x" = 42
 "$baz".delete
 getvar x "${baz}"value && test -z "$x"
 ! error=$($baz.getValue x 2>&1 )
-bsda:test:match "* not found" "$error"
+bsda:test:gmatch "* not found" "$error"
 bsda:obj:deserialise baz "$serialised"
 x=0
 "$baz".getValue x && test "$x" = 42
 # Test dump format
 "$baz".dump dump
-bsda:test:match "Baz@* {\n  value='42'\n}" "$dump"
+bsda:test:gmatch $'Baz@* {\n  value=\'42\'\n}' "$dump"
 
 # Test methods
 bsda:obj:createClass Boom x:foo
@@ -159,11 +159,11 @@ White white
 test "$call" = "Black.clean"
 
 # Test double initialiser function
-! error=$(bsda:obj:createClass Bam i:foo i:bar 2>&1 )
-bsda:test:match "bsda:obj:createClass: ERROR: *init*" "$error"
+error=$(bsda:obj:createClass Bam i:foo i:bar 2>&1; test $? -eq 1)
+bsda:test:gmatch "bsda:obj:createClass: ERROR: *init*" "$error"
 # Test double cleanup function
-! error=$(bsda:obj:createClass Bam c:foo c:bar 2>&1 )
-bsda:test:match "bsda:obj:createClass: ERROR: *cleanup*" "$error"
+error=$(bsda:obj:createClass Bam c:foo c:bar 2>&1; test $? -eq 2)
+bsda:test:gmatch "bsda:obj:createClass: ERROR: *cleanup*" "$error"
 
 # Test delete thoroughly
 bsda:obj:createClass Bob \
@@ -217,13 +217,13 @@ C.init() {
 C c
 # Check structure
 "$c".dump dump
-bsda:test:match "C@*_0_ {\n  b=B@*_0_ {\n    a=A@*_0_ {}\n  }\n  a=A@*_1_ {}\n}" "$dump"
+bsda:test:gmatch $'C@*_0_ {\n  b=B@*_0_ {\n    a=A@*_0_ {}\n  }\n  a=A@*_1_ {}\n}' "$dump"
 bsda:test:isFunction "$c".serialise
 bsda:test:isFunction "$c".copy
 # Copy and check copy
 "$c".copy c1
 "$c1".dump dump1
-bsda:test:match "C@*_1_ {\n  b=B@*_1_ {\n    a=A@*_2_ {}\n  }\n  a=A@*_3_ {}\n}" "$dump1"
+bsda:test:gmatch $'C@*_1_ {\n  b=B@*_1_ {\n    a=A@*_2_ {}\n  }\n  a=A@*_3_ {}\n}' "$dump1"
 "$c1".delete
 # Check recursive delete
 "$c".b cb
@@ -310,4 +310,4 @@ test $'C\nB\nA\nGC\nGCa' = "$harvest"
 
 # Test GC with unimplemented cleanup method
 warn=$( (bsda:obj:fork;Bar bar) 2>&1 )
-bsda:test:match "* not found\nbsda:obj:exit: WARNING: *" "$warn"
+bsda:test:gmatch $'* not found\nbsda:obj:exit: WARNING: *' "$warn"
