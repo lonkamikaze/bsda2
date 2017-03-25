@@ -219,6 +219,57 @@ from the old plist to the new one. The script makes an effort to
 place them in the same context. The prefix
 .Dq Li @sample\ 
 is stripped from all files that appear in the old plist without it.
+.Sh EXAMPLES
+The current directory is a port to create a pkg-plist for:
+.Pp
+.Dl % makeplist
+.Pp
+The quiet mode suppresses the build output:
+.Pp
+.Dl % makeplist -q
+.Pp
+Instead of creating the file
+.Pa pkg-plist.makeplist
+overwrite the
+.Pa pkg-plist
+file:
+.Pp
+.Dl % makeplist -o pkg-plist
+.Pp
+To create a pkg-plist as an unprivileged user run:
+.Pp
+.Dl % env WRKDIRPREFIX='/var/tmp/obj.${USER}' makeplist -o ~/myplist
+.Pp
+The
+.Li WRKDIRPREFIX
+can be set in the
+.Xr make.conf 5 file:
+.Pp
+.Dl WRKDIRPREFIX?=/var/tmp/obj.${USER}
+.Pp
+There is no need to
+.Li cd
+into a ports directory:
+.Pp
+.Dl % makeplist games/ioquake3-devel
+.Pp
+The ports tree does not have to be in
+.Pa /usr/ports :
+.Pp
+.Dl % env PORTSDIR=$HOME/ports.svn makeplist games/ioquake3-devel
+.Pp
+Or just use
+.Li cd :
+.Pp
+.Dl % cd ~/ports.svn/games/ioquake3-devel && makeplist
+.Pp
+A port listing all its files in
+.Li PLIST_FILES
+results in an empty plist.
+.Li PLIST_FILES
+can be ignored:
+.Pp
+.Dl % makeplist -I PLIST_FILES
 .Sh SEE ALSO
 .Xr ports 7 , Xr make 1 , Xr pkg-greate 8
 .Sh HISTORY
