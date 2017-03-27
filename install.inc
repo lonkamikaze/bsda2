@@ -20,6 +20,7 @@ src/interrupt.mk,0644,%%DATADIR%%/interrupt.mk
 src/makeplist,0755,%%PREFIX%%/sbin/makeplist
 man/makeplist.8,0644,%%MAN%%/man8/makeplist.8.gz
 src/makeplist.sh,0644,%%DATADIR%%/makeplist.sh
+src/options.mk,0644,%%DATADIR%%/options.mk
 src/pkg_info.sh,0644,%%DATADIR%%/pkg_info.sh
 src/pkg_libchk,0755,%%PREFIX%%/sbin/pkg_libchk
 man/pkg_libchk.1,0644,%%MAN%%/man1/pkg_libchk.1.gz
