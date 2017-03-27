@@ -27,6 +27,14 @@ BUILDFLAGS!=           test    "${BUILDFLAGS_TMP}" -nt "${BUILDFLAGS_USER}" \
 # Include generated make file
 .sinclude "${BUILDFLAGS_TMP}"
 
+# Deprecated, because USE_ variables are not supposed to be user-defined
+.if defined(USE_CCACHE)
+.warning "buildflags.mk: USE_CCACHE is deperecated in favour of WITH_CCACHE_BUILD"
+.endif
+.if defined(USE_DISTCC)
+.warning "buildflags.mk: USE_DISTCC is deperecated"
+.endif
+
 # Use ccache and distcc.
 .if defined(USE_CCACHE) && !${CC:M*ccache*} && exists(${BUILDFLAGS_CCACHE}) && defined(USE_DISTCC) && !${CC:M*distcc*} && exists(${BUILDFLAGS_DISTCC})
 CC:=			env CCACHE_PREFIX=${BUILDFLAGS_DISTCC} ${BUILDFLAGS_CCACHE} ${CC}
