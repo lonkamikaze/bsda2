@@ -22,7 +22,7 @@ function substitute(regexp, replace, haystack) {
 }
 
 ##
-# This selects the first string from haystack that machthes regexp.
+# This selects the first string from haystack that matches regexp.
 #
 # @param regexp
 #	The regular expression to match.
@@ -54,7 +54,7 @@ function isset(haystack) {
 ##
 # Resolves paths at the beginning of a location pattern as
 # far as possible and prints the result. The string can
-# contain several paths seperated by '|' and '&'.
+# contain several paths separated by '|' and '&'.
 #
 # @param path
 #	The location pattern to resolve.
@@ -97,7 +97,7 @@ pattern) {
 	} else
 		printf("%s", "${.CURDIR:M");
 
-	# Paths that do not begin with '/' are never resolveable.
+	# Paths that do not begin with '/' are never resolvable.
 	if (path ~ "^[^/]") {
 		printf("%s", path "}");
 		return;
@@ -109,7 +109,7 @@ pattern) {
 	# Remember the part that cannot be resolved.
 	sub("^" path, "", pattern);
 
-	# If there is a resolveable part resolve it.
+	# If there is a resolvable part resolve it.
 	if (path) {
 		# If path exists, resolve and print it, else print the
 		# original string.
@@ -183,7 +183,7 @@ block) {
 	# Spaces at the beginning are never required.
 	sub("^[[:space:]]+", "", line);
 
-	# Deal with comments. Comments behind parseable data will end up
+	# Deal with comments. Comments behind parsable data will end up
 	# in the line in front of that data.
 	if (line ~ "^[^\"]*#") {
 		# Print the comment.
@@ -205,7 +205,7 @@ block) {
 
 	# Deal with quotes.
 	if (line ~ "\"") {
-		# Check whether the assignment is properly formated.
+		# Check whether the assignment is properly formatted.
 		if (line ~ "[^[:space:]{}]+=[[:space:]]*\"") {
 			# Take whatever is in front of the assignment
 			# and parse it.
@@ -247,7 +247,7 @@ block) {
 		# Open the new block.
 		beginBlock(substitute("{.*", "", line));
 
-		# Pase whatever is inside.
+		# Parse whatever is inside.
 		sub("[^{]*{", "", line);
 		if (isset(line))
 			parse(line);
@@ -279,7 +279,7 @@ block) {
 	if (line ~ "^![^[:space:]=]+") {
 		# Remove the negation symbol.
 		line = substitute("^!", "", line);
-		# Print the undefine command.
+		# Print the undefined command.
 		print(".undef " grep("^[^[:space:]=]+", line));
 
 		# Parse what follows.
