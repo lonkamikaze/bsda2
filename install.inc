@@ -1,12 +1,14 @@
 set -f
 
 files="
+src/bsda_bsdmake.sh,0644,%%DATADIR%%/bsda_bsdmake.sh
 src/bsda_container.sh,0644,%%DATADIR%%/bsda_container.sh
 src/bsda_dialog.sh,0644,%%DATADIR%%/bsda_dialog.sh
 src/bsda_fifo.sh,0644,%%DATADIR%%/bsda_fifo.sh
 src/bsda_obj.sh,0644,%%DATADIR%%/bsda_obj.sh
 src/bsda_opts.sh,0644,%%DATADIR%%/bsda_opts.sh
 src/bsda_tty.sh,0644,%%DATADIR%%/bsda_tty.sh
+src/bsda_util.sh,0644,%%DATADIR%%/bsda_util.sh
 src/buildflags.awk,0755,%%DATADIR%%/buildflags.awk
 src/buildflags.conf.sample,0644,%%PREFIX%%/etc/buildflags.conf.sample
 src/buildflags.mk,0644,%%DATADIR%%/buildflags.mk
