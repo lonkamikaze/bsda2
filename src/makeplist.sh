@@ -57,8 +57,8 @@ makeplist:Option.init() {
 # options. The `WITHOUT` list contains the prevented options and
 # the options prevented by the recursively implied options.
 #
-# If the option is part of an `OPTIONS_SINGLE` group, the siblings
-# are added to the `WITHOUT` list.
+# If the option is part of an `OPTIONS_SINGLE` or `OPTIONS_RADIO`
+# group, the siblings are added to the `WITHOUT` list.
 #
 # @param &1
 #	The variable to return the `WITH` selection to
@@ -99,11 +99,12 @@ makeplist:Option.getPair() {
 		without="${without:+$without }$prevent"
 	done
 
-	# Add siblings in single groups to without
+	# Add siblings in single and radio groups to without
 	local group groupMap options map members member
 	$this.getOptions options
 	$this.getGroup group
-	if [ -z "${group##OPTIONS_SINGLE_*}" ]; then
+	case "$group" in
+	OPTIONS_SINGLE_*|OPTIONS_RADIO_*)
 		$options.GroupMap map
 		$map.[ "$group" ] members
 		for member in $members; do
@@ -112,7 +113,8 @@ makeplist:Option.getPair() {
 			bsda:util:in "$member" $with && return 1
 			without="${without:+$without }$member"
 		done
-	fi
+	;;
+	esac
 
 	# Recursively add implies
 	local implies options map option
