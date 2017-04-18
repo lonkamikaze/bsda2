@@ -270,15 +270,17 @@ bsda:tty:Async.daemon_drawlines() {
 	if [ $((drawLines)) -le 0 ]; then
 		return 0
 	fi
+	local i
 	i=$((drawLines - 1))
-	/usr/bin/tput vi cr $($class.daemon_repeat $i do)
-	printf '\033[?7l'
+	# tput       vi.......                                     RA......
+	printf '%b' '\033[?25l\r' $($class.daemon_repeat $i '\n') '\033[?7l'
 	while [ $i -gt 0 ]; do
+		# tput          ce....  up...
 		eval "printf '%s\033[K\r\033M' \"\$line$i\""
 		i=$((i - 1))
 	done
-	printf '%s\033[K\r\033[?7h' "$line0"
-	/usr/bin/tput ve
+	# tput    ce....  SA......ve...............
+	printf '%s\033[K\r\033[?7h\033[34h\033[?25h' "$line0"
 }
 
 #
@@ -315,9 +317,11 @@ bsda:tty:Async.daemon_drawline() {
 	if [ $1 -ge $drawLines ] || [ $1 -lt 0 ]; then
 		return
 	fi
-	/usr/bin/tput vi cr $($class.daemon_repeat $1 do)
+	# tput       vi.......
+	printf '%b' '\033[?25l\r' $($class.daemon_repeat $1 '\n')
 	eval "printf '\033[?7l%s\033[K\r\033[?7h' \"\$line$1\""
-	/usr/bin/tput $($class.daemon_repeat $1 up) ve
+	# tput                                 up...    ve...............
+	printf '%b' $($class.daemon_repeat $1 '\033M') '\033[34h\033[?25h'
 }
 
 #
@@ -345,7 +349,8 @@ bsda:tty:Async.daemon_use() {
 # Clear the status lines, and turn the cursor visible.
 #
 bsda:tty:Async.daemon_deactivate() {
-	/usr/bin/tput cr cd ve > /dev/tty
+	# tput      cd..ve...........
+	echo -n $'\r\e[J\e[34h\e[?25h' > /dev/tty
 }
 
 #
@@ -358,7 +363,8 @@ bsda:tty:Async.daemon_deactivate() {
 #	A quoted, escaped string, such as bsda:obj:escape() produces
 #
 bsda:tty:Async.daemon_stdout() {
-	/usr/bin/tput cd > /dev/tty
+	# tput    cd..
+	echo -n $'\e[J' > /dev/tty
 	echo "$1"
 	$class.daemon_drawlines > /dev/tty
 }
