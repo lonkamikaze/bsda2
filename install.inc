@@ -78,20 +78,9 @@ replace="
 
 replace_cmd="sed -e '/#HACK/,/#hack/d'"
 
-argsel() {
-	i="$1"
-	shift
-	eval "echo \"\$$i\""
-}
-
 for substitution in $replace; {
 	test -z "$substitution" && continue
 	replace_cmd="$replace_cmd -e 's,$substitution,g'"
-	for i in $(jot 9); do
-		select="${substitution%%,*}"
-		replace="${substitution#*,}"
-		replace_cmd="$replace_cmd -e 's,${select%\%\%}:$i%%,$(eval argsel $i $replace),g'"
-	done
 }
 
 files="$(echo "$files" | eval "$replace_cmd")"
