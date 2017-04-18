@@ -20,15 +20,15 @@ $fifo.sink echo foobar
 $fifo.source read -r str
 test "$str" = foobar
 # Send a big thing many times in parallel
-dmesg="$(dmesg)$NL"
+doc="$(cat ../bsda_obj.md)$NL"
 IFS="$NL"
 threads=8
 for i in $(jot $threads); do
-	$fifo.sink 'echo -n "$dmesg"' &
+	$fifo.sink 'echo -n "$doc"' &
 done
 for i in $(jot $threads); do
 	recv=
-	while [ "$recv" != "$dmesg" ]; do
+	while [ "$recv" != "$doc" ]; do
 		$fifo.source read -rt5 line
 		recv="$recv$line$NL"
 	done
