@@ -22,34 +22,34 @@ readonly _bsda_tty_=1
 #
 # A list of useful termcap(5) capabilities, used with tput(1):
 #
-# | Command            | Short    | Escape       | Problems              |
-# |--------------------|----------|--------------|-----------------------|
-# | save_cursor        | sc       |              |                       |
-# | restore_cursor     | rc       |              |                       |
-# | cursor_address     | cm #1 #2 | \033[y;xH    | Escape counts from 1  |
-# | cursor_home        | ho       |              |                       |
-# | columns            | co => #  |              |                       |
-# | lines              | li => #  |              |                       |
-# | clr_eol            | ce       | \033[K       |                       |
-# | clr_eos            | cd       | \033[J       |                       |
-# | delete_line        | dl       |              |                       |
-# | parm_insert_line   | AL #1    |              |                       |
-# | insert_line        | al       |              |                       |
-# | cursor_invisible   | vi       | \033[?25l    |                       |
-# | cursor_normal      | ve       | \033[?25h    |                       |
-# | cursor_visible     | vs       | \033[34l     |                       |
-# | parm_down_cursor   | DO #1    |              | DO 0 glitches in tmux |
-# | parm_up_cursor     | UP #1    |              | UP 0 glitches in tmux |
-# | carriage_return    | cr       | \r           |                       |
-# | newline            | nw       |              |                       |
-# | cursor_down        | do       | \n           |                       |
-# | cursor_up          | up       | \033M        |                       |
-# | eat_newline_glitch | xn       |              |                       |
-# | init_tabs          | it => #  |              |                       |
-# | enter_am_mode      | SA       | \033[?7h     | tput SA does not work |
-# | exit_am_mode       | RA       | \033[?7l     | tput RA does not work |
-# | enter_ca_mode      | ti       | \033[?1049h  |                       |
-# | exit_ca_mode       | te       | \033[?1049l  |                       |
+# | Command            | Short    | Escape        | Problems              |
+# |--------------------|----------|---------------|-----------------------|
+# | save_cursor        | sc       | \e7           |                       |
+# | restore_cursor     | rc       | \e8           |                       |
+# | cursor_address     | cm #1 #2 | \e[#2;#1H     | Escape counts from 1  |
+# | cursor_home        | ho       | \e[H          |                       |
+# | columns            | co => #  |               |                       |
+# | lines              | li => #  |               |                       |
+# | clr_eol            | ce       | \e[K          |                       |
+# | clr_eos            | cd       | \e[J          |                       |
+# | delete_line        | dl       | \e[M          |                       |
+# | parm_insert_line   | AL #1    | \e[#1L        |                       |
+# | insert_line        | al       | \e[L          |                       |
+# | cursor_invisible   | vi       | \e[?25l       |                       |
+# | cursor_normal      | ve       | \e[34h\e[?25h |                       |
+# | cursor_visible     | vs       | \e[34l        |                       |
+# | parm_down_cursor   | DO #1    | \e[#1B        | DO 0 glitches in tmux |
+# | parm_up_cursor     | UP #1    | \e[#1A        | UP 0 glitches in tmux |
+# | carriage_return    | cr       | \r            |                       |
+# | newline            | nw       | \eE           |                       |
+# | cursor_down        | do       | \n            |                       |
+# | cursor_up          | up       | \eM           |                       |
+# | eat_newline_glitch | xn       |               |                       |
+# | init_tabs          | it => #  |               |                       |
+# | enter_am_mode      | SA       | \e[?7h        | tput SA does not work |
+# | exit_am_mode       | RA       | \e[?7l        | tput RA does not work |
+# | enter_ca_mode      | ti       | \e[?1049h     |                       |
+# | exit_ca_mode       | te       | \e[?1049l     |                       |
 #
 
 #
