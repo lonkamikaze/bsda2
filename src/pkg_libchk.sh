@@ -213,9 +213,9 @@ pkg:libchk:Session.packages() {
 			local IFS
 			IFS=$'\n'
 			$($this.Term).stderr "Checking packages:" \
-			                        "------------------" \
-			                        "$pkgs" \
-			                        "------------------"
+			                     "------------------" \
+			                     "$pkgs" \
+			                     "------------------"
 		fi
 	fi
 
