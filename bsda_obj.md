@@ -10,9 +10,9 @@ BSDA:OBJ - Real World OO for Shell-Scripting
 ============================================
 
 The `bsda:obj` framework offers you some common OO-foo for shell scripting
-like classes, encapsulation, polymorphism with and without inheritance,
-method overloading, introspection, serialisation, automatic creation
-of getters and setters and garbage collection upon process termination.
+like classes, encapsulation, polymorphism, introspection, serialisation,
+automatic creation of getters and setters and garbage collection upon
+process termination.
 
 `bsda:obj` provides a higher level of abstraction and code reuse without
 sacrificing the flexibility and versatility of shell scripting.
