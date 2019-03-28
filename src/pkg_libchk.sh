@@ -364,7 +364,13 @@ pkg:libchk:Session.job() {
 	if $flags.check NO_FILTER -eq 0 && [ -n "$misses" ]; then
 		pfiles="$(echo "$files" \
 		          | /usr/bin/sed -e 's,.*/,|,' -e 's,$,|,')"
-		misses="$(echo "$misses" | /usr/bin/grep -vF "$pfiles")"
+		# Filter pfiles, because it may be too long to use
+		# in an argument
+		miss="$(echo "$misses" \
+		        | /usr/bin/awk '{sub(/^[^|]*/, "")}!a[$0]++')"
+		pfiles="$(echo "$pfiles" | /usr/bin/grep -Fx "$miss")"
+		# Filter misses by the intersection of misses and pfiles
+		misses="$(echo "$misses" | /usr/bin/grep -vF "${pfiles:-||}")"
 	fi
 
 	# Verify misses
