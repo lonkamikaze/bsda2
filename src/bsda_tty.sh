@@ -251,8 +251,7 @@ bsda:tty:Async.daemon_startup() {
 	trap "trap '' HUP INT TERM;$fifo.sink echo exit" HUP INT TERM
 	trap "trap '' WINCH;$fifo.sink echo winch" WINCH
 	statusLines=0
-	IFS=' 	
-'
+	IFS=$' \t\n'
 	readonly fifo IFS
 }
 
@@ -408,8 +407,11 @@ bsda:tty:Async.daemon() {
 			trap "trap '' WINCH;$fifo.sink echo winch" WINCH
 			$class.daemon_winch
 		;;
+		'')
+			# This seems to happen on SIGINT/SIGHUP/SIGTERM
+		;;
 		*)
-			$class.daemon_stdout "bsda:tty:Async.daemon: WARNING: Illegal command received: $(echo "$cmd" | bsda:obj:escape)" >&2
+			$class.daemon_stdout "bsda:tty:Async.daemon: WARNING: Illegal command received: $(echo -n "$cmd" | bsda:obj:escape)" >&2
 		;;
 		esac
 	done
