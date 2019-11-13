@@ -23,18 +23,21 @@ readonly _bsda_fifo_=1
 #	$fifo.source read -r line
 #	echo "$line"
 #
-# Note that this consumes two file descriptors out of the small pool
+# Note that this consumes three file descriptors out of the small pool
 # of 7 available descriptors (this is a hard-coded limit in ASH).
-# The second descriptor is used as a write-lock facility.
-# The locking pipe is initialised with a single byte, which is consumed
-# by the sink() method before writing to the messaging pipe. Any
-# other process trying to write into the messaging pipe is suspended
-# until the sink() method completes and puts a new byte into the
-# locking pipe.
+# The second and third descriptor are used as a write and read lock
+# facilities.
+# The locking pipes are initialised with a single byte, which is consumed
+# by sink() before writing to or by source() before reading from the
+# messaging pipe.
+# Any other process trying to write into or read from the messaging
+# pipe is suspended until the concurrent sink() or source() method
+# completes and puts a new byte into the locking pipe.
 #
 bsda:obj:createClass bsda:fifo:Fifo \
 	r:private:desc  "The I/O file descriptor number" \
-	r:private:lock  "The write lock file descriptor number" \
+	r:private:wlock "The write lock file descriptor number" \
+	r:private:rlock "The read lock file descriptor number" \
 	i:private:init  "Sets up the named pipe" \
 	c:private:clean "Releases the file descriptor" \
 	x:public:sink   "Use like eval to send" \
@@ -47,7 +50,7 @@ bsda:obj:createClass bsda:fifo:Fifo \
 # pipe and creates low overhead source() and sink() methods.
 #
 bsda:fifo:Fifo.init() {
-	local fifo desc lock
+	local fifo desc wlock rlock
 	# Create a named pipe
 	fifo="$(/usr/bin/mktemp -ut $this)" || return $?
 	bsda:obj:getDesc desc || return $?
@@ -59,26 +62,40 @@ bsda:fifo:Fifo.init() {
 	/bin/rm "$fifo"
 
 	# Create a named pipe for the write lock
-	bsda:obj:getDesc lock || return $?
-	setvar ${this}lock "$lock"
+	bsda:obj:getDesc wlock || return $?
+	setvar ${this}wlock "$wlock"
 	/usr/bin/mkfifo "$fifo" || return $?
 	# Open a file descriptor
-	eval "exec $lock<> '$fifo'"
+	eval "exec $wlock<> '$fifo'"
 	# Remove file system node for the named pipe
 	/bin/rm "$fifo"
 	# Release the lock for starters
-	echo >&$lock
+	echo >&$wlock
+
+	# Create a named pipe for the read lock
+	bsda:obj:getDesc rlock || return $?
+	setvar ${this}rlock "$rlock"
+	/usr/bin/mkfifo "$fifo" || return $?
+	# Open a file descriptor
+	eval "exec $rlock<> '$fifo'"
+	# Remove file system node for the named pipe
+	/bin/rm "$fifo"
+	# Release the lock for starters
+	echo >&$rlock
 
 	# Create sink() and source() methods
 	eval "
 	$this.sink() {
 		local bsda_fifo_Fifo_lock
-		read -r bsda_fifo_Fifo_lock <&$lock
+		read -r bsda_fifo_Fifo_lock <&$wlock
 		eval \"\$@\" >&$desc
-		echo >&$lock
+		echo >&$wlock
 	}
 	$this.source() {
+		local bsda_fifo_Fifo_lock
+		read -r bsda_fifo_Fifo_lock <&$rlock
 		eval \"\$@\" <&$desc
+		echo >&$rlock
 	}"
 }
 
@@ -93,7 +110,10 @@ bsda:fifo:Fifo.clean() {
 	$this.getDesc desc
 	eval "${desc:+exec $desc>&-}"
 	bsda:obj:releaseDesc $desc
-	$this.getLock desc
+	$this.getWlock desc
+	eval "${desc:+exec $desc>&-}"
+	bsda:obj:releaseDesc $desc
+	$this.getRlock desc
 	eval "${desc:+exec $desc>&-}"
 	bsda:obj:releaseDesc $desc
 }
