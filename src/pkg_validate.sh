@@ -8,34 +8,6 @@ readonly _pkg_validate_=1
 . ${bsda_dir:-.}/pkg_query.sh
 
 #
-# A simple class to pass job results through the FIFO.
-#
-# The misses attribute is a list in the format:
-#	file "|" library "|" ("[direct]" | "[indirect]")
-#
-bsda:obj:createClass pkg:validate:JobResult \
-	r:pkg    "The package name" \
-	r:files  "The list of modified or inaccessible files" \
-	r:sline  "The status line id this job is listed on" \
-	i:init   "Constructor"
-
-#
-# A job result constructor.
-#
-# @param 1
-#	The package name
-# @param 2
-#	The list of modified or inaccessible files
-# @param 3
-#	The status line number
-#
-pkg:validate:JobResult.init() {
-	setvar ${this}pkg "$1"
-	setvar ${this}files "$2"
-	setvar ${this}sline "$3"
-}
-
-#
 # The session class for pkg_validate.
 #
 bsda:obj:createClass pkg:validate:Session \
@@ -44,13 +16,14 @@ bsda:obj:createClass pkg:validate:Session \
 	a:private:Fifo=bsda:fifo:Fifo \
 	r:private:packages "The list of packages to process" \
 	r:private:jobs     "The number of parallel jobs" \
+	r:private:jobpids  "The active job pids" \
 	i:private:init     "The constructor" \
+	c:private:clean    "The destructor" \
 	x:private:params   "Parse command line arguments" \
 	x:private:help     "Print usage message" \
 	x:private:packages "Determine requested packages" \
-	x:private:run      "Fork library checks" \
-	x:private:print    "Print a serialised JobResult instance" \
-	x:private:job      "Perform library checks"
+	x:private:run      "Fork file checks" \
+	x:private:job      "Perform file checks"
 
 #
 # Constructor for a pkg_validate session.
@@ -70,13 +43,28 @@ pkg:validate:Session.init() {
 	$this.params "$@"
 
 	# Setup terminal lines
-	$($this.Term).use $(($($this.getJobs) + 1))
+	$($this.Term).use 1
 
 	# Create the fifo
 	bsda:fifo:Fifo ${this}Fifo
 
 	# Perform checks
 	$this.run
+}
+
+#
+# Harvest worker processes.
+#
+pkg:validate:Session.clean() {
+	local IFS fifo pids pid
+	IFS=$'\n'
+	$this.Fifo fifo
+	$this.getJobpids pids
+	for pid in $pids; do
+		$fifo.sink echo return
+	done
+	wait $pids
+	return 0
 }
 
 #
@@ -222,74 +210,11 @@ pkg:validate:Session.packages() {
 }
 
 #
-# Print a serialised JobResult instances.
-#
-# @param &1
-#	The status line id used for this job
-# @param 2
-#	The serialised JobResult
-#
-pkg:validate:Session.print() {
-	local res flags pkg files IFS output msg file hash
-	bsda:obj:deserialise res "$2"
-	$caller.setvar "$1" "$($res.getSline)"
-
-	$this.Flags flags
-
-	$res.getPkg pkg
-	$res.getFiles files
-	$res.delete
-
-	# Only mention permission issues in verbose mode
-	if $flags.check VERBOSE -eq 0; then
-		files="$(echo "$files" | /usr/bin/grep -Ev '^perm\|')"
-	fi
-
-	test -z "$files" && return
-
-	# Honour quiet output flag
-	if $flags.check PKG_QUIET -ne 0; then
-		$($this.Term).stdout "$pkg"
-		return $?
-	fi
-
-	# Give a detailed account of every modified or inaccessible file
-	IFS=$'\n'
-	output=
-	for file in $files; {
-		msg=
-		case "$file" in
-		perm\|*)
-			msg="user ${USER} has no permission to access"
-		;;
-		miss\|*)
-			msg="missing file"
-		;;
-		checksum/*\|*)
-			hash="${file%%|*}"
-			hash="${hash#*/}"
-			msg="mismatched $hash checksum for"
-		;;
-		hash/*\|*)
-			hash="${file%%|*}"
-			hash="${hash#*/}"
-			msg="unsupported $hash checksum for"
-		;;
-		*)
-			$($this.Term).stderr "${0##*/}: internal error, job returned: '$file'"
-			continue
-		;;
-		esac
-		output="${output}${pkg}: ${msg} ${file#*|}${IFS}"
-	}
-	$($this.Term).stdout ${output}
-}
-
-#
 # Fork off missing library checks and collect results.
 #
 pkg:validate:Session.run() {
-	local IFS pkg pkgs result maxjobs jobs term fmt count num fifo
+	local IFS pkg pkgs maxjobs jobs term fmt count num fifo jobpids
+	local line
 
 	# Initialise dispatcher
 	IFS=$'\n'
@@ -298,84 +223,68 @@ pkg:validate:Session.run() {
 	$this.getJobs maxjobs
 	$this.getPackages pkgs
 	$this.Fifo fifo
-	num=$(($(echo "$pkgs" | /usr/bin/wc -l)))
-	        # Total number of packages/jobs
-	count=0 # Completed jobs
-	jobs=0  # Number of running jobs
-	sline=1 # The next status line to use
 
 	#
 	# Dispatch jobs
 	#
-	fmt="Jobs done: %${#num}d of $num"
-	$term.line 0 "$(printf "$fmt" $count)"
-	while [ -n "$pkgs" ]; do
-		# Wait for jobs to complete
-		if [ $jobs -ge $maxjobs ]; then
-			# Blocking read
-			$fifo.source read -r result
-			jobs=$((jobs - 1))
-			$this.print sline "$result"
-			count=$((count + 1))
-			$term.line 0 "$(printf "$fmt" $count)"
-		fi
-		# Select next package to process
-		pkg="${pkgs%%$IFS*}"
+	jobs=0  # Number of running jobs
+	jobpids=
+	while [ $((jobs += 1)) -le $((maxjobs)) ]; do
 		# Dispatch job
 		(
 			bsda:obj:fork
-			$this.job "$pkg" $sline
+			$this.job
 		) &
-		$term.line $sline "$pkg"
-		pkgs="${pkgs#$pkg}"
-		pkgs="${pkgs#$IFS}"
-		jobs=$((jobs + 1))
-		sline=$((sline + 1))
+		jobpids="${jobpids}$!${IFS}"
+		setvar ${this}jobpids "$jobpids"
 	done
 
-	#
-	# Wait for last jobs
-	#
-	fmt="Waiting for %${#maxjobs}d job(s)"
-	while [ $jobs -gt 0 ]; do
-		# Blocking read
-		$fifo.source read -r result
-		$this.print sline "$result"
-		$term.line $sline
-		jobs=$((jobs - 1))
+	num=$(($(echo "$pkgs" | /usr/bin/wc -l)))
+	        # Total number of packages/jobs
+	count=0 # Completed packages
+	fmt="Checking package %${#num}d of $num: %s"
+	while kill -0 $jobpids 2>&- && [ -n "$pkgs" ]; do
+		# Select next package to process
 		count=$((count + 1))
-		$term.line 0 "$(printf "$fmt" $jobs)"
+		pkg="${pkgs%%$IFS*}"
+		$term.line 0 "$(printf "$fmt" $count "$pkg")"
+		$fifo.sink "pkg:query:select \"$class:job '$pkg' '%Fs' '%Fp'\" $pkg"
+		pkgs="${pkgs#$pkg}"
+		pkgs="${pkgs#$IFS}"
 	done
+	if ! kill -0 $jobpids 2>&-; then
+		$term.stderr "${0##*/}: ERROR: worker process died unexpectedly"
+	fi
 }
 
 #
-# Validate a single file
+# Validate a single file.
 #
 # @param 1
-#	The queried file hash
+#	The package name
 # @param 2
+#	The queried file hash
+# @param 3
 #	The queried file name
-# @param files
-#	Updated if the current file is inaccessible or has a checksum
-#	mismatch
+# @param flags
+#	A bsda:opts:Flags instance
 #
 pkg:validate:Session:job() {
-	local sum hash
-	sum="${1#*\$}"
+	local sum hash msg
+	sum="${2#*\$}"
 	hash=
-	case "$1" in
+	msg=
+	case "$2" in
 	1\$*)
 		hash=sha256
 	;;
 	esac
 	if [ -z "$hash" -o ! -x "/sbin/$hash" ]; then
-		# unsupported hash
-		files="${files}hash/$hash|$2${IFS}"
-		return
-	elif [ -L "$2" ]; then
+		msg="unsupported $hash checksum for"
+	elif [ -L "$3" ]; then
 		local link
 		# symlink
-		link="$(/usr/bin/readlink -n "$2")"
+		link="$(/usr/bin/readlink -n "$3")"
 		# Pkgng removes the leading /, and appends
 		# a 0 byte. The latter was originally by
 		# accident, but will forever remain in order
@@ -384,39 +293,34 @@ pkg:validate:Session:job() {
 			link="${link#/}\\0"
 		fi
 		sum="$(printf "$link" | /sbin/$hash -q)"
-	elif [ ! -e "$2" ]; then
-		# file does not exist
-		files="${files}miss|$2${IFS}"
-	elif [ ! -r "$2" ]; then
+	elif [ ! -e "$3" ]; then
+		msg="missing file"
+	elif [ ! -r "$3" ]; then
 		# file or location not accessible
-		files="${files}perm|$2${IFS}"
-		return
+		if $flags.check VERBOSE -ne 0; then
+			msg="user ${USER} has no permission to access"
+		fi
 	else
 		# regular file hash
-		sum="$(/sbin/$hash -q "$2")"
+		sum="$(/sbin/$hash -q "$3")"
 	fi
 	# sum is set to the correct hash in case the file has the
 	# correct hash or a problem was already reported
-	if [ "$sum" != "${1#*\$}" ]; then
-		files="${files}checksum/$hash|$2${IFS}"
+	if [ "$sum" != "${2#*\$}" ]; then
+		msg="mismatched $hash checksum for"
+	fi
+	if [ -n "${msg}" ]; then
+		$term.stdout "$1: ${msg} $3"
 	fi
 }
 
 #
 # Check files in a package for missing libraries.
 #
-# @param 1
-#	The package to check
-# @param 2
-#	The status line this job is listed on
-#
 pkg:validate:Session.job() {
-	local IFS files res
-	# The files of the package
-	IFS=$'\n'
-	eval "$(pkg:query:select "$class:job '%Fs' '%Fp'" $1)"
-
-	# Create a JobResult, serialise it and send it back to the dispatcher
-	pkg:validate:JobResult res "$1" "$files" "$2"
-	$($this.Fifo).sink $res.serialise
+	local line flags
+	$this.Flags flags
+	while $fifo.source read -r line; do
+		eval "$line"
+	done
 }
