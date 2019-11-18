@@ -53,6 +53,199 @@ readonly _bsda_tty_=1
 #
 
 #
+# Provides terminal output.
+#
+# This provides n status lines directly on the terminal, i.e. they
+# are not affected by redirecting stdout or stderr. It also provides
+# output on stdout and stderr without messing up the status lines.
+#
+bsda:obj:createClass bsda:tty:Terminal \
+	r:private:stLines   "The number of status lines" \
+	r:private:drLines   "The number of status lines to draw" \
+	x:public:winch      "Update window signal handler" \
+	i:public:init       "Take over the terminal output" \
+	x:public:use        "Set number of status lines" \
+	x:public:line       "Set a status line" \
+	c:public:deactivate "Deactivate status lines" \
+	x:public:stdout     "Print to stdout" \
+	x:public:stderr     "Print to stderr" \
+	x:private:refresh   "Redraw status lines"
+
+#
+# SIGWINCH handler.
+#
+# Caps the number of status lines to draw to half of the terminal height
+# and calls refresh().
+#
+bsda:tty:Terminal.winch() {
+	local teLines
+	trap '' WINCH
+	teLines=$(($(/usr/bin/tput li 2> /dev/tty || echo 24)))
+	# Use at most half of the available terminal space
+	setvar ${this}drLines $((${this}stLines < (teLines / 2) ? ${this}stLines : (teLines / 2)))
+	$this.refresh > /dev/tty
+	trap "$this.winch" WINCH
+}
+
+#
+# Setup terminal.
+#
+bsda:tty:Terminal.init() {
+	if [ -w /dev/tty ]; then
+		$this.use 0
+	else
+		$this.deactivate
+	fi
+}
+
+#
+# Changes the number of status lines.
+#
+# Updates the number of desired status lines, sets the number of
+# actual status lines to draw and redraws the status.
+#
+# @param 1
+#	The requested number of status lines
+#
+bsda:tty:Terminal.use() {
+	local lines
+	$this.getStLines lines
+	# delete no longer needed status lines
+	while [ $((lines)) -gt $(($1)) ]; do
+		lines=$((lines - 1))
+		unset ${this}line${lines}
+	done
+	setvar ${this}stLines $(($1))
+	$this.winch
+}
+
+#
+# Prints a string a given number of times.
+#
+# This can be used to generate repeated function arguments.
+#
+# @param 1
+#	Number of repetitions
+# @param 2
+#	String to repeat
+#
+bsda:tty:Terminal:repeat() {
+	if [ $1 -le 0 ]; then
+		return
+	fi
+	echo "$2"
+	bsda:tty:Terminal:repeat $(($1 - 1)) "$2"
+}
+
+#
+# Draw the given status line.
+#
+# This jumps to the given line and draws it.
+#
+# @param 1
+#	The status line number to draw on
+# @param *
+#	The status line contents to draw
+#
+bsda:tty:Terminal.line() {
+	if [ $(($1)) -ge $((${this}drLines)) ] || [ $(($1)) -lt 0 ]; then
+		return
+	fi
+	local lineno line
+	lineno=$(($1))
+	line=${this}line$(($1))
+	shift
+	setvar $line "$*"
+	# tput       vi.......
+	printf '%b' '\033[?25l\r' $($class:repeat $lineno '\n')
+	# tput        RA......  ce...   SA.....
+	eval "printf '\033[?7l%s\033[K\r\033[?7h' \"\$*\""
+	# tput                               up...    ve...............
+	printf '%b' $($class:repeat $lineno '\033M') '\033[34h\033[?25h'
+}
+
+#
+# Clear status lines, turn cursor visible  and replace methods with
+# dummies.
+#
+# Note that stdout() and stderr() still perform output.
+#
+bsda:tty:Terminal.deactivate() {
+	local stLines
+	# delete stored status lines
+	$this.getStLines stLines
+	if [ $((stLines)) -gt 0 ]; then
+		$this.use 0
+		# tput      cd..ve...........
+		echo -n $'\r\e[J\e[34h\e[?25h' > /dev/tty
+	fi
+	# restore signal default
+	trap - WINCH
+	# replace public methods with dummies
+	eval "$this.winch() { :; }"
+	eval "$this.use() { :; }"
+	eval "$this.line() { :; }"
+	eval "$this.stdout() { echo \"\$*\"; }"
+	eval "$this.stderr() { echo \"\$*\" >&2; }"
+}
+
+#
+# Print on stdout.
+#
+# Clears the status lines, prints the requested output and redraws the
+# status lines.
+#
+# @param IFS
+#	The first character in IFS is used to join multiple arguments,
+#	if unset a single space is used
+# @param *
+#	The strings to output
+#
+bsda:tty:Terminal.stdout() {
+	echo -n $'\e[J' > /dev/tty
+	echo "$*"
+	$this.refresh > /dev/tty
+}
+
+#
+# Print on stderr.
+#
+# Clears the status lines, prints the requested output and redraws the
+# status lines.
+#
+# @param IFS
+#	The first character in IFS is used to join multiple arguments,
+#	if unset a single space is used
+# @param *
+#	The strings to output
+#
+bsda:tty:Terminal.stderr() {
+	$class.stdout "$@" >&2
+}
+
+#
+# Draw all the status lines.
+#
+# The caller is responsible for redirecting the output to /dev/tty.
+#
+bsda:tty:Terminal.refresh() {
+	if [ $((${this}drLines)) -le 0 ]; then
+		return 0
+	fi
+	local i
+	i=$((${this}drLines - 1))
+	# tput       vi.......                              RA......
+	printf '%b' '\033[?25l\r' $($class:repeat $i '\n') '\033[?7l'
+	while [ $i -gt 0 ]; do
+		# tput          ce....  up...
+		eval "printf '%s\033[K\r\033M' \"\$${this}line$i\""
+		i=$((i - 1))
+	done
+	# tput          ce....  SA......ve...............
+	eval "printf '%s\033[K\r\033[?7h\033[34h\033[?25h' \"\$${this}line0\""
+}
+
+#
 # Provides asynchronous terminal output.
 #
 # This provides n status lines directly on the terminal, i.e. they
