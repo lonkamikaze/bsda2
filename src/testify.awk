@@ -8,6 +8,7 @@ BEGIN {
 	ST_REG = 0    # Regular state
 	ST_SQUOT = 1  # Inside single quotes
 	ST_DQUOT = 2  # Inside double quotes
+	ST_DSQUOT = 3 # Inside dollar single quotes
 
 	TOP = 0
 	STATE[TOP] = ST_REG
@@ -54,6 +55,17 @@ BEGIN {
 						++i
 						STATE[++TOP] = ST_REG
 					}
+					if (ch == "$'") {
+						++i
+						STATE[++TOP] = ST_DSQUOT
+					}
+				}
+				continue
+			}
+			# Dollar single quotes
+			if (STATE[TOP] == ST_DSQUOT) {
+				if (ch == "'") {
+					--TOP
 				}
 				continue
 			}
@@ -62,6 +74,13 @@ BEGIN {
 				STATE[++TOP] = ST_SQUOT
 			} else if (ch == "\"") {
 				STATE[++TOP] = ST_DQUOT
+			} else if (ch == "$") {
+				# Peek ahead
+				ch = substr($0, i, 2)
+				if (ch == "$'") {
+					++i
+					STATE[++TOP] = ST_DSQUOT
+				}
 			} else if (ch == "(") {
 				STATE[++TOP] = ST_REG
 			} else if (ch == ")") {
