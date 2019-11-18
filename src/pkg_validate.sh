@@ -245,7 +245,7 @@ pkg:validate:Session.run() {
 		count=$((count + 1))
 		pkg="${pkgs%%$IFS*}"
 		$term.line 0 "$(printf "$fmt" $count "$pkg")"
-		$fifo.sink "pkg:query:select \"$class:job '$pkg' '%Fs' '%Fp'\" $pkg"
+		$fifo.sink "pkg:query:select '$pkg|%Fs|%Fp' $pkg"
 		pkgs="${pkgs#$pkg}"
 		pkgs="${pkgs#$IFS}"
 	done
@@ -272,7 +272,7 @@ pkg:validate:Session.run() {
 # @param flags
 #	A bsda:opts:Flags instance
 #
-pkg:validate:Session:job() {
+pkg:validate:Session:validate() {
 	local sum hash msg
 	sum="${2#*\$}"
 	hash=
@@ -310,7 +310,7 @@ pkg:validate:Session:job() {
 	# sum is set to the correct hash in case the file has the
 	# correct hash or a problem was already reported
 	if [ "$sum" != "${2#*\$}" ]; then
-		msg="mismatched $hash checksum for"
+		msg="checksum mismatch for"
 	fi
 	if [ -n "${msg}" ]; then
 		$term.stdout "$1: ${msg} $3"
@@ -318,12 +318,65 @@ pkg:validate:Session:job() {
 }
 
 #
+# Check the sha256 sum of a whole batch of files.
+#
+# Refers mismatching files to pkg:validate:Session:validate() for
+# individual treatment.
+#
+# @param *
+#	A set of tuples: '%s|%s|%s' pkg chksum path
+# @param term
+#	A bsda:tty:Async instance
+# @param flags
+#	A bsda:opts:Flags instance
+#
+pkg:validate:Session:batch() {
+	local files hashes hash IFS
+	IFS=$'\n|'
+	# batch hash all files
+	files="$(echo "$*" | /usr/bin/sed 's/.*|//')"
+	hashes="$(/sbin/sha256 -q $files 2>&1)"
+	# compare hashes
+	for hash in $hashes; do
+		# on sha256 match go to the next hash
+		if [ -z "${1##*|1\$${hash}|*}" ]; then
+			shift
+			continue
+		fi
+		# on mismatch, check individual file
+		$class:validate $1
+		shift
+	done
+}
+
+#
 # Check files in a package for missing libraries.
 #
+# Reads jobs from the FIFO and performs them. Accepts the following
+# inputs:
+#
+# - '%s|%s|%s' pkg chcksum path
+# - 'exit'
+#
 pkg:validate:Session.job() {
-	local line flags
+	local flags term fifo IFS i lines line
 	$this.Flags flags
+	$this.Term term
+	$this.Fifo fifo
+	IFS=$'\n'
+	i=0
+	lines=
 	while $fifo.source read -r line; do
-		eval "$line"
+		if [ "${line}" = exit ]; then
+			$class:batch $lines
+			return 0
+		fi
+		if [ $((i += 1)) -gt 64 ]; then
+			$class:batch $lines
+			i=0
+			lines=
+		fi
+		lines="${lines}${line}${IFS}"
 	done
+	return 1
 }
