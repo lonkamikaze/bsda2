@@ -993,7 +993,7 @@ bsda:obj:escape() {
 #
 bsda:obj:trap() {
 	trap bsda:obj:exit EXIT
-	trap "trap - HUP INT TERM;exit 1" HUP INT TERM
+	trap "trap '' HUP INT TERM;exit 1" HUP INT TERM
 }
 
 #
@@ -1083,6 +1083,7 @@ bsda:obj:exit() {
 		fi
 	done
 	# Wait if any children stick around.
+	trap - HUP INT TERM
 	wait
 }
 
