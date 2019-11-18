@@ -285,17 +285,19 @@ pkg:validate:Session:validate() {
 	if [ -z "$hash" -o ! -x "/sbin/$hash" ]; then
 		msg="unsupported $hash checksum for"
 	elif [ -L "$3" ]; then
-		local link
+		local link fmt
 		# symlink
 		link="$(/usr/bin/readlink -n "$3")"
 		# Pkgng removes the leading /, and appends
 		# a 0 byte. The latter was originally by
 		# accident, but will forever remain in order
 		# to not break existing packages.
+		fmt="%s"
 		if [ -z "${link##/*}" ]; then
-			link="${link#/}\\0"
+			fmt="%s\\0"
+			link="${link#/}"
 		fi
-		sum="$(printf "$link" | /sbin/$hash -q)"
+		sum="$(printf "$fmt" "$link" | /sbin/$hash -q)"
 	elif [ ! -e "$3" ]; then
 		msg="missing file"
 	elif [ ! -r "$3" ]; then
