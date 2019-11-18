@@ -38,4 +38,4 @@ done
 if [ $fails -ne 0 ]; then
 	echo "Test runs failed: $fails"
 fi
-return $fails
+exit $fails
