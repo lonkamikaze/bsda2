@@ -56,14 +56,12 @@ pkg:validate:Session.init() {
 # Harvest worker processes.
 #
 pkg:validate:Session.clean() {
-	local IFS fifo pids pid
-	IFS=$'\n'
-	$this.Fifo fifo
+	local pids
 	$this.getJobpids pids
-	for pid in $pids; do
-		$fifo.sink echo return
-	done
-	wait $pids
+	if [ -n "$pids" ]; then
+		kill $pids 2>&-
+		wait $pids
+	fi
 	return 0
 }
 
@@ -214,7 +212,6 @@ pkg:validate:Session.packages() {
 #
 pkg:validate:Session.run() {
 	local IFS pkg pkgs maxjobs jobs term fmt count num fifo jobpids
-	local line
 
 	# Initialise dispatcher
 	IFS=$'\n'
@@ -254,7 +251,13 @@ pkg:validate:Session.run() {
 	done
 	if ! kill -0 $jobpids 2>&-; then
 		$term.stderr "${0##*/}: ERROR: worker process died unexpectedly"
+		return 1
 	fi
+	# Soft harvest jobs, i.e. let them complete
+	for pid in $jobpids; do
+		$fifo.sink echo exit
+	done
+	wait $jobpids
 }
 
 #
