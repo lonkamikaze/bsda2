@@ -13,6 +13,21 @@ readonly _bsda_fifo_=1
 # Creating this prior to forking opens a two-way communication pipe
 # between processes.
 #
+# The send() and recv() methods can be used to provide string argument
+# access:
+#
+#	bsda:fifo:Fifo fifo
+#	$fifo.send "This is my line" &
+#	$fifo.recv line
+#	echo "$line"
+#
+# The recv() function provides line wise access, multiple arguments
+# can be provided to split a line into columns divided by the characters
+# in $IFS (see `read -r`).
+#
+# The send() function merges multiple arguments using `"$*"`, i.e.
+# arguments are concatenated using the first character in $IFS.
+#
 # The sink() and source() methods are used like eval. The given command's
 # output (sink) or input (source) is redirected through the named pipe.
 #
@@ -40,6 +55,8 @@ bsda:obj:createClass bsda:fifo:Fifo \
 	r:private:rlock "The read lock file descriptor number" \
 	i:private:init  "Sets up the named pipe" \
 	c:private:clean "Releases the file descriptor" \
+	x:public:send   "Send a string" \
+	x:public:recv   "Receive a string" \
 	x:public:sink   "Use like eval to send" \
 	x:public:source "Use like eval to read"
 
@@ -85,6 +102,18 @@ bsda:fifo:Fifo.init() {
 
 	# Create sink() and source() methods
 	eval "
+	$this.send() {
+		local bsda_fifo_Fifo_lock
+		read -r bsda_fifo_Fifo_lock <&$wlock
+		echo \"\$*\" >&$desc
+		echo >&$wlock
+	}
+	$this.recv() {
+		local bsda_fifo_Fifo_lock
+		read -r bsda_fifo_Fifo_lock <&$rlock
+		read -r \"\$@\" <&$desc
+		echo >&$rlock
+	}
 	$this.sink() {
 		local bsda_fifo_Fifo_lock
 		read -r bsda_fifo_Fifo_lock <&$wlock

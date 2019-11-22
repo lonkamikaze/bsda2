@@ -255,7 +255,7 @@ pkg:validate:Session.run() {
 	fi
 	# Soft harvest jobs, i.e. let them complete
 	for pid in $jobpids; do
-		$fifo.sink echo exit
+		$fifo.send exit
 	done
 	wait $jobpids
 }
@@ -368,7 +368,7 @@ pkg:validate:Session.job() {
 	IFS=$'\n'
 	i=0
 	lines=
-	while $fifo.source read -r line; do
+	while $fifo.recv line; do
 		if [ "${line}" = exit ]; then
 			$class:batch $lines
 			return 0
