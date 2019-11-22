@@ -63,7 +63,7 @@ bsda:obj:createClass bsda:tty:Terminal \
 	r:private:stLines   "The number of status lines" \
 	r:private:drLines   "The number of status lines to draw" \
 	x:public:winch      "Update window signal handler" \
-	i:public:init       "Take over the terminal output" \
+	i:private:init      "Take over the terminal output" \
 	x:public:use        "Set number of status lines" \
 	x:public:line       "Set a status line" \
 	c:public:deactivate "Deactivate status lines" \
