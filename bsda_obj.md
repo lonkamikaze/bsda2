@@ -174,9 +174,9 @@ Aggregations are attributes with special properties:
 
 ~~~ bash
 bsda:obj:createClass Triangle2D \
-	a:A:MyPoint2D \
-	a:B:MyPoint2D \
-	a:C:MyPoint2D \
+	a:A=MyPoint2D \
+	a:B=MyPoint2D \
+	a:C=MyPoint2D \
 	i:init
 
 Triangle2D.init() {
@@ -632,7 +632,7 @@ in the code:
 This documents the process of serialisation and deserialisation.
 Serialization is the process of turning data structures into string
 representations. Serialised objects can be stored in a file and reloaded
-at a later time. They can be passed on to other processess, through a file
+at a later time. They can be passed on to other processes, through a file
 or a pipe. They can even be transmitted over a network through nc(1).
 
 * **NOTE** Static attributes are not subject to serialisation.
