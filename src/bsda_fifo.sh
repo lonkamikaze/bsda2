@@ -53,18 +53,18 @@ bsda:fifo:Fifo.init() {
 	local fifo desc wlock rlock
 	# Create a named pipe
 	fifo="$(/usr/bin/mktemp -ut $this)" || return $?
-	bsda:obj:getDesc desc || return $?
-	setvar ${this}desc "$desc"
-	/usr/bin/mkfifo "$fifo" || return $?
+	bsda:obj:getDesc ${this}desc || return $?
+	$this.getDesc desc
+	/usr/bin/mkfifo -m 0600 "$fifo" || return $?
 	# Open a file descriptor
 	eval "exec $desc<> '$fifo'"
 	# Remove file system node for the named pipe
 	/bin/rm "$fifo"
 
 	# Create a named pipe for the write lock
-	bsda:obj:getDesc wlock || return $?
-	setvar ${this}wlock "$wlock"
-	/usr/bin/mkfifo "$fifo" || return $?
+	bsda:obj:getDesc ${this}wlock || return $?
+	$this.getWlock wlock
+	/usr/bin/mkfifo -m 0600 "$fifo" || return $?
 	# Open a file descriptor
 	eval "exec $wlock<> '$fifo'"
 	# Remove file system node for the named pipe
@@ -73,9 +73,9 @@ bsda:fifo:Fifo.init() {
 	echo >&$wlock
 
 	# Create a named pipe for the read lock
-	bsda:obj:getDesc rlock || return $?
-	setvar ${this}rlock "$rlock"
-	/usr/bin/mkfifo "$fifo" || return $?
+	bsda:obj:getDesc ${this}rlock || return $?
+	$this.getRlock rlock
+	/usr/bin/mkfifo -m 0600 "$fifo" || return $?
 	# Open a file descriptor
 	eval "exec $rlock<> '$fifo'"
 	# Remove file system node for the named pipe
