@@ -290,7 +290,7 @@ pkg:validate:Session:validate() {
 	;;
 	esac
 	if [ -z "$hash" -o ! -x "/sbin/$hash" ]; then
-		msg="unsupported $hash checksum for"
+		msg="unsupported $hash checksum for $3"
 	elif [ -L "$3" ]; then
 		local link fmt
 		# symlink
@@ -305,12 +305,22 @@ pkg:validate:Session:validate() {
 			link="${link#/}"
 		fi
 		sum="$(printf "$fmt" "$link" | /sbin/$hash -q)"
-	elif [ ! -e "$3" ]; then
-		msg="missing file"
 	elif [ ! -r "$3" ]; then
-		# file or location not accessible
-		if $flags.check VERBOSE -ne 0; then
-			msg="user ${USER} has no permission to access"
+		# file cannot be read, follow the path until something
+		# check true for existence and recheck
+		local path file
+		path="$3"
+		while [ -n "$path" -a ! -e "$path" ]; do
+			path="${path%/*}"
+		done
+		if [ ! -r "$path" ]; then
+			# file or location not accessible
+			if $flags.check VERBOSE -ne 0; then
+				file="${3#${path}}"
+				msg="user ${USER} cannot access ${path}${file:+(${file})}"
+			fi
+		else
+			msg="missing file $3"
 		fi
 	else
 		# regular file hash
@@ -319,10 +329,10 @@ pkg:validate:Session:validate() {
 	# sum is set to the correct hash in case the file has the
 	# correct hash or a problem was already reported
 	if [ "$sum" != "${2#*\$}" ]; then
-		msg="checksum mismatch for"
+		msg="checksum mismatch for $3"
 	fi
 	if [ -n "${msg}" ]; then
-		$term.stdout "$1: ${msg} $3"
+		$term.stdout "$1: ${msg}"
 	fi
 }
 
