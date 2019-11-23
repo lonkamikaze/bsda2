@@ -211,7 +211,8 @@ pkg:validate:Session.packages() {
 # Fork off missing library checks and collect results.
 #
 pkg:validate:Session.run() {
-	local IFS pkg pkgs maxjobs jobs term fmt count num fifo jobpids
+	local IFS term maxjobs pkgs fifo flags
+	local jobs jobpids fmt count num pkg
 
 	# Initialise dispatcher
 	IFS=$'\n'
@@ -220,6 +221,7 @@ pkg:validate:Session.run() {
 	$this.getJobs maxjobs
 	$this.getPackages pkgs
 	$this.Fifo fifo
+	$this.Flags flags
 
 	#
 	# Dispatch jobs
@@ -236,19 +238,24 @@ pkg:validate:Session.run() {
 		setvar ${this}jobpids "$jobpids"
 	done
 
-	num=$(($(echo "$pkgs" | /usr/bin/wc -l)))
-	        # Total number of packages/jobs
-	count=0 # Completed packages
-	fmt="Checking package %${#num}d of $num: %s"
-	while kill -0 $jobpids 2>&- && [ -n "$pkgs" ]; do
-		# Select next package to process
-		count=$((count + 1))
-		pkg="${pkgs%%$IFS*}"
-		$term.line 0 "$(printf "$fmt" $count "$pkg")"
-		$fifo.sink "pkg:query:select '$pkg|%Fs|%Fp' $pkg"
-		pkgs="${pkgs#$pkg}"
-		pkgs="${pkgs#$IFS}"
-	done
+	if $flags.check CLEAN -ne 0; then
+		$flags.check PKG_ORIGIN -eq 0 && fmt="%n-%v" || fmt="%o"
+		$fifo.sink "pkg:query:select '${fmt}|%Fs|%Fp' \$pkgs"
+	else
+		num=$(($(echo "$pkgs" | /usr/bin/wc -l)))
+		        # Total number of packages/jobs
+		count=0 # Completed packages
+		fmt="Checking package %${#num}d of $num: %s"
+		while kill -0 $jobpids 2>&- && [ -n "$pkgs" ]; do
+			# Select next package to process
+			count=$((count + 1))
+			pkg="${pkgs%%$IFS*}"
+			$term.line 0 "$(printf "$fmt" $count "$pkg")"
+			$fifo.sink "pkg:query:select '$pkg|%Fs|%Fp' $pkg"
+			pkgs="${pkgs#$pkg}"
+			pkgs="${pkgs#$IFS}"
+		done
+	fi
 	if ! kill -0 $jobpids 2>&-; then
 		$term.stderr "${0##*/}: ERROR: worker process died unexpectedly"
 		return 1
