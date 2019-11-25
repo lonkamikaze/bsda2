@@ -1,11 +1,17 @@
 test -n "$_pkg_validate_" && return 0
 readonly _pkg_validate_=1
 
+. ${bsda_dir:-.}/bsda_async.sh
 . ${bsda_dir:-.}/bsda_tty.sh
 . ${bsda_dir:-.}/bsda_fifo.sh
 . ${bsda_dir:-.}/pkg_options.sh
 . ${bsda_dir:-.}/pkg_info.sh
 . ${bsda_dir:-.}/pkg_query.sh
+
+#
+# Create an asynchronous Terminal class.
+#
+bsda:async:createClass bsda:tty:Async bsda:tty:Terminal
 
 #
 # The session class for pkg_validate.

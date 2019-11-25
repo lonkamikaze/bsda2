@@ -1,10 +1,16 @@
 test -n "$_pkg_libchk_" && return 0
 readonly _pkg_libchk_=1
 
+. ${bsda_dir:-.}/bsda_async.sh
 . ${bsda_dir:-.}/bsda_tty.sh
 . ${bsda_dir:-.}/bsda_fifo.sh
 . ${bsda_dir:-.}/pkg_options.sh
 . ${bsda_dir:-.}/pkg_info.sh
+
+#
+# Create an asynchronous Terminal class.
+#
+bsda:async:createClass bsda:tty:Async bsda:tty:Terminal
 
 #
 # A simple class to pass job results through the FIFO.

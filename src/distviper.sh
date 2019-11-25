@@ -11,7 +11,7 @@ readonly _distviper_=1
 #
 bsda:obj:createClass distviper:Session \
 	a:private:Flags=bsda:opts:Flags \
-	a:private:Term=bsda:tty:Async \
+	a:private:Term=bsda:tty:Terminal \
 	r:private:keep       "The kind of files to keep" \
 	r:private:portsdir   "The PORTSDIR" \
 	r:private:distdir    "The DISTDIR" \
@@ -31,7 +31,7 @@ bsda:obj:createClass distviper:Session \
 #
 distviper:Session.init() {
 	# Setup terminal manager
-	bsda:tty:Async ${this}Term
+	bsda:tty:Terminal ${this}Term
 
 	# Set default mode
 	setvar ${this}keep all
