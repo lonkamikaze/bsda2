@@ -115,16 +115,20 @@ bsda:fifo:Fifo.init() {
 		echo >&$rlock
 	}
 	$this.sink() {
-		local bsda_fifo_Fifo_lock
+		local bsda_fifo_Fifo_lock bsda_fifo_Fifo_ret
 		read -r bsda_fifo_Fifo_lock <&$wlock
 		eval \"\$@\" >&$desc
+		bsda_fifo_Fifo_ret=\$?
 		echo >&$wlock
+		return \$bsda_fifo_Fifo_ret
 	}
 	$this.source() {
-		local bsda_fifo_Fifo_lock
+		local bsda_fifo_Fifo_lock bsda_fifo_Fifo_ret
 		read -r bsda_fifo_Fifo_lock <&$rlock
 		eval \"\$@\" <&$desc
+		bsda_fifo_Fifo_ret=\$?
 		echo >&$rlock
+		return \$bsda_fifo_Fifo_ret
 	}"
 }
 
