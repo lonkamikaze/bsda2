@@ -55,7 +55,7 @@ bsda:async:createClass() {
 			forward="${forward}x:${method}${IFS}"
 			eval "$dstClass.${method#*:}() {
 				eval \"\$this.${method#*:}() {
-					bsda:async:call \$(\$this.bsda_async_Fifo) \$(\$this.getBsda_async_obj).${method#*:} \\\"\\\$@\\\" &
+					bsda:async:call \$(\$this.bsda_async_Fifo) \$(\$this.getBsda_async_obj).${method#*:} \\\"\\\$@\\\"
 				}\"
 				\$this.${method#*:} \"\$@\"
 			}"
@@ -116,12 +116,11 @@ bsda:async:init() {
 # Harvest the asynchronous context.
 #
 bsda:async:free() {
-	local pid
+	local pid fifo
 	$this.getBsda_async_pid pid
 	if [ -n "$pid" ]; then
-		/bin/sync
-		kill $pid 2>&-
-		wait $pid
+		$this.bsda_async_Fifo fifo
+		$fifo.send exit 0
 	fi
 }
 
@@ -140,7 +139,7 @@ bsda:async:daemon() {
 	bsda:obj:fork
 	local exit fifo objClass obj cmd retval IFS
 	exit=0
-	trap "trap '' HUP INT TERM;exit 0" HUP INT TERM
+	trap '' HUP INT TERM
 	$this.bsda_async_Fifo fifo
 	objClass="$1"
 	shift
