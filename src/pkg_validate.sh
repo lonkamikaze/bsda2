@@ -256,7 +256,8 @@ pkg:validate:Session.run() {
 			# Select next package to process
 			count=$((count + 1))
 			pkg="${pkgs%%$IFS*}"
-			$term.line 0 "$(printf "$fmt" $count "$pkg")"
+			# Perform parallel job dispatch and terminal output
+			$term.line 0 "$(printf "$fmt" $count "$pkg")" | \
 			$fifo.sink "pkg:query:select '$pkg|%Fs|%Fp' $pkg"
 			pkgs="${pkgs#$pkg}"
 			pkgs="${pkgs#$IFS}"

@@ -283,7 +283,7 @@ pkg:libchk:Session.print() {
 # Fork off missing library checks and collect results.
 #
 pkg:libchk:Session.run() {
-	local IFS pkg pkgs result maxjobs jobs term fmt count num fifo
+	local IFS pkg pkgs result maxjobs jobs sline term fmt count num fifo
 
 	# Initialise dispatcher
 	IFS=$'\n'
@@ -311,16 +311,16 @@ pkg:libchk:Session.run() {
 			jobs=$((jobs - 1))
 			$this.print sline "$result"
 			count=$((count + 1))
-			$term.line 0 "$(printf "$fmt" $count)"
 		fi
 		# Select next package to process
 		pkg="${pkgs%%$IFS*}"
 		# Dispatch job
 		(
 			bsda:obj:fork
+			$term.line 0 "$(printf "$fmt" $count)"
+			$term.line $sline "$pkg"
 			$this.job "$pkg" $sline
 		) &
-		$term.line $sline "$pkg"
 		pkgs="${pkgs#$pkg}"
 		pkgs="${pkgs#$IFS}"
 		jobs=$((jobs + 1))
