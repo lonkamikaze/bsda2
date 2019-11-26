@@ -376,6 +376,35 @@ pkg:validate:Session:batch() {
 }
 
 #
+# Read the requested number of lines from stdin and output on stdout.
+#
+# Exits early if a line reads `exit`, the exit line is omitted from the
+# output.
+#
+# @param 1
+#	The number of lines to read
+# @retval 0
+#	The requested number of lines was read
+# @retval 1
+#	The `exit` string was read before reaching the requested number
+#	of lines
+#
+pkg:validate:Session:read() {
+	local line i
+	line=
+	i=0
+	while read -r line; do
+		if [ "${line}" = exit ]; then
+			return 1
+		fi
+		echo "$line"
+		if [ $((i += 1)) -ge $(($1)) ]; then
+			return 0
+		fi
+	done
+}
+
+#
 # Check files in a package for missing libraries.
 #
 # Reads jobs from the FIFO and performs them. Accepts the following
@@ -385,24 +414,14 @@ pkg:validate:Session:batch() {
 # - 'exit'
 #
 pkg:validate:Session.job() {
-	local flags term fifo IFS i lines line
+	local flags term fifo IFS lines
 	$this.Flags flags
 	$this.Term term
 	$this.Fifo fifo
 	IFS=$'\n'
-	i=0
-	lines=
-	while $fifo.recv line; do
-		if [ "${line}" = exit ]; then
-			$class:batch $lines
-			return 0
-		fi
-		if [ $((i += 1)) -gt 64 ]; then
-			$class:batch $lines
-			i=0
-			lines=
-		fi
-		lines="${lines}${line}${IFS}"
+	while lines="$($fifo.source $class:read 64)"; do
+		$class:batch $lines
 	done
-	return 1
+	$class:batch $lines
+	return 0
 }
