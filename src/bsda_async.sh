@@ -150,7 +150,12 @@ bsda:async:daemon() {
 		echo "bsda:async:daemon: ERROR: $class returned: $retval" >&2
 		exit $retval
 	fi
-	$fifo.send $obj
+
+	# Send the object ID to the host process, there is a race
+	# condition where the daemon receives the object ID instead
+	# of the host process, this will simply resend in this case.
+	eval "$obj() { $fifo.send $obj; }"
+	$obj
 
 	while true; do
 		cmd=
