@@ -50,7 +50,7 @@ readonly _bsda_fifo_=1
 # completes and puts a new byte into the locking pipe.
 #
 bsda:obj:createClass bsda:fifo:Fifo \
-	r:private:desc  "The I/O file descriptor number" \
+	r:private:msg   "The message I/O file descriptor number" \
 	r:private:wlock "The write lock file descriptor number" \
 	r:private:rlock "The read lock file descriptor number" \
 	i:private:init  "Sets up the named pipe" \
@@ -67,37 +67,21 @@ bsda:obj:createClass bsda:fifo:Fifo \
 # pipe and creates low overhead source() and sink() methods.
 #
 bsda:fifo:Fifo.init() {
-	local fifo desc wlock rlock
-	# Create a named pipe
-	fifo="$(/usr/bin/mktemp -ut $this)" || return $?
-	bsda:obj:getDesc ${this}desc || return $?
-	$this.getDesc desc
-	/usr/bin/mkfifo -m 0600 "$fifo" || return $?
-	# Open a file descriptor
-	eval "exec $desc<> '$fifo'"
-	# Remove file system node for the named pipe
-	/bin/rm "$fifo"
+	local fifo desc msg wlock rlock
+	# Create messaging and locking pipes
+	fifo="$(/usr/bin/mktemp -ut bsda:fifo)" || return $?
+	for desc in msg wlock rlock; do
+		bsda:obj:getDesc ${this}${desc} || return $?
+		eval "setvar ${desc} \${${this}${desc}}"
+		/usr/bin/mkfifo -m 0600 "$fifo" || return $?
+		# Open a file descriptor
+		eval "eval \"exec \${${desc}}<> '$fifo'\""
+		# Remove file system node for the named pipe
+		/bin/rm "$fifo"
+	done
 
-	# Create a named pipe for the write lock
-	bsda:obj:getDesc ${this}wlock || return $?
-	$this.getWlock wlock
-	/usr/bin/mkfifo -m 0600 "$fifo" || return $?
-	# Open a file descriptor
-	eval "exec $wlock<> '$fifo'"
-	# Remove file system node for the named pipe
-	/bin/rm "$fifo"
-	# Release the lock for starters
+	# Release the locks
 	echo >&$wlock
-
-	# Create a named pipe for the read lock
-	bsda:obj:getDesc ${this}rlock || return $?
-	$this.getRlock rlock
-	/usr/bin/mkfifo -m 0600 "$fifo" || return $?
-	# Open a file descriptor
-	eval "exec $rlock<> '$fifo'"
-	# Remove file system node for the named pipe
-	/bin/rm "$fifo"
-	# Release the lock for starters
 	echo >&$rlock
 
 	# Create sink() and source() methods
@@ -105,19 +89,19 @@ bsda:fifo:Fifo.init() {
 	$this.send() {
 		local bsda_fifo_Fifo_lock
 		read -r bsda_fifo_Fifo_lock <&$wlock
-		echo \"\$*\" >&$desc
+		echo \"\$*\" >&$msg
 		echo >&$wlock
 	}
 	$this.recv() {
 		local bsda_fifo_Fifo_lock
 		read -r bsda_fifo_Fifo_lock <&$rlock
-		read -r \"\$@\" <&$desc
+		read -r \"\$@\" <&$msg
 		echo >&$rlock
 	}
 	$this.sink() {
 		local bsda_fifo_Fifo_lock bsda_fifo_Fifo_ret
 		read -r bsda_fifo_Fifo_lock <&$wlock
-		eval \"\$@\" >&$desc
+		eval \"\$@\" >&$msg
 		bsda_fifo_Fifo_ret=\$?
 		echo >&$wlock
 		return \$bsda_fifo_Fifo_ret
@@ -125,7 +109,7 @@ bsda:fifo:Fifo.init() {
 	$this.source() {
 		local bsda_fifo_Fifo_lock bsda_fifo_Fifo_ret
 		read -r bsda_fifo_Fifo_lock <&$rlock
-		eval \"\$@\" <&$desc
+		eval \"\$@\" <&$msg
 		bsda_fifo_Fifo_ret=\$?
 		echo >&$rlock
 		return \$bsda_fifo_Fifo_ret
@@ -140,13 +124,9 @@ bsda:fifo:Fifo.init() {
 #
 bsda:fifo:Fifo.clean() {
 	local desc
-	$this.getDesc desc
-	eval "${desc:+exec $desc>&-}"
-	bsda:obj:releaseDesc $desc
-	$this.getWlock desc
-	eval "${desc:+exec $desc>&-}"
-	bsda:obj:releaseDesc $desc
-	$this.getRlock desc
-	eval "${desc:+exec $desc>&-}"
-	bsda:obj:releaseDesc $desc
+	for desc in msg wlock rlock; do
+		eval "setvar desc \"\${${this}${desc}}\""
+		eval "${desc:+exec $desc>&-}"
+		bsda:obj:releaseDesc $desc
+	done
 }
