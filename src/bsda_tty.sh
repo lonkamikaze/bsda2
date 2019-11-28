@@ -83,7 +83,7 @@ bsda:tty:Terminal.winch() {
 	teLines=$(($(/usr/bin/tput li 2> /dev/tty || echo 24)))
 	# Use at most half of the available terminal space
 	setvar ${this}drLines $((${this}stLines < (teLines / 2) ? ${this}stLines : (teLines / 2)))
-	$this.refresh > /dev/tty
+	$this.refresh
 	trap "$this.winch" WINCH
 }
 
@@ -156,12 +156,14 @@ bsda:tty:Terminal.line() {
 	line=${this}line$(($1))
 	shift
 	setvar $line "$*"
-	# tput       vi.......
-	printf '%b' '\033[?25l\r' $($class:repeat $lineno '\n')
-	# tput        RA......  ce...   SA.....
-	eval "printf '\033[?7l%s\033[K\r\033[?7h' \"\$*\""
-	# tput                               up...    ve...............
-	printf '%b' $($class:repeat $lineno '\033M') '\033[34h\033[?25h'
+	(
+		# tput       vi.......
+		printf '%b' '\033[?25l\r' $($class:repeat $lineno '\n')
+		# tput        RA......  ce...   SA.....
+		eval "printf '\033[?7l%s\033[K\r\033[?7h' \"\$*\""
+		# tput                               up...    ve...............
+		printf '%b' $($class:repeat $lineno '\033M') '\033[34h\033[?25h'
+	) > /dev/tty
 }
 
 #
@@ -204,7 +206,7 @@ bsda:tty:Terminal.deactivate() {
 bsda:tty:Terminal.stdout() {
 	echo -n $'\e[J' > /dev/tty
 	echo "$*"
-	$this.refresh > /dev/tty
+	$this.refresh
 }
 
 #
@@ -226,21 +228,20 @@ bsda:tty:Terminal.stderr() {
 #
 # Draw all the status lines.
 #
-# The caller is responsible for redirecting the output to /dev/tty.
-#
 bsda:tty:Terminal.refresh() {
 	if [ $((${this}drLines)) -le 0 ]; then
 		return 0
 	fi
-	local i
-	i=$((${this}drLines - 1))
-	# tput       vi.......                              RA......
-	printf '%b' '\033[?25l\r' $($class:repeat $i '\n') '\033[?7l'
-	while [ $i -gt 0 ]; do
-		# tput          ce....  up...
-		eval "printf '%s\033[K\r\033M' \"\$${this}line$i\""
-		i=$((i - 1))
-	done
-	# tput          ce....  SA......ve...............
-	eval "printf '%s\033[K\r\033[?7h\033[34h\033[?25h' \"\$${this}line0\""
+	(
+		i=$((${this}drLines - 1))
+		# tput       vi.......                              RA......
+		printf '%b' '\033[?25l\r' $($class:repeat $i '\n') '\033[?7l'
+		while [ $i -gt 0 ]; do
+			# tput          ce....  up...
+			eval "printf '%s\033[K\r\033M' \"\$${this}line$i\""
+			i=$((i - 1))
+		done
+		# tput          ce....  SA......ve...............
+		eval "printf '%s\033[K\r\033[?7h\033[34h\033[?25h' \"\$${this}line0\""
+	) > /dev/tty
 }
