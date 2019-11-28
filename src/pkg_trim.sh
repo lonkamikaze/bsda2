@@ -109,7 +109,7 @@ bsda:obj:createClass pkg:trim:StateManager \
 	r:private:state     "The current state" \
 	r:private:fmt       "The format string" \
 	x:private:cache     "Updates information in the cache" \
-	i:private:init      "Initialiase first state with leaf packages" \
+	i:private:init      "Initialise first state with leaf packages" \
 	x:public:isComplete "Returns whether selection process is complete" \
 	x:public:isFirst    "Returns whether this is the first state" \
 	x:public:checklist  "Returns tuples for dialog(1) --checklist" \
