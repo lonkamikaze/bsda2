@@ -108,8 +108,10 @@ bsda:async:init() {
 	bsda:fifo:Fifo ${this}bsda_async_Fifo || return 1
 	bsda:async:daemon "$@" &
 	setvar ${this}bsda_async_pid $!
-	$($this.bsda_async_Fifo).recv ${this}bsda_async_obj
-	test -n "$($this.getBsda_async_obj)"
+	$this.bsda_async_Fifo fifo
+	$fifo.recv ${this}bsda_async_obj
+	$this.getBsda_async_obj obj
+	test -n "$obj"
 }
 
 #
@@ -137,8 +139,7 @@ bsda:async:free() {
 #
 bsda:async:daemon() {
 	bsda:obj:fork
-	local exit fifo objClass obj cmd retval IFS
-	exit=0
+	local fifo objClass obj cmd retval
 	trap '' HUP INT TERM
 	$this.bsda_async_Fifo fifo
 	objClass="$1"
@@ -162,15 +163,6 @@ bsda:async:daemon() {
 			echo "bsda:async:daemon: ERROR: Read from pipe returned: $retval" >&2
 			exit $retval
 		fi
-		case "$cmd" in
-		'')
-			# Happens on SIGINT, SIGHUP and SIGTERM, seems to
-			# be a bug in ASH (i.e. should return > 128, but
-			# returns 0).
-		;;
-		*)
-			eval "$cmd"
-		;;
-		esac
+		eval "$cmd"
 	done
 }
