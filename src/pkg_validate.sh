@@ -87,6 +87,7 @@ pkg:validate:Session.params() {
 	CLEAN     -c  --clean     'Turn off progress output' \
 	HELP      -h  --help      'Display the list of command arguments' \
 	JOBS      -j* --jobs      'Number of parallel jobs' \
+	NO_FILTER -m  --no-filter 'Do not filter probable false positives' \
 	VERBOSE   -v  --verbose   'Verbose output'
 
 	$this.Flags flags
@@ -96,7 +97,7 @@ pkg:validate:Session.params() {
 	while [ $# -gt 0 ]; do
 		$options.getopt option "$1"
 		case "$option" in
-		PKG_* | CLEAN | VERBOSE)
+		PKG_* | CLEAN | NO_FILTER | VERBOSE)
 			$flags.add "$option"
 		;;
 		HELP)
@@ -322,7 +323,7 @@ pkg:validate:Session:validate() {
 		done
 		if [ ! -r "$path" ]; then
 			# file or location not accessible
-			if $flags.check VERBOSE -ne 0; then
+			if $flags.check NO_FILTER -ne 0; then
 				file="${3#${path}}"
 				msg="user ${USER} cannot access ${path}${file:+(${file})}"
 			fi
