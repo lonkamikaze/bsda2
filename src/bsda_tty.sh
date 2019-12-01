@@ -53,6 +53,56 @@ readonly _bsda_tty_=1
 #
 
 #
+# Attach a filter to a file descriptor.
+#
+bsda:obj:createClass bsda:tty:Filter \
+	r:private:desc  "The filter descriptor" \
+	r:private:fifo  "The named pipe to hook redirects into" \
+	i:private:init  "Attach the filter" \
+	c:private:free  "Terminate the filter"
+
+#
+# Dispatch the filter and redirect the requested output into it.
+#
+# @param 1
+#	The file descriptor to attach to the filter
+# @param @
+#	The filter command (see eval)
+#
+bsda:tty:Filter.init() {
+	local fifo
+	# Setup a named pipe
+	setvar ${this}fifo "$(/usr/bin/mktemp -ut bsda:tty:Filter)" || return $?
+	$this.getFifo fifo
+	/usr/bin/mkfifo -m 0600 "${fifo}" || return $?
+	# Dispatch the filter
+	(shift; eval "$@") < "$fifo" &
+	# Redirect the requested file descriptor into the filter
+	setvar ${this}desc $(($1))
+	eval "exec $(($1))>> ${fifo}"
+	# Clean up the named pipe
+	/bin/rm "$fifo"
+	unset ${this}fifo
+}
+
+#
+# Release the named pipe and kill the filter process.
+#
+bsda:tty:Filter.free() {
+	local fifo desc
+	# Cleanup fifo in case of incomplete initialisation
+	$this.getFifo fifo
+	if [ -n "$fifo" ]; then
+		/bin/rm "$fifo" 2>&-
+	fi
+	# Kill filter process
+	$this.getDesc desc
+	if [ -n "$desc" ]; then
+		eval "exec $((desc))>&-"
+	fi
+}
+
+#
 # Provides terminal output.
 #
 # This provides n status lines directly on the terminal, i.e. they
@@ -60,6 +110,8 @@ readonly _bsda_tty_=1
 # output on stdout and stderr without messing up the status lines.
 #
 bsda:obj:createClass bsda:tty:Terminal \
+	a:private:Filter1=bsda:tty:Filter \
+	a:private:Filter2=bsda:tty:Filter \
 	r:private:stLines   "The number of status lines" \
 	r:private:drLines   "The number of status lines to draw" \
 	x:public:winch      "Update window signal handler" \
@@ -69,6 +121,7 @@ bsda:obj:createClass bsda:tty:Terminal \
 	c:public:deactivate "Deactivate status lines" \
 	x:public:stdout     "Print to stdout" \
 	x:public:stderr     "Print to stderr" \
+	x:public:filter     "Install an optional output filter" \
 	x:private:refresh   "Redraw status lines"
 
 #
@@ -223,6 +276,37 @@ bsda:tty:Terminal.stdout() {
 #
 bsda:tty:Terminal.stderr() {
 	$class.stdout "$@" >&2
+}
+
+#
+# Install an output filter on the requested output.
+#
+# Filters are permanent, if the Terminal instance is deleted the
+# outputs are closed and remain unusable until redirected.
+#
+# @param 1
+#	The file descriptor to filter, 1 (stdout) or 2 (stderr)
+# @retval 0
+#	Attaching the filter was successful
+# @retval 1
+#	Invalid file descriptor (must be 1 or 2)
+# @retval 2
+#	A filter was already attached to the output
+# @retval 3
+#	Filter setup failed
+#
+bsda:tty:Terminal.filter() {
+	local filter
+	case "$1" in
+	1 | 2)
+		$this.Filter$1 filter
+		test -z "$filter" || return 2
+		bsda:tty:Filter ${this}Filter$1 "$@" || return 3
+	;;
+	*)
+		return 1
+	;;
+	esac
 }
 
 #
