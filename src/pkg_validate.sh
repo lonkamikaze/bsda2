@@ -153,6 +153,11 @@ pkg:validate:Session.params() {
 		exit 3
 	fi
 
+	if $flags.check PKG_QUIET -ne 0; then
+		# Print package name/origin only, skip duplicates
+		$($this.Term).filter 1 "/usr/bin/awk -F: '!a[\$0=\$1]++'"
+	fi
+
 	# Use the remaining arguments to query for packages
 	$this.packages "$@"
 }
