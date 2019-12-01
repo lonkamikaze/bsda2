@@ -123,6 +123,7 @@ bsda:async:free() {
 	if [ -n "$pid" ]; then
 		$this.bsda_async_Fifo fifo
 		$fifo.send exit 0
+		wait "$pid"
 	fi
 }
 
