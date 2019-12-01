@@ -11,7 +11,7 @@ bsda:util:count fdcount0 $bsda_obj_desc
 bsda:fifo:Fifo fifo
 # Check if file descriptors were consumed
 bsda:util:count fdcount1 $bsda_obj_desc
-test $fdcount1 -lt $fdcount0
+test $fdcount1 -le $fdcount0
 # Fifos are not serialisable or copyable
 bsda:test:isNone $fifo.serialise
 bsda:test:isNone $fifo.copy
@@ -23,8 +23,10 @@ test "$str" = foobar
 doc="$(cat ../bsda_obj.md)$NL"
 IFS="$NL"
 threads=8
+pids=
 for i in $(jot $threads); do
 	$fifo.sink 'echo -n "$doc"' &
+	pids="${pids}$!${NL}"
 done
 for i in $(jot $threads); do
 	recv=
@@ -33,17 +35,19 @@ for i in $(jot $threads); do
 		recv="$recv$line$NL"
 	done
 done
-wait
+wait $pids
 # Clean up
 $fifo.delete
 IFS=,
 bsda:util:count fdcount2 $bsda_obj_desc
 test $fdcount2 -eq $fdcount0
 
-# Creating fifos must eventually fail
-fdcount_last=$fdcount0
-while bsda:fifo:Fifo fifo; do
-	bsda:util:count fdcount $bsda_obj_desc
-	test $fdcount -lt $fdcount_last
-	fdcount_last=$fdcount
-done
+# Creating fifos must eventually fail if file descriptors are consumed
+if [ $((fdcount0)) -lt $((fdcount1)) ]; then
+	fdcount_last=$fdcount0
+	while bsda:fifo:Fifo fifo; do
+		bsda:util:count fdcount $bsda_obj_desc
+		test $fdcount -lt $fdcount_last
+		fdcount_last=$fdcount
+	done
+fi
