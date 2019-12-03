@@ -25,6 +25,7 @@ TOC
 1. [Tools](#tools)
    1. [pkg_libchk](#pkg_libchk)
    2. [pkg_trim](#pkg_trim)
+   2. [pkg_validate](#pkg_validate)
    3. [distviper](#distviper)
    4. [buildflags](#buildflags)
    5. [makeplist](#makeplist)
@@ -54,6 +55,14 @@ required) packages.
 It presents leaf packages (packages that are not required by other
 packages) in a checklist and offers the option to delete them or
 mark them for later removal with `pkg autoremove`.
+
+### pkg_validate
+
+The pkg_validate tool lists mismatched and missing files of installed
+packages.
+
+Its advantages over running `pkg check -s` are faster execution time
+and the ability to run it as an unprivileged user.
 
 ### distviper
 
