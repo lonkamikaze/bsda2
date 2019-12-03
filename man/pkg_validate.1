@@ -1,0 +1,147 @@
+.Dd 3 December, 2019
+.Dt PKG_VALIDATE 1
+.Os
+.Sh NAME
+.Nm pkg_validate
+.Nd list mismatched and missing files of installed packages
+.Sh SYNOPSIS
+.Nm
+.Op Fl cmoqv
+.Op Fl j Ar jobs
+.Op Fl a
+.Nm
+.Op Fl CcdgimOoqrvx
+.Op Fl j Ar jobs
+.Ar pkg-name ...
+.Nm
+.Fl h
+.Sh DESCRIPTION
+The
+.Nm
+script provides the same functionality as running
+.Ql Cm pkg check Fl s .
+It can be run by an unprivileged user and its use of multiple processes
+can make it significantly faster when files are cached in memory or
+read from a fast solid state drive.
+.Sh OPTIONS
+The following options are available:
+.Bl -tag -width indent
+.It Fl a -all
+Check all packages. This is the default action in case no
+.Ar pkg-name
+has been specified.
+.It Fl C -case-sensitive
+See
+.Xr pkg-info 8 .
+.It Fl c -clean
+Create clean output without status messages.
+.It Fl d -dependencies
+Also operate on the dependencies of the provided
+.Ar pkg-name .
+.It Fl g -glob
+See
+.Xr pkg-info 8 .
+.It Fl h -help
+Displays the available options.
+.It Fl i -case-insensitive
+See
+.Xr pkg-info 8 .
+.It Fl j Ar jobs Fl -jobs Ar jobs
+Specify the amount of parallel
+.Ar jobs
+the script will attempt run. The default is number of detected cores
+plus one.
+.It Fl m -no-filter
+In this mode files that cannot be checked due to user permissions
+are listed along with checksum mismatches and missing files.
+.It Fl O -by-origin
+See
+.Xr pkg-info 8 .
+.It Fl o -origin
+Instead of the package name the package origin is printed.
+.It Fl q -quiet
+Only print the names of affected packages. Do not print any details. This
+option is meant for machine readability.
+.Pp
+This option cannot be combined with verbose output.
+.It Fl r -required-by
+Also check packages that depend on the provided
+.Ar packages .
+This is a good idea when checking for the effects of a library update.
+.It Fl v -verbose
+List the selected packages before checking them.
+.It Fl x -regex
+See
+.Xr pkg-info 8 .
+.It Ar pkg-name
+Packages are package names or shell glob patterns matching these. Whatever
+works with
+.Xr pkg-info 8
+is an acceptable package.
+.El
+.Sh EXAMPLES
+To check all your packages run:
+.Bd -literal -offset indent
+pkg_validate
+.Ed
+.Pp
+List files that cannot be checked due to missing user privileges:
+.Bd -literal -offset indent
+pkg_validate -m
+.Ed
+.Pp
+Produce output suitable as input to other
+.Xr pkg 8
+tools:
+.Bd -literal -offset indent
+pkg_validate -q
+.Ed
+.Pp
+For operating
+.Xr poudriere 8
+or
+.Xr portmaster 8
+it can be more useful to output package origins instead of names:
+.Bd -literal -offset indent
+pkg_validate -o
+.Ed
+.Pp
+Flags can be combined:
+.Bd -literal -offset indent
+pkg_validate -qo
+.Ed
+.Sh EXIT CODES
+.Bl -tag -width indent
+.It 1
+The script has terminated because it received SIGHUP, SIGINT or SIGTERM.
+.It 2
+An unknown parameter has been supplied.
+.It 3
+The incompatible parameters
+.Fl v
+and
+.Fl q
+have been supplied.
+.It 4
+The parameter
+.Fl j
+has been supplied without an acceptable number.
+.El
+.Sh SEE ALSO
+.Xr pkg-check 8 ,
+.Xr pkg-query 8 ,
+.Xr pkg-info 8 ,
+.Xr sha256 1 ,
+.Xr readlink 1
+.Sh HISTORY
+A
+.Nm
+script first appeared in the
+.Sy bsdadminscripts-3.0
+collection. It was
+deemed obsolete with the inception of
+.Sy bsda2
+and rewritten for
+.Sy bsda2-0.3.0 .
+.Sh AUTHORS
+.An Dominic Fandrey Aq Mt kamikaze@bsdforen.de
