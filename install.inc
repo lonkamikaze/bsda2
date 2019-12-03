@@ -32,6 +32,9 @@ src/pkg_query.sh,0644,%%DATADIR%%/pkg_query.sh
 src/pkg_trim,0755,%%PREFIX%%/sbin/pkg_trim
 man/pkg_trim.8,0644,%%MAN%%/man8/pkg_trim.8.gz
 src/pkg_trim.sh,0644,%%DATADIR%%/pkg_trim.sh
+src/pkg_validate,0755,%%PREFIX%%/sbin/pkg_validate
+man/pkg_validate.1,0644,%%MAN%%/man1/pkg_validate.1.gz
+src/pkg_validate.sh,0644,%%DATADIR%%/pkg_validate.sh
 bsda_obj.md,0644,%%DOCSDIR%%/bsda_obj.md
 LICENSE.md,0644,%%DOCSDIR%%/LICENSE.md
 README.md,0644,%%DOCSDIR%%/README.md
