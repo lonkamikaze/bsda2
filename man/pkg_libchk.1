@@ -1,4 +1,4 @@
-.Dd 6 June, 2016
+.Dd 3 December, 2019
 .Dt PKG_LIBCHK 1
 .Os
 .Sh NAME
@@ -8,11 +8,11 @@
 .Nm
 .Op Fl cmnoqv
 .Op Fl j Ar jobs
-.Fl a
+.Op Fl a
 .Nm
 .Op Fl CcdgimnOoqrvx
 .Op Fl j Ar jobs
-.Ar pkg-name
+.Ar pkg-name ...
 .Nm
 .Fl h
 .Sh DESCRIPTION
@@ -107,7 +107,7 @@ pkg_libchk -r icu
 .Sh EXIT CODES
 .Bl -tag -width indent
 .It 1
-The script has terminated because it received SIGINT or SIGTERM.
+The script has terminated because it received SIGHUP, SIGINT or SIGTERM.
 .It 2
 An unknown parameter has been supplied.
 .It 3
@@ -129,7 +129,11 @@ has been supplied without an acceptable number.
 .Sh HISTORY
 The
 .Nm
-script first appeared in the bsdadminscripts-4.0 collection. It was rewritten
-for the bsda2 collection.
-.Sh AUTHOR
-Dominic Fandrey <kamikaze@bsdforen.de>
+script first appeared in the
+.Sy bsdadminscripts-4.0
+collection. It was rewritten
+for the
+.Sy bsda2
+collection.
+.Sh AUTHORS
+.An Dominic Fandrey Aq Mt kamikaze@bsdforen.de
