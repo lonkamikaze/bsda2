@@ -1,6 +1,7 @@
 set -f
 
 files="
+src/bsda_async.sh,0644,%%DATADIR%%/bsda_async.sh
 src/bsda_bsdmake.sh,0644,%%DATADIR%%/bsda_bsdmake.sh
 src/bsda_container.sh,0644,%%DATADIR%%/bsda_container.sh
 src/bsda_dialog.sh,0644,%%DATADIR%%/bsda_dialog.sh
