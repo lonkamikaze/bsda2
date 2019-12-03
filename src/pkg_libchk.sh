@@ -361,9 +361,9 @@ pkg:libchk:Session.job() {
 	files="$(pkg:info:files $1)"
 
 	# Get misses
-	misses="$(echo "$files" \
-	          | /usr/bin/xargs /usr/bin/ldd -f '%A|%o|%p\n' 2>&- \
-	          | /usr/bin/sed -n 's/|not found$/|/p')"
+	misses="$(printf '%s\0' $files \
+	          | /usr/bin/xargs -0 -P3 /usr/bin/ldd -f '%A|%o|%p\n' 2>&- \
+	          | /usr/bin/sed -n 's/|not found$/|/p' )"
 
 	# Check whether a miss is actually contained in the same
 	# package, e.g. libjvm.so in openjdk
