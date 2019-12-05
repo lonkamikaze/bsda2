@@ -122,7 +122,7 @@ bsda:async:free() {
 	$this.getBsda_async_pid pid
 	if [ -n "$pid" ]; then
 		$this.bsda_async_Fifo fifo
-		$fifo.send exit 0
+		$fifo.send 'exit 0'
 		wait "$pid"
 	fi
 }
