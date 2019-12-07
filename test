@@ -18,9 +18,6 @@ if [ $# -eq 0 ]; then
 	set -- *
 fi
 
-# Inject into bash, because LINENO in `bash -c` is off by one
-nl=$'\n'
-
 fails=0
 for test in $@; do
 	# Remove folder component
@@ -43,21 +40,16 @@ for test in $@; do
 	# Inject bsda:test and add `|| bsda:test:err $LINENO` to every line
 	code="bsda_dir='../src';readonly bsda_dir;. ../src/bsda_test.sh;$(
 		awk -f../src/testify.awk "$test")" || return 1
-	echo "Running: sh $test"
-	if sh -c "$code"; then
-		echo "Passed: sh $test"
-	else
-		echo "Failed: sh $test"
-		fails=$((fails + 1))
-	fi
-	which bash >&- || continue
-	echo "Running: bash $test"
-	if bash -c "$nl$code"; then
-		echo "Passed: bash $test"
-	else
-		echo "Failed: bash $test"
-		fails=$((fails + 1))
-	fi
+	for shell in sh bash; do
+		which $shell >&- || continue
+		echo "Running: ${shell} $test"
+		if $shell -c "$code"; then
+			echo "Passed: ${shell} $test"
+		else
+			echo "Failed: ${shell} $test"
+			fails=$((fails + 1))
+		fi
+	done
 done
 if [ $fails -ne 0 ]; then
 	echo "Test runs failed: $fails"
