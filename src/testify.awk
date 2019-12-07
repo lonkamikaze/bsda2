@@ -102,5 +102,5 @@ BEGIN {
 
 # Append the error check.
 {
-	print $0 " || bsda:test:err \"" FILENAME "\" $LINENO $?"
+	print $0 " || bsda:test:err \"" FILENAME "\" " NR " $?"
 }
