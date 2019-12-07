@@ -25,14 +25,14 @@ for test in $@; do
 
 	# Skip hidden files, `.` and `..`
 	if [ -z "${test##.*}" ]; then
-		echo "Failed: skipping ${test}"
+		echo "${test} failed: skipping"
 		fails=$((fails + 1))
 		continue
 	fi
 
 	# Need to exist, needs read access
 	if [ ! -r "$test" ]; then
-		echo "Failed: cannot access ${test}"
+		echo "${test} failed: cannot access"
 		fails=$((fails + 1))
 		continue
 	fi
@@ -42,11 +42,11 @@ for test in $@; do
 		awk -f../src/testify.awk "$test")" || return 1
 	for shell in sh bash; do
 		which $shell >&- || continue
-		echo "Running: ${shell} $test"
+		echo "${test} running: ${shell} ${test}"
 		if $shell -c "$code"; then
-			echo "Passed: ${shell} $test"
+			echo "${test} passed:  ${shell} ${test}"
 		else
-			echo "Failed: ${shell} $test"
+			echo "${test} failed:  ${shell} ${test}"
 			fails=$((fails + 1))
 		fi
 	done
