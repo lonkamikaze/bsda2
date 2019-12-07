@@ -416,7 +416,7 @@ pkg:validate:Session:read() {
 # Reads jobs from the FIFO and performs them. Accepts the following
 # inputs:
 #
-# - '%s|%s|%s' pkg chcksum path
+# - '%s|%s|%s' pkg chksum path
 # - 'exit'
 #
 pkg:validate:Session.job() {
