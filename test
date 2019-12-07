@@ -3,13 +3,20 @@
 #
 # Executes the given tests.
 #
-# Run `./test \*` to run all tests.
+# Glob patterns are matched against the tests in `tests/`.
+#
+# Execute without arguments to run all tests or list specific tests.
 #
 # Returns the number of failed tests.
 #
 
 dir="${0%${0##*/}}"
 cd "${dir%/}/tests" || return 1
+
+# Match all tests when no arguments are given
+if [ $# -eq 0 ]; then
+	set -- *
+fi
 
 # Inject into bash, because LINENO in `bash -c` is off by one
 nl=$'\n'
