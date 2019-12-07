@@ -23,6 +23,23 @@ nl=$'\n'
 
 fails=0
 for test in $@; do
+	# Remove folder component
+	test="${test##*/}"
+
+	# Skip hidden files, `.` and `..`
+	if [ -z "${test##.*}" ]; then
+		echo "Failed: skipping ${test}"
+		fails=$((fails + 1))
+		continue
+	fi
+
+	# Need to exist, needs read access
+	if [ ! -r "$test" ]; then
+		echo "Failed: cannot access ${test}"
+		fails=$((fails + 1))
+		continue
+	fi
+
 	# Inject bsda:test and add `|| bsda:test:err $LINENO` to every line
 	code="bsda_dir='../src';readonly bsda_dir;. ../src/bsda_test.sh;$(
 		awk -f../src/testify.awk "$test")" || return 1
