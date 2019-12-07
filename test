@@ -10,8 +10,11 @@
 # Returns the number of failed tests.
 #
 
+set -e
+
 dir="${0%${0##*/}}"
-cd "${dir%/}/tests" || return 1
+dir="${dir%/}"
+cd "${dir:-.}/tests" || return 1
 
 # Match all tests when no arguments are given
 if [ $# -eq 0 ]; then
