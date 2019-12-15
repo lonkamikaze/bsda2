@@ -54,6 +54,9 @@ for test in $@; do
 		which $shell >&- || continue
 		echo "${test} running: ${shell} ${test}"
 		if $shell -c "$code"; then
+			if [ -t 1 ]; then
+				tput up
+			fi
 			echo "${test} passed:  ${shell} ${test}"
 		else
 			echo "${test} failed:  ${shell} ${test}"
