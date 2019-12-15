@@ -1,4 +1,4 @@
-.Dd 3 December, 2019
+.Dd 15 December, 2019
 .Dt PKG_VALIDATE 1
 .Os
 .Sh NAME
@@ -6,11 +6,11 @@
 .Nd list mismatched and missing files of installed packages
 .Sh SYNOPSIS
 .Nm
-.Op Fl cmoqv
+.Op Fl cDmoqv
 .Op Fl j Ar jobs
 .Op Fl a
 .Nm
-.Op Fl CcdgimOoqrvx
+.Op Fl CcdDgimOoqrvx
 .Op Fl j Ar jobs
 .Ar pkg-name ...
 .Nm
@@ -38,6 +38,11 @@ Create clean output without status messages.
 .It Fl d -dependencies
 Also operate on the dependencies of the provided
 .Ar pkg-name .
+.It Fl D -developer
+Produce additional output relevant to
+.Xr ports 7 and Xr pkg 8 developers.
+.Pp
+Currently it provides information about dead symlinks.
 .It Fl g -glob
 See
 .Xr pkg-info 8 .
@@ -110,7 +115,25 @@ Flags can be combined:
 .Bd -literal -offset indent
 pkg_validate -qo
 .Ed
-.Sh EXIT CODES
+.Sh ENVIRONMENT
+The following environment variables affect the operation of
+.Nm .
+.Bl -tag -width indent
+.It Ev DEVELOPER
+Activates additional diagnostics, see the
+.Fl -developer
+option.
+.Pp
+Set to
+.Dv Sq yes
+or
+.Dv 1
+to enable. This is equivalent to the
+.Ev DEVELOPER
+macro of
+.In bsd.port.mk .
+.El
+.Sh EXIT STATUS
 .Bl -tag -width indent
 .It 1
 The script has terminated because it received SIGHUP, SIGINT or SIGTERM.
