@@ -12,7 +12,8 @@ readonly _bsda_test_=1
 #	The error number
 #
 bsda:test:err() {
-	echo "$1:$2: ERROR: $3" >&2
+	echo "$1 ERROR: $3" >&2
+	echo "$1:$2: $(/usr/bin/head -n$2 "$1" | /usr/bin/tail -n1)" >&2
 	exit $3
 }
 
