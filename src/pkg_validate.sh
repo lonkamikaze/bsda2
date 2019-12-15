@@ -45,7 +45,6 @@ pkg:validate:Session.init() {
 	setvar ${this}jobs $(/sbin/sysctl -n hw.ncpu 2>&- || echo 1)
 
 	# Read command line arguments
-	bsda:opts:Flags ${this}Flags
 	$this.params "$@"
 
 	# Setup terminal lines
@@ -78,26 +77,28 @@ pkg:validate:Session.clean() {
 #	The command line arguments
 #
 pkg:validate:Session.params() {
-	local options flags nl option
+	local options flags option
+
+	bsda:opts:Flags ${this}Flags DEVELOPER
+	$this.Flags flags
 
 	bsda:opts:Options options
 	$caller.delete $options
 	pkg:options:append $options
 	$options.append \
 	CLEAN     -c  --clean     'Turn off progress output' \
+	DEVELOPER -D  --developer 'Produce messages for ports/pkg developers' \
 	HELP      -h  --help      'Display the list of command arguments' \
 	JOBS      -j* --jobs      'Number of parallel jobs' \
 	NO_FILTER -m  --no-filter 'Do not filter probable false positives' \
 	VERBOSE   -v  --verbose   'Verbose output'
 
-	$this.Flags flags
 
-	nl=$'\n'
-
+	# Parse arguments
 	while [ $# -gt 0 ]; do
 		$options.getopt option "$1"
 		case "$option" in
-		PKG_* | CLEAN | NO_FILTER | VERBOSE)
+		PKG_* | CLEAN | DEVELOPER | NO_FILTER | VERBOSE)
 			$flags.add "$option"
 		;;
 		HELP)
@@ -168,7 +169,7 @@ pkg:validate:Session.params() {
 pkg:validate:Session.help() {
 	local usage
 	$1.usage usage "\t%.2s, %-18s  %s\n"
-	$($this.Term).stdout "usage: pkg_validate [-aCcdghiOoqrvx] [-j jobs] [pkg-name]
+	$($this.Term).stdout "usage: pkg_validate [-aCcDdghiOoqrvx] [-j jobs] [pkg-name]
 $(echo -n "$usage" | /usr/bin/sort -f)"
 	exit 0
 }
@@ -294,7 +295,7 @@ pkg:validate:Session.run() {
 #
 pkg:validate:Session:validate() {
 	local sum hash msg
-	sum="${2#*\$}"
+	sum=
 	hash=
 	msg=
 	case "$2" in
@@ -315,9 +316,15 @@ pkg:validate:Session:validate() {
 		fmt="%s"
 		if [ -z "${link##/*}" ]; then
 			fmt="%s\\0"
-			link="${link#/}"
 		fi
-		sum="$(printf "$fmt" "$link" | /sbin/$hash -q)"
+		sum="$(printf "$fmt" "${link#/}" | /sbin/$hash -q 2>&1)"
+		if [ "$sum" != "${2#*\$}" ]; then
+			msg="checksum mismatch for $3"
+		elif [ ! -e "$3" ]; then
+			if $flags.check DEVELOPER -ne 0; then
+				msg="cannot follow symlink $3 to ${link}"
+			fi
+		fi
 	elif [ ! -r "$3" ]; then
 		# file cannot be read, follow the path until something
 		# check true for existence and recheck
@@ -337,12 +344,10 @@ pkg:validate:Session:validate() {
 		fi
 	else
 		# regular file hash
-		sum="$(/sbin/$hash -q "$3")"
-	fi
-	# sum is set to the correct hash in case the file has the
-	# correct hash or a problem was already reported
-	if [ "$sum" != "${2#*\$}" ]; then
-		msg="checksum mismatch for $3"
+		sum="$(/sbin/$hash -q "$3" 2>&1)"
+		if [ "$sum" != "${2#*\$}" ]; then
+			msg="checksum mismatch for $3"
+		fi
 	fi
 	if [ -n "${msg}" ]; then
 		$term.stdout "$1: ${msg}"
