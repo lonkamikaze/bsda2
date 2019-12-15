@@ -267,8 +267,82 @@ bsda:obj:createClass bsda:opts:Flags \
 #
 # The constructor initialises an empty map.
 #
+# Supports creating an initial list of flag counts taking the following
+# forms:
+#
+# - `'%s' flag`:
+#   Initialise from environment (undefined = 0)
+# - `'%s=%s' flag value`:
+#   Initialise with the given boolean or unsigned integer value
+# - `'%s?=%s' flag value`:
+#   Initialise from environment, fall back to the given value if the
+#   environment variable is undefined
+#
+# Values may be boolean or unsigned integer values, boolean values
+# are interpreted as either 1 or 0:
+#
+# | Symbol | Value | Comment          |
+# |--------|-------|------------------|
+# | yes    | 1     | Case insensitive |
+# | true   | 1     | "                |
+# | no     | 0     | "                |
+# | false  | 0     | "                |
+# | ''     | 0     | The empty string |
+#
+# Invalid values are ignored.
+#
+# @param @
+#	A list of initial value assignments
+#
 bsda:opts:Flags.init() {
+	# Create map for flags
 	bsda:container:Map ${this}Flags
+
+	# Initialise the map
+	local IFS flags flag var value
+	$this.Flags flags
+	IFS=$'\n'
+	for flag in "$@"; do
+		# Get var and value
+		case "$flag" in
+		*\?=*)  # Assign given value unless env provides one
+			var="${flag%%\?=*}"
+			if ! value="$(/usr/bin/printenv "${flag%%\?=*}")"; then
+				value="${flag#*\?=}"
+			fi
+		;;
+		*=*)    # Assign given value unconditionally
+			var="${flag%%=*}"
+			value="${flag#*=}"
+		;;
+		*)      # Get value from environment
+			var="$flag"
+			value="$(/usr/bin/printenv "$flag")"
+		;;
+		esac
+
+		# Sanitise, discard newline and everything that follows
+		value="${value%%$'\n'*}"
+
+		# Assign a boolean type value
+		case "$value" in
+		[Nn][Oo] | [Ff][Aa][Ll][Ss][Ee] | '')
+			$flags.[ "$var" ]= 0
+			continue
+		;;
+		[Yy][Ee][Ss] | [Tt][Rr][Uu][Ee])
+			$flags.[ "$var" ]= 1
+			continue
+		;;
+		esac
+		# Assign unsigned integer value
+		if bsda:obj:isUInt "$value"; then
+			$flags.[ "$var" ]= $((value))
+			continue
+		fi
+
+		# Ignore non-boolean non-integral values
+	done
 }
 
 #
