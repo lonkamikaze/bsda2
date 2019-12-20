@@ -132,10 +132,10 @@ bsda_obj_desc=3,4,5,6,7,8,9,
 #	The copy method can be used to create a shallow copy of an object.
 #
 # @param bsda_obj_namespace
-#	The frameowrk namespace to use when building a class. The impact is on
+#	The framework namespace to use when building a class. The impact is on
 #	the use of helper functions.
 # @retval 0
-#	On succes
+#	On success
 # @retval 1
 #	If there is more than one init method (i:) specified
 # @retval 2
