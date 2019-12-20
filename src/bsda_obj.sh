@@ -973,9 +973,9 @@ bsda:obj:callerSetvar() {
 #
 bsda:obj:serialiseVar() {
 	if [ -n "$1" ]; then
-		setvar "$1" "$2=\"\$(printf '$(eval "echo \"\$$2\"" | bsda:obj:escape)')\""
+		setvar "$1" "$2=\"\$(printf '$(eval "echo -n \"\$$2\"" | bsda:obj:escape)')\""
 	else
-		echo "$2=\"\$(printf '$(eval "echo \"\$$2\"" | bsda:obj:escape)')\""
+		echo "$2=\"\$(printf '$(eval "echo -n \"\$$2\"" | bsda:obj:escape)')\""
 	fi
 }
 
