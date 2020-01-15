@@ -6,8 +6,10 @@ src/bsda_bsdmake.sh,0644,%%DATADIR%%/bsda_bsdmake.sh
 src/bsda_container.sh,0644,%%DATADIR%%/bsda_container.sh
 src/bsda_dialog.sh,0644,%%DATADIR%%/bsda_dialog.sh
 src/bsda_err.sh,0644,%%DATADIR%%/bsda_err.sh
+ref/bsda_err.md,0644,%%DOCSDIR%%/ref/bsda_err.md
 src/bsda_fifo.sh,0644,%%DATADIR%%/bsda_fifo.sh
 src/bsda_obj.sh,0644,%%DATADIR%%/bsda_obj.sh
+ref/bsda_obj.md,0644,%%DOCSDIR%%/ref/bsda_obj.md
 src/bsda_opts.sh,0644,%%DATADIR%%/bsda_opts.sh
 src/bsda_tty.sh,0644,%%DATADIR%%/bsda_tty.sh
 src/bsda_util.sh,0644,%%DATADIR%%/bsda_util.sh
@@ -37,8 +39,6 @@ src/pkg_trim.sh,0644,%%DATADIR%%/pkg_trim.sh
 src/pkg_validate,0755,%%PREFIX%%/sbin/pkg_validate
 man/pkg_validate.1,0644,%%MAN%%/man1/pkg_validate.1.gz
 src/pkg_validate.sh,0644,%%DATADIR%%/pkg_validate.sh
-bsda_err.md,0644,%%DOCSDIR%%/bsda_err.md
-bsda_obj.md,0644,%%DOCSDIR%%/bsda_obj.md
 LICENSE.md,0644,%%DOCSDIR%%/LICENSE.md
 README.md,0644,%%DOCSDIR%%/README.md
 "

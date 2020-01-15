@@ -137,8 +137,8 @@ What sets it apart is its support for options and that it plays nice
 with a lot of `bsd.port.mk` macros like `DESKTOP_ENTRIES`, `USE_RC_SUBR`
 or `PLIST_FILES`.
 
-[bsda:obj](bsda_obj.md)
------------------------
+[bsda:obj](ref/bsda_obj.md)
+---------------------------
 
 The bsda:obj framework dates back to the hacker conference GPN8 
 (Karlsruhe, 2009). It provides OO fu for shell scripts, like classes with

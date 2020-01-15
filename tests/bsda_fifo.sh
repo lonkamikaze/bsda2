@@ -20,7 +20,7 @@ $fifo.sink echo foobar
 $fifo.source read -r str
 test "$str" = foobar
 # Send a big thing many times in parallel
-doc="$(cat ../bsda_obj.md)$NL"
+doc="$(cat ../ref/bsda_obj.md)$NL"
 IFS="$NL"
 threads=8
 pids=
