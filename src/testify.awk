@@ -5,13 +5,17 @@
 
 BEGIN {
 	# Define states
-	ST_REG = 0    # Regular state
-	ST_SQUOT = 1  # Inside single quotes
-	ST_DQUOT = 2  # Inside double quotes
-	ST_DSQUOT = 3 # Inside dollar single quotes
+	ST_REG = 0      # Regular state
+	ST_SQUOT = 1    # Inside single quotes
+	ST_DQUOT = 2    # Inside double quotes
+	ST_DSQUOT = 3   # Inside dollar single quotes
+	ST_CASE_BLK = 4 # Inside case/esac
+	ST_CASE_REG = 5 # Inside case match
 
 	TOP = 0
 	STATE[TOP] = ST_REG
+	REG_STATES[ST_REG]
+	REG_STATES[ST_CASE_REG]
 }
 
 #
@@ -32,6 +36,7 @@ BEGIN {
 	do {
 		for (i = 1; i <= length; ++i) {
 			ch = substr($0, i, 1)
+			front = substr($0, i)
 			# Single quotes are simple
 			if (STATE[TOP] == ST_SQUOT) {
 				if (ch == "'") {
@@ -69,6 +74,32 @@ BEGIN {
 				}
 				continue
 			}
+			# Inside case match
+			if (STATE[TOP] == ST_CASE_REG) {
+				if (front ~ /^;;.*/) {
+					++i
+					--TOP
+					continue
+				}
+			}
+			# Inside case block
+			if (STATE[TOP] == ST_CASE_BLK) {
+				if (ch == ")") {
+					STATE[++TOP] = ST_CASE_REG
+					# Output the parsed section so
+					# a check is only appended if the
+					# closing parentheses are followed
+					# by code
+					printf("%s", substr($0, 1, i))
+					$0 = substr($0, i + 1)
+					continue
+				}
+				if (front ~ /^esac([ \t#].*)?/) {
+					--TOP
+					i += 3
+					continue
+				}
+			}
 			# Regular state, or command substitution
 			if (ch == "'") {
 				STATE[++TOP] = ST_SQUOT
@@ -85,17 +116,19 @@ BEGIN {
 				STATE[++TOP] = ST_REG
 			} else if (ch == ")") {
 				--TOP
+			} else if (front ~ /^case[ \t].+[ \t]in([ \t#].*)?/) {
+				STATE[++TOP] = ST_CASE_BLK
 			}
 		}
 		# About to get the next line, print this one
-		if (STATE[TOP] != ST_REG) {
+		if (!(STATE[TOP] in REG_STATES)) {
 			print
 		}
-	} while (STATE[TOP] != ST_REG && getline > 0)
+	} while (!(STATE[TOP] in REG_STATES) && getline > 0)
 }
 
 # Do not append error checks to lines not ending in a command.
-/((^|then|else|do|in|[({&;])|[ \t]*\\)$/ {
+/((^|then|else|do|[({&;])|[ \t]*\\)[ \t]*$/ {
 	print
 	next
 }
