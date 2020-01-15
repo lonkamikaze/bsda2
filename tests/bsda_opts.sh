@@ -113,6 +113,11 @@ $flags.check FOO -eq 2
 # Clear up
 $flags.delete
 
+#
+# Collect errors and warnings, check at the end.
+#
+bsda:err:collect
+
 # Check Flags initialisation from environment
 unset FOO BAR BAZ
 FOO=2
@@ -292,3 +297,22 @@ $flags.check M -eq 1
 $flags.check N -eq 1
 $flags.check O -eq 1
 $flags.delete
+
+# Check issue sequence
+bsda:err:get e msg
+test $(($e)) -eq 0
+test "$e" = E_BSDA_OPTS_ENV
+test -n "$msg" -a -z "${msg##WARNING:*BAR=-1*}"
+bsda:err:get e msg
+test $(($e)) -eq 0
+test "$e" = E_BSDA_OPTS_ENV
+test -n "$msg" -a -z "${msg##WARNING:*BAZ=firecracker*}"
+bsda:err:get e msg
+test $(($e)) -ne 0
+test "$e" = E_BSDA_OPTS_ASSIGN
+test -n "$msg" -a -z "${msg##ERROR:*BAR=-1*}"
+bsda:err:get e msg
+test $(($e)) -ne 0
+test "$e" = E_BSDA_OPTS_ASSIGN
+test -n "$msg" -a -z "${msg##ERROR:*BAZ=firecracker*}"
+! bsda:err:get e msg
