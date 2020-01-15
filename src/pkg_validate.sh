@@ -77,10 +77,22 @@ pkg:validate:Session.clean() {
 #	The command line arguments
 #
 pkg:validate:Session.params() {
-	local options flags option
+	local options flags option e msg
 
+	bsda:err:collect
 	bsda:opts:Flags ${this}Flags DEVELOPER
 	$this.Flags flags
+
+	while bsda:err:get e msg; do
+		case "$e" in
+		E_BSDA_OPTS_ENV)
+			$($this.Term).stderr "$msg"
+		;;
+		*)
+			bsda:err:forward "$e" "$msg"
+		;;
+		esac
+	done
 
 	bsda:opts:Options options
 	$caller.delete $options
