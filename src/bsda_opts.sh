@@ -3,6 +3,7 @@ readonly _bsda_opts_=1
 
 . ${bsda_dir:-.}/bsda_container.sh
 . ${bsda_dir:-.}/bsda_err.sh
+. ${bsda_dir:-.}/type.sh
 
 #
 # This package provides bsda:opts:Options to share subsets of command line
@@ -277,7 +278,6 @@ bsda:obj:createClass bsda:opts:Flags \
 	a:private:Flags=bsda:container:Map \
 	i:private:init   "The constructor" \
 	x:public:add     "Count the given flag" \
-	x:private:toUInt "Convert bool/uint to uint" \
 	x:public:check   "Compare a flag numerically"
 
 #
@@ -326,7 +326,7 @@ bsda:opts:Flags.init() {
 		case "$flag" in
 		*\?=*)
 			# Default assign
-			if ! $this.toUInt value "${flag#*\?=}"; then
+			if ! type:cast[int] value empty,bool,uint "${flag#*\?=}"; then
 				bsda:err:raise E_BSDA_OPTS_DEFAULT \
 				               "ERROR: Not a uint/bool assignment: ${flag}"
 				continue
@@ -336,7 +336,7 @@ bsda:opts:Flags.init() {
 		;;
 		*=*)
 			# Assign
-			if ! $this.toUInt value "${flag#*=}"; then
+			if ! type:cast[int] value empty,bool,uint "${flag#*=}"; then
 				bsda:err:raise E_BSDA_OPTS_ASSIGN \
 				               "ERROR: Not a uint/bool assignment: ${flag}"
 				continue
@@ -354,7 +354,7 @@ bsda:opts:Flags.init() {
 
 		# Assign from environment
 		if value="$(/usr/bin/printenv "$var")"; then
-			if ! $this.toUInt value "$value"; then
+			if ! type:cast[int] value empty,bool,uint "$value"; then
 				bsda:err:raise E_BSDA_OPTS_ENV \
 				               "WARNING: Not a uint/bool assignment: env ${var}=${value}"
 				continue
@@ -362,54 +362,6 @@ bsda:opts:Flags.init() {
 			$flags.[ "$var" ]= "$value"
 		fi
 	done
-}
-
-#
-# Cast the given value to an unsigned integer.
-#
-# Casts the following values:
-#
-# | Input    | Output         | Return Value |
-# |----------|----------------|--------------|
-# | ""       | 0              | 0            |
-# | "no"     | 0              | 0            |
-# | "yes"    | 1              | 0            |
-# | "false"  | 0              | 0            |
-# | "true"   | 1              | 0            |
-# | int >= 0 | input          | 0            |
-# | other    | no output      | 1            |
-#
-# @param &1
-#	The variable to write the value to
-# @param 2
-#	The value to cast
-# @retval 0
-#	A value was successfully written to the destination variable
-# @retval 1
-#	The given value could not be converted to an unsigned integral
-#	value
-#
-bsda:opts:Flags.toUInt() {
-	local value
-	# Sanitise value
-	value="${2%%$'\n'*}"
-	# Assign a boolean type value
-	case "$value" in
-	[Nn][Oo] | [Ff][Aa][Ll][Ss][Ee] | '')
-		$caller.setvar "$1" 0
-		return 0
-	;;
-	[Yy][Ee][Ss] | [Tt][Rr][Uu][Ee])
-		$caller.setvar "$1" 1
-		return 0
-	;;
-	esac
-	# Assign unsigned integer value
-	if bsda:obj:isUInt "$value"; then
-		$caller.setvar "$1" $((value))
-		return 0
-	fi
-	return 1
 }
 
 #
