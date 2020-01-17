@@ -39,6 +39,8 @@ src/pkg_trim.sh,0644,%%DATADIR%%/pkg_trim.sh
 src/pkg_validate,0755,%%PREFIX%%/sbin/pkg_validate
 man/pkg_validate.1,0644,%%MAN%%/man1/pkg_validate.1.gz
 src/pkg_validate.sh,0644,%%DATADIR%%/pkg_validate.sh
+src/type.sh,0644,%%DATADIR%%/type.sh
+ref/type.md,0644,%%DOCSDIR%%/ref/type.md
 LICENSE.md,0644,%%DOCSDIR%%/LICENSE.md
 README.md,0644,%%DOCSDIR%%/README.md
 "
