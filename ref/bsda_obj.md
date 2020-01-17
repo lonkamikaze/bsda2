@@ -63,8 +63,6 @@ TABLE OF CONTENTS
 6. [GET](#6-get)
 7. [SET](#7-set)
 8. [TYPE CHECKS](#8-type-checks)
-    1. [Object Type Checks](#81-object-type-checks)
-    2. [Primitive Type Checks](#82-primitive-type-checks)
 9. [SERIALISE](#9-serialise)
     1. [Serialising](#91-serialising)
     2. [Deserialising](#92-deserialising)
@@ -587,10 +585,6 @@ Arguments:
 
 ## 8. TYPE CHECKS
 
-This framework supplies basic type checking facilities.
-
-### 8.1. Object Type Checks
-
 This section documents the use of the static type checking method created
 by the `bsda:obj:createClass()` function.
 
@@ -613,17 +607,6 @@ Arguments:
 | Argument | Description
 |----------|------------------------------------------------------------
 |  1       | Any string that might be a reference.
-
-### 8.2. Primitive Type Checks
-
-The following primitive type checking functions are available and documented
-in the code:
-
-- `bsda:obj:isObject()`
-- `bsda:obj:isInt()`
-- `bsda:obj:isUInt()`
-- `bsda:obj:isFloat()`
-- `bsda:obj:isSimpleFloat()`
 
 
 
