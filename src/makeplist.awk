@@ -1,3 +1,22 @@
+#!/usr/bin/awk -f
+#
+# Combine multiple pkg-plist files into a single pkg-plist.
+#
+# This takes a list of all options as command line arguments. The
+# order of the options determines the order option specific plist
+# entries appear in the combined output.
+#
+# The plists must be fed into stdin and preceded by a line starting
+# with `OPTIONS:` followed by a white space separated list of the
+# active options.
+#
+# Files that appear with all options are listed first, followed by
+# the option specific output.
+#
+# @param ARGV
+#	A sorted list of options
+#
+
 # Get the order of options
 BEGIN {
 	OPTION_STR["DOCS"] =     "%%PORTDOCS%%"
@@ -15,6 +34,7 @@ BEGIN {
 	}
 	CNT_FILES = 0
 }
+
 # Get the options the following files were staged with
 /^OPTIONS:/ {
 	delete aoptions
@@ -26,6 +46,7 @@ BEGIN {
 	++CONFIGS
 	next
 }
+
 # Collect files
 {
 	# Record order of file
@@ -45,6 +66,7 @@ BEGIN {
 		++OPT_FILES[option, $0]
 	}
 }
+
 # Print files
 END {
 	# Print files common to all configurations
