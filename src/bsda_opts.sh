@@ -43,6 +43,14 @@ bsda:err:createECs \
 	E_BSDA_OPTS_DEFAULT
 
 #
+# Expression that splits the first chained short option argument.
+#
+# Use by calling `eval "$bsda_opts_split"` when bsda:opts:Options.getopt()
+# returns OPT_SPLIT.
+#
+readonly bsda_opts_split='set -- "${1%${1#-?}}" "-${@#-?}"'
+
+#
 # This class provides a growable forward list of command line options.
 #
 # Command line arguments can be passed to the getopt() method and an

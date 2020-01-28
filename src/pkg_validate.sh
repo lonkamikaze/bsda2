@@ -141,10 +141,7 @@ pkg:validate:Session.params() {
 			exit 2
 		;;
 		OPT_SPLIT)
-			local arg
-			arg="$1"
-			shift
-			set -- "${arg%${arg#-?}}" "-${arg#-?}" "$@"
+			eval "$bsda_opts_split"
 			continue
 		;;
 		OPT_NOOPT)

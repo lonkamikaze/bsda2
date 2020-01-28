@@ -85,6 +85,17 @@ test "$opt" = OPT_NOOPT
 # Clear up
 $opts.delete
 
+# Check OPT_SPLIT expression
+bsda:test:isSet bsda_opts_split
+do_split() {
+	eval "$bsda_opts_split"
+	echo "$*"
+}
+opts="$(IFS=, do_split -nt)"
+test "$opts" = "-n,-t"
+opts="$(IFS=, do_split -ntf)"
+test "$opts" = "-n,-tf"
+
 # Create a Flags instance
 bsda:opts:Flags flags
 $flags.add FOO
