@@ -25,6 +25,8 @@ src/distviper.sh,0644,%%DATADIR%%/distviper.sh
 src/interrupt.mk,0644,%%DATADIR%%/interrupt.mk
 src/makeplist,0755,%%PREFIX%%/sbin/makeplist
 man/makeplist.8,0644,%%MAN%%/man8/makeplist.8.gz
+src/makeplist_filter.awk,0755,%%DATADIR%%/makeplist_filter.awk
+src/makeplist_keywords.awk,0755,%%DATADIR%%/makeplist_keywords.awk
 src/makeplist.sh,0644,%%DATADIR%%/makeplist.sh
 src/options.mk,0644,%%DATADIR%%/options.mk
 src/pkg_info.sh,0644,%%DATADIR%%/pkg_info.sh
