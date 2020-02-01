@@ -413,10 +413,10 @@ makeplist:File.clean() {
 }
 
 #
-# A container and a linked list class for plists of a single build/stage.
+# A container and a linked list class for the results of a single build/stage.
 #
-bsda:obj:createClass makeplist:Plist \
-	a:public:Next=makeplist:Plist \
+bsda:obj:createClass makeplist:Build \
+	a:public:Next=makeplist:Build \
 	r:public:retval  "The return status of the build/stage" \
 	r:public:logfile "The name of the logfile to the build/stage" \
 	r:public:with    "The options the build/stage was done with" \
@@ -429,7 +429,7 @@ bsda:obj:createClass makeplist:Plist \
 # Prints a notification if the build/stage returned a non-zero exit
 # status.
 #
-makeplist:Plist.report() {
+makeplist:Build.report() {
 	local retval session with without logfile
 	$this.getRetval retval
 	# Skip successful builds
@@ -443,10 +443,10 @@ makeplist:Plist.report() {
 }
 
 #
-# Manage the linked list of per build plists.
+# Manage the linked list of builds.
 #
-bsda:obj:createClass makeplist:PlistManager \
-	a:private:First=makeplist:Plist \
+bsda:obj:createClass makeplist:BuildManager \
+	a:private:First=makeplist:Build \
 	r:private:tail          "The last entry in the list" \
 	r:private:session       "The Session instance (for printing)" \
 	r:private:mtree_file    "The value of MTREE_FILE" \
@@ -456,13 +456,13 @@ bsda:obj:createClass makeplist:PlistManager \
 	x:private:plistFilter   "Returns a list of grep -v filters" \
 	x:private:plistSubSed   "Retruns a list of sed instructions" \
 	i:private:init          "The constructor populates members" \
-	x:public:create         "Create a plist entry" \
+	x:public:create         "Create a build entry" \
 	x:public:plist          "Produce the plist"
 
 #
 # Construct the manager, pull all the required variables from make.
 #
-makeplist:PlistManager.init() {
+makeplist:BuildManager.init() {
 	local prefix
 	setvar ${this}session "$1"
 	setvar ${this}mtree_file "$(bsda:bsdmake -VMTREE_FILE)" || return $?
@@ -496,7 +496,7 @@ makeplist:PlistManager.init() {
 # @param 2,3
 #	The options to build WITH and WITHOUT
 #
-makeplist:PlistManager.plistFilter() {
+makeplist:BuildManager.plistFilter() {
 	local filter session flags
 	$this.getSession session
 	# Create make based filter list
@@ -528,7 +528,7 @@ $filter"
 # @param &1
 #	The variable to return the sub list to.
 #
-makeplist:PlistManager.plistSubSed() {
+makeplist:BuildManager.plistSubSed() {
 	local IFS vars sublist exprs sub prefix W
 	IFS=$'\n'
 	$($this.getSession).Vars vars
@@ -575,31 +575,31 @@ makeplist:PlistManager.plistSubSed() {
 # @param 3,4
 #	The options the build/stage was performed WITH and WITHOUT
 #
-makeplist:PlistManager.create() {
+makeplist:BuildManager.create() {
 	# Update linked list
-	local plist tail
+	local build tail
 	$this.getTail tail
-	makeplist:Plist plist "$@"
-	if makeplist:Plist.isInstance "$tail"; then
-		setvar ${tail}Next "$plist"
+	makeplist:Build build "$@"
+	if makeplist:Build.isInstance "$tail"; then
+		setvar ${tail}Next "$build"
 	else
-		setvar ${this}First "$plist"
+		setvar ${this}First "$build"
 	fi
-	setvar ${this}tail "$plist"
+	setvar ${this}tail "$build"
 
 	# Populate new list entry
-	setvar ${plist}retval "$1"
-	setvar ${plist}logfile "$2"
-	setvar ${plist}with "$3"
-	setvar ${plist}without "$4"
-	$this.getSession ${plist}session
+	setvar ${build}retval "$1"
+	setvar ${build}logfile "$2"
+	setvar ${build}with "$3"
+	setvar ${build}without "$4"
+	$this.getSession ${build}session
 	# Generate list of files
 	local stagedir prefix mtree_file plistFilter
 	$this.getStagedir stagedir
 	$this.getPrefix prefix
 	$this.getMtree_file mtree_file
 	$this.plistFilter plistFilter "$3" "$4"
-	setvar ${plist}files "$( (
+	setvar ${build}files "$( (
 		/usr/bin/find "$stagedir" \( -type f -o -type l \) \
 		              -not -path "$stagedir$prefix/*" 2>&- \
 		| /usr/bin/sort -n \
@@ -624,7 +624,7 @@ makeplist:PlistManager.create() {
 # @param @
 #	All options in the order they should be output in
 #
-makeplist:PlistManager.plist_filter() {
+makeplist:BuildManager.plist_filter() {
 	/usr/bin/awk -f ${bsda_dir:-.}/makeplist_filter.awk "$@"
 }
 
@@ -634,22 +634,22 @@ makeplist:PlistManager.plist_filter() {
 # @param &1
 #	The variable to return the plist to
 #
-makeplist:PlistManager.plist() {
+makeplist:BuildManager.plist() {
 	$caller.setvar "$1" "$(
 		$this.getOptionsSorted options
 		$this.plistSubSed subsed
-		$this.First plist
-		while [ -n "$plist" ]; do
-			$plist.getRetval retval
+		$this.First build
+		while [ -n "$build" ]; do
+			$build.getRetval retval
 			# Skip failed builds
 			if [ 0 -ne "$retval" ]; then
-				$plist.Next plist
+				$build.Next build
 				continue
 			fi
-			$plist.getWith with
+			$build.getWith with
 			echo OPTIONS: $with
-			$plist.getFiles
-			$plist.Next plist
+			$build.getFiles
+			$build.Next build
 		done | $class.plist_filter $options | /usr/bin/sed -E "$subsed"
 	)"
 }
@@ -694,7 +694,7 @@ makeplist:TmpDir.clean() {
 #
 bsda:obj:createClass makeplist:Make \
 	a:private:Logdir=makeplist:TmpDir \
-	a:private:Plists=makeplist:PlistManager \
+	a:private:Builds=makeplist:BuildManager \
 	r:private:session      "The Session instance (for printing)" \
 	r:private:logdir       "The name of the logging directory" \
 	r:private:no_build     "The value of make -VNO_BUILD" \
@@ -746,7 +746,7 @@ makeplist:Make.init() {
 	fi
 	makeplist:TmpDir ${this}Logdir ${this}logdir "${0##*/}.$origin" \
 	|| return $?
-	makeplist:PlistManager ${this}Plists "$1" || return $?
+	makeplist:BuildManager ${this}Builds "$1" || return $?
 	setvar ${this}no_build "$(bsda:bsdmake -VNO_BUILD)" || return $?
 }
 
@@ -760,7 +760,7 @@ makeplist:Make.init() {
 #	The options to build with and without
 #
 makeplist:Make.run() {
-	local retval plists no_build stagedir prefix mtree_file
+	local retval builds no_build stagedir prefix mtree_file
 	local logdir logfilename opts logfile session oflags
 	$this.getSession session
 	$session.OptsFlags oflags
@@ -769,7 +769,7 @@ makeplist:Make.run() {
 	logfilename="$logdir/stage${opts:+-$opts}.log"
 	makeplist:File logfile "$logfilename"
 	$caller.delete $logfile
-	$this.Plists plists
+	$this.Builds builds
 	$this.getNo_build no_build
 	# Perform build in subprocess to protect outputs and environment
 	(
@@ -813,7 +813,7 @@ makeplist:Make.run() {
 	retval=$?
 
 	# Collect return status and files
-	$plists.create "$retval" "$logfilename.gz" "$@"
+	$builds.create "$retval" "$logfilename.gz" "$@"
 
 	# Keep logs of failed builds
 	if [ 0 -ne $retval ]; then
@@ -853,11 +853,11 @@ makeplist:Make.plist_keywords() {
 # - Write new plist to file
 #
 makeplist:Make.plist() {
-	local plists file plist origPlist change session
+	local builds file plist origPlist change session
 	$this.getSession session
 	# Generate new plist
-	$this.Plists plists
-	$plists.plist plist
+	$this.Builds builds
+	$builds.plist plist
 	if [ -z "$plist" ]; then
 		$session.msg "The generated plist is empty"
 		return 0
