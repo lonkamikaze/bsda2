@@ -1,5 +1,5 @@
-test -n "$_type_" && return 0
-readonly _type_=1
+test -n "$_type_sh_" && return 0
+readonly _type_sh_=1
 
 #
 # Simple type checking and casting standalone library.
