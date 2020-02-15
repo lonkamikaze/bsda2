@@ -454,7 +454,7 @@ bsda:obj:createClass makeplist:BuildManager \
 	r:private:prefix        "The value of PREFIX" \
 	r:private:optionsSorted "A sorted list of all options" \
 	x:private:plistFilter   "Returns a list of grep -v filters" \
-	x:private:plistSubSed   "Retruns a list of sed instructions" \
+	x:private:plistSubSed   "Returns a list of sed instructions" \
 	i:private:init          "The constructor populates members" \
 	x:public:create         "Create a build entry" \
 	x:public:plist          "Produce the plist"
