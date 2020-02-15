@@ -52,6 +52,29 @@ if ! type:match empty,bool "$1"; then
 fi
 ```
 
+Type Detection
+--------------
+
+The `type:which()` function provides provides the name of the first
+matched type from a list of given types.
+
+```
+if ! type:which type empty,bool,uint,int,varname "$1"; then
+	echo "invalid value: $1" >&2
+	return 1
+fi
+case "$type" in
+empty)
+	echo "empty value" >&2
+	return 1
+;;
+bool)
+	…
+;;
+…
+esac
+```
+
 Type Casting
 ------------
 

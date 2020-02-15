@@ -32,6 +32,36 @@ type:match() {
 }
 
 #
+# Provide the name of the first matched type.
+#
+# @param &1
+#	The destination variable, only assigned in case of success
+# @param 2
+#	A comma separated list of matchable types
+# @param 3
+#	The value to match
+# @retval 0
+#	Value matched successfully
+# @retval 1
+#	None of the given types fit the given value
+#
+type:which() {
+	# Last type to check, terminate recursion
+	if [ "${2#*,}" = "$2" ]; then
+		type:match:$2 "$3" || return $?
+		eval "$1=$2"
+		return 0
+	fi
+
+	# Recursively look for matching type
+	if type:match:${2%%,*} "$3"; then
+		eval "$1=${2%%,*}"
+		return 0
+	fi
+	type:which "$1" "${2#*,}" "$3"
+}
+
+#
 # Cast to integer from a set of types.
 #
 # @param &1

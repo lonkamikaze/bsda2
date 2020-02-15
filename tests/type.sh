@@ -209,6 +209,38 @@ type:match bool,empty,int -0755
 ! type:match bool,empty,uint -0755
 
 #
+# Check type:which()
+#
+
+t=x
+type:which t empty,argname,varname,funcname
+test "$t" = empty
+t=x
+type:which t empty,argname,varname,funcname ''
+test "$t" = empty
+t=x
+! type:which t empty,argname,varname,funcname ' '
+test "$t" = x
+t=x
+type:which t empty,argname,varname,funcname 3
+test "$t" = argname
+t=x
+type:which t empty,argname,varname,funcname guybrush
+test "$t" = varname
+t=x
+type:which t empty,argname,varname,funcname guybrush_threepwood
+test "$t" = varname
+t=x
+type:which t empty,argname,varname,funcname _guybrush_threepwood
+test "$t" = varname
+t=x
+type:which t empty,argname,varname,funcname _guybrush.threepwood
+test "$t" = funcname
+t=x
+! type:which t empty,argname,varname,funcname _guybrush.threepwood,
+test "$t" = x
+
+#
 # Check type:cast[int] functions
 #
 
