@@ -72,6 +72,120 @@ type:match:int -0
 ! type:match:int -yes
 ! type:match:int -FALSE
 
+type:match:argname 0
+type:match:argname 1
+type:match:argname 2
+type:match:argname 3
+type:match:argname 4
+type:match:argname 5
+type:match:argname 6
+type:match:argname 7
+type:match:argname 8
+type:match:argname 9
+! type:match:argname
+! type:match:argname ''
+! type:match:argname ' '
+! type:match:argname 1,
+! type:match:argname 1+
+! type:match:argname 1-
+! type:match:argname 1%
+! type:match:argname 1/
+! type:match:argname ,1
+! type:match:argname +1
+! type:match:argname -1
+! type:match:argname %1
+! type:match:argname /1
+! type:match:argname 10
+! type:match:argname 123
+! type:match:argname -1
+! type:match:argname a
+! type:match:argname affe
+! type:match:argname A
+! type:match:argname Affe
+! type:match:argname AFFE
+
+type:match:varname guybrush
+type:match:varname Guybrush
+type:match:varname GuybrushThreepwood
+type:match:varname Guybrush_Threepwood
+! type:match:varname
+! type:match:varname ''
+! type:match:varname ' '
+! type:match:varname Guybrush,Threepwood
+! type:match:varname Guybrush+Threepwood
+! type:match:varname Guybrush-Threepwood
+! type:match:varname Guybrush%Threepwood
+! type:match:varname Guybrush/Threepwood
+! type:match:varname 'Guybrush Threepwood'
+! type:match:varname 0Guybrush_Threepwood
+type:match:varname Guybrush_Threepwood0
+type:match:varname Guybrush_Threepwood_0
+type:match:varname _Guybrush_Threepwood_
+type:match:varname _Guybrush_Threepwood
+type:match:varname Guybrush_Threepwood_
+! type:match:varname Guybrush:Threepwood
+! type:match:varname :Guybrush_Threepwood
+! type:match:varname Guybrush_Threepwood:
+! type:match:varname Guybrush.Threepwood
+! type:match:varname .Guybrush_Threepwood
+! type:match:varname Guybrush_Threepwood.
+! type:match:varname [Guybrush_Threepwood]
+! type:match:varname Guybrush[Threepwood]
+! type:match:varname [Guybrush]Threepwood
+! type:match:varname 1
+! type:match:varname 1:
+! type:match:varname 1.
+! type:match:varname 1_
+! type:match:varname 1x
+! type:match:varname 1X
+! type:match:varname 1337
+! type:match:varname 1337:
+! type:match:varname 1337.
+! type:match:varname 1337_
+! type:match:varname 1337x
+! type:match:varname 1337X
+
+type:match:funcname guybrush
+type:match:funcname Guybrush
+type:match:funcname GuybrushThreepwood
+type:match:funcname Guybrush_Threepwood
+! type:match:funcname
+! type:match:funcname ''
+! type:match:funcname ' '
+! type:match:funcname Guybrush,Threepwood
+! type:match:funcname Guybrush+Threepwood
+! type:match:funcname Guybrush-Threepwood
+! type:match:funcname Guybrush%Threepwood
+! type:match:funcname Guybrush/Threepwood
+! type:match:funcname 'Guybrush Threepwood'
+type:match:funcname 0Guybrush_Threepwood
+type:match:funcname Guybrush_Threepwood0
+type:match:funcname Guybrush_Threepwood_0
+type:match:funcname _Guybrush_Threepwood_
+type:match:funcname _Guybrush_Threepwood
+type:match:funcname Guybrush_Threepwood_
+type:match:funcname Guybrush:Threepwood
+type:match:funcname :Guybrush_Threepwood
+type:match:funcname Guybrush_Threepwood:
+type:match:funcname Guybrush.Threepwood
+type:match:funcname .Guybrush_Threepwood
+type:match:funcname Guybrush_Threepwood.
+type:match:funcname [Guybrush_Threepwood]
+type:match:funcname Guybrush[Threepwood]
+type:match:funcname [Guybrush]Threepwood
+! type:match:funcname 1
+type:match:funcname 1:
+type:match:funcname 1.
+type:match:funcname 1_
+type:match:funcname 1x
+type:match:funcname 1X
+! type:match:funcname 1337
+type:match:funcname 1337:
+type:match:funcname 1337.
+type:match:funcname 1337_
+type:match:funcname 1337x
+type:match:funcname 1337X
+
 #
 # Check multiple type match functions
 #

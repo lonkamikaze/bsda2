@@ -21,21 +21,27 @@ of integers. However even integers are stored in strings.
 
 The library adds a set of types with more constraints:
 
-| Type  | Description      | Matches (regex, case insensitive)          |
-|-------|------------------|--------------------------------------------|
-| uint  | unsigned integer | `^(0x[0-9a-f]+|[1-9][0-9]*|0[0-7]*)$`      |
-| int   | integer          | `^[-+]?(0x[0-9a-f]+|[1-9][0-9]*|0[0-7]*)$` |
-| bool  | boolean          | `^(0|1|yes|no|true|false)`                 |
-| empty | empty string     | `^$`                                       |
+| Type     | Description      | Matches (regex, case insensitive)          |
+|----------|------------------|--------------------------------------------|
+| uint     | unsigned integer | `^(0x[0-9a-f]+|[1-9][0-9]*|0[0-7]*)$`      |
+| int      | integer          | `^[-+]?(0x[0-9a-f]+|[1-9][0-9]*|0[0-7]*)$` |
+| bool     | boolean          | `^(0|1|yes|no|true|false)`                 |
+| empty    | empty string     | `^$`                                       |
+| argname  | argument number  | `^[0-9]$`                                  |
+| varname  | variable name    | `^([a-z]|[a-z_][a-z0-9_]+)$`               |
+| funcname | function name    | `^[0-9]*[][a-z_.:][][a-z0-9_.:]*$`         |
 
 Conformity to a type can be checked using the match functions:
 
-| Function             | Cost | Complexity                   |
-|----------------------|------|------------------------------|
-| `type:match:empty()` | O(1) | single `test` call           |
-| `type:match:bool()`  | O(1) | single glob pattern match    |
-| `type:match:uint()`  | O(n) | recursive glob pattern match |
-| `type:match:int()`   | O(n) | recursive glob pattern match |
+| Function                | Cost | Complexity                   |
+|-------------------------|------|------------------------------|
+| `type:match:empty()`    | O(1) | single `test` call           |
+| `type:match:bool()`     | O(1) | single glob pattern match    |
+| `type:match:uint()`     | O(n) | recursive glob pattern match |
+| `type:match:int()`      | O(n) | recursive glob pattern match |
+| `type:match:argname()`  | O(1) | single glob pattern match    |
+| `type:match:varname()`  | O(n) | recursive glob pattern match |
+| `type:match:funcname()` | O(n) | recursive glob pattern match |
 
 The `type:match()` function allows checking whether a value matches
 one of a set of types:
@@ -62,6 +68,13 @@ echo "$x" # 0
 type:cast[int] x empty,bool True
 echo "$x" # 1
 ```
+
+Only the following types can be cast to `int`:
+
+- `empty`
+- `bool`
+- `uint`
+- `int`
 
 The conversion is done for the first matching type. Independent of
 the matched type, for a given value the assigned value is always the

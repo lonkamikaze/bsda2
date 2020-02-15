@@ -193,6 +193,122 @@ type:match:int() {
 }
 
 #
+# Accept the digits [0-9].
+#
+# @param 1
+#	The input string
+# @return
+#	Whether the input string is a positional argument number
+#
+type:match:argname() {
+	case "$1" in
+	[0-9])
+		return 0
+	;;
+	esac
+	return 1
+}
+
+#
+# Accepts assignable variable names.
+#
+# A single _ is not accepted, because it has weird behaviour in BASH.
+#
+# @param 1
+#	The input string
+# @return
+#	Whether the input string is a valid variable name
+#
+type:match:varname() {
+	case "$1" in
+	[a-zA-Z])
+		return 0
+	;;
+	[a-zA-Z_]*)
+		type:match:varname:tail "${1#?}"
+		return $?
+	;;
+	esac
+	return 1
+}
+
+#
+# Accepts the tail of assignable variable names.
+#
+# @param 1
+#	The input string tail
+# @return
+#	Whether the input string is a valid variable name
+#
+type:match:varname:tail() {
+	case "$1" in
+	[a-zA-Z0-9_])
+		return 0
+	;;
+	[a-zA-Z0-9_]*)
+		type:match:varname:tail "${1#?}"
+		return $?
+	;;
+	esac
+	return 1
+}
+
+#
+# Accepts valid shell function names.
+#
+# This follows the more restrictive rules of BASH over ASH, where
+# names may not be made up entirely of numerals.
+#
+# @param 1
+#	The input string
+# @return
+#	Whether the input string is a valid shell function name
+#
+type:match:funcname() {
+	case "$1" in
+	[0-9])
+		return 1
+	;;
+	[0-9]*)
+		type:match:funcname "${1#?}"
+		return $?
+	;;
+	[][a-zA-Z_.:])
+		return 0
+	;;
+	[][a-zA-Z_.:]*)
+		type:match:funcname:tail "${1#?}"
+		return $?
+	;;
+	esac
+	return 1
+}
+
+#
+# Accepts the tail of valid shell function names.
+#
+# This validates the section of the name following the first non-numeral
+# character.
+#
+# @param 1
+#	The input string tail
+# @return
+#	Whether the input string is a valid shell function name
+#
+type:match:funcname:tail() {
+	case "$1" in
+	[][a-zA-Z0-9_.:])
+		return 0
+	;;
+	[][a-zA-Z0-9_.:]*)
+		type:match:funcname:tail "${1#?}"
+		return $?
+	;;
+	esac
+	return 1
+}
+
+#
 # Assign 0 on empty input.
 #
 # @param &1
