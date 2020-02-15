@@ -48,7 +48,11 @@ for test in $@; do
 	fi
 
 	# Inject bsda:test and add `|| bsda:test:err $LINENO` to every line
-	code="bsda_dir='../src';readonly bsda_dir;. ../src/bsda_test.sh;$(
+	# The true call is to ensure that bash has called a non-builtin
+	# function, before executing a test, because that causes it
+	# to initialise some variables, which is undesirable to happen
+	# during the test run.
+	code="/usr/bin/true;bsda_dir='../src';readonly bsda_dir;. ../src/bsda_test.sh;$(
 		awk -f../src/testify.awk "$test")" || return 1
 	for shell in sh bash; do
 		which $shell >&- || continue
