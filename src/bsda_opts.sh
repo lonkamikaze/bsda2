@@ -48,7 +48,37 @@ bsda:err:createECs \
 # Use by calling `eval "$bsda_opts_split"` when bsda:opts:Options.getopt()
 # returns OPT_SPLIT.
 #
-readonly bsda_opts_split='set -- "${1%${1#-?}}" "-${@#-?}"'
+readonly bsda_opts_split='eval "$(bsda:opts:split "$@")"'
+
+#
+# Generates a `set --` command that splits the first argument with a
+# single leading '-' into two arguments with a leading dash.
+#
+# This implements the functionality provided by bsda_opts_split.
+#
+# It exists because BASH and the ASH disagree on expanding `$@`.
+# ASH applies substitutions applied to `$@` to the first argument
+# only which enables this:
+#
+#	set -- "${1#${1#-?}}" "-${@#-?}"
+#
+# BASH applies the substitution to all expanded arguments, which is
+# more intuitive but makes achieving this objective more complicated.
+#
+# @param 1
+#	The argument to split
+# @param @
+#	The remaining arguments are reproduced unchanged
+#
+bsda:opts:split() {
+	local i arg
+	echo -n 'set -- "${1%${1#-?}}" "-${1#-?}"'
+	shift
+	i=1
+	for arg in "$@"; do
+		echo -n " \"\${$((i += 1))}\""
+	done
+}
 
 #
 # This class provides a growable forward list of command line options.
