@@ -181,7 +181,7 @@ loaderupdate:Session.params() {
 			devs="$(/sbin/gpart list | /usr/bin/sed -n 's/Geom name: //p')"
 			devs=${devs:+"${devs}"$'\n'}
 		;;
-		DEMO | DUMP | NOEFI)
+		DEMO | DUMP | NOEFI | QUIET)
 			$flags.add "$option"
 		;;
 		DESTDIR)
