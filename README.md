@@ -76,7 +76,7 @@ on the current location in the file system.
 
 A `buildflags.conf` may look like this:
 
-~~~
+~~~mk
 /usr/ports/*{
 	WRKDIRPREFIX=/tmp/obj
 
@@ -100,7 +100,7 @@ A `buildflags.conf` may look like this:
 
 It results in the following `make` output:
 
-~~~
+~~~mk
 .if ${.CURDIR:M/usr/ports/*}
 WRKDIRPREFIX=/tmp/obj
 

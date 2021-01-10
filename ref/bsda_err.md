@@ -58,7 +58,7 @@ couple of hints and warnings are printed on stderr.
 Handling issues is done by calling bsda:err:get() until all issues
 have been handled:
 
-```
+```sh
 local e msg
 bsda:err:collect
 … code potentially raising issues …
@@ -69,7 +69,7 @@ done
 
 Errors usually should be matched using the error/exit code:
 
-```
+```sh
 while bsda:err:get e msg; do
 	case "$e" in
 	E_APP_ERROR)
