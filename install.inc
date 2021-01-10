@@ -5,6 +5,7 @@ src/bsda_async.sh,0644,%%DATADIR%%/bsda_async.sh
 src/bsda_bsdmake.sh,0644,%%DATADIR%%/bsda_bsdmake.sh
 src/bsda_container.sh,0644,%%DATADIR%%/bsda_container.sh
 src/bsda_dialog.sh,0644,%%DATADIR%%/bsda_dialog.sh
+src/bsda_elf.sh,0644,%%DATADIR%%/bsda_elf.sh
 src/bsda_err.sh,0644,%%DATADIR%%/bsda_err.sh
 ref/bsda_err.md,0644,%%DOCSDIR%%/ref/bsda_err.md
 src/bsda_fifo.sh,0644,%%DATADIR%%/bsda_fifo.sh
@@ -23,6 +24,8 @@ src/distviper,0755,%%PREFIX%%/sbin/distviper
 man/distviper.8,0644,%%MAN%%/man8/distviper.8.gz
 src/distviper.sh,0644,%%DATADIR%%/distviper.sh
 src/interrupt.mk,0644,%%DATADIR%%/interrupt.mk
+src/loaderupdate,0755,%%PREFIX%%/sbin/loaderupdate
+src/loaderupdate.sh,0644,%%DATADIR%%/loaderupdate.sh
 src/makeplist,0755,%%PREFIX%%/sbin/makeplist
 man/makeplist.8,0644,%%MAN%%/man8/makeplist.8.gz
 src/makeplist_filter.awk,0755,%%DATADIR%%/makeplist_filter.awk
