@@ -14,6 +14,7 @@ bsda:err:createECs \
 	E_LOADERUPDATE_EFIBOOTMGR \
 	E_LOADERUPDATE_LOADER \
 	E_LOADERUPDATE_MOUNT \
+	E_LOADERUPDATE_UMOUNT=E_WARN \
 	E_LOADERUPDATE_CMD \
 
 bsda:obj:createClass loaderupdate:Devices \
@@ -100,12 +101,14 @@ loaderupdate:Mount.init() {
 	shift
 
 	if ! /bin/mkdir -p "${mountpoint}"; then
-		bsda:err:raise E_LOADERUPDATE_MOUNT "ERROR: Failed to create mountpoint: ${mountpoint}"
+		bsda:err:raise E_LOADERUPDATE_MOUNT \
+		               "ERROR: Failed to create mountpoint: ${mountpoint}"
 		return 1
 	fi
 	setvar ${this}mountpoint "${mountpoint}"
 	if ! /sbin/mount "$@" "${device}" "${mountpoint}"; then
-		bsda:err:raise E_LOADERUPDATE_MOUNT "ERROR: Failed to mount device: ${device}"
+		bsda:err:raise E_LOADERUPDATE_MOUNT \
+		               "ERROR: Failed to mount device: ${device}"
 		return 1
 	fi
 	setvar ${this}device "${device}"
@@ -118,12 +121,14 @@ loaderupdate:Mount.clean() {
 	if [ -n "${device}" ] && \
 	   ! /sbin/umount "${mountpoint}" 2>&- && \
 	   ! /sbin/umount -f "${mountpoint}"; then
-		bsda:err:raise E_WARN "WARNING: Failed to unmount: ${mountpoint}"
+		bsda:err:raise E_LOADERUPDATE_UMOUNT \
+		               "WARNING: Failed to unmount: ${mountpoint}"
 		return 0
 	fi
 	if [ -n "${mountpoint}" ] && \
 	   ! /bin/rmdir "${mountpoint}"; then
-		bsda:err:raise E_WARN "WARNING: Failed to remove: ${mountpoint}"
+		bsda:err:raise E_LOADERUPDATE_UMOUNT \
+		               "WARNING: Failed to remove: ${mountpoint}"
 		return 0
 	fi
 	# gracefully delete empty parent folders
