@@ -284,20 +284,24 @@ loaderupdate:Session.params() {
 		               "ERROR: Failed to read kernel version: ${kernelpath}"
 		return 1
 	fi
-	setvar ${this}version "${version}"
 	$kernel.fetch machine machine
 	if [ -z "${machine}" ]; then
 		bsda:err:raise E_LOADERUPDATE_NOKERNEL \
 		               "ERROR: Failed to read kernel machine architecture: ${kernelpath}"
 		return 1
 	fi
-	setvar ${this}machine "${machine}"
 	$kernel.fetch ostype ostype
 	if [ -z "${ostype}" ]; then
 		bsda:err:raise E_LOADERUPDATE_NOKERNEL \
 		               "ERROR: Failed to read kernel ostype: ${kernelpath}"
 		return 1
 	fi
+	if [ -n "${version##${ostype}*}" ]; then
+		# the version must start with the ostype
+		version="${ostype} ${version}"
+	fi
+	setvar ${this}version "${version}"
+	setvar ${this}machine "${machine}"
 	setvar ${this}ostype "${ostype}"
 
 	bootfs="$(/sbin/mount -p | /usr/bin/awk -vDESTDIR="${destdir:-/}" '
