@@ -148,7 +148,9 @@ bsda:obj:createClass loaderupdate:Session \
 	r:private:devs \
 	i:private:init \
 	x:private:params \
-	x:private:eval \
+	x:private:printcmd \
+	x:private:runcmd \
+	x:private:cmd \
 	x:private:run \
 	x:private:help
 
@@ -320,7 +322,7 @@ loaderupdate:Session.params() {
 	setvar ${this}pmbr "${pmbr}"
 }
 
-loaderupdate:Session.eval() {
+loaderupdate:Session.printcmd() {
 	local IFS flags cmd arg
 	IFS=' '
 	cmd="${1}"
@@ -333,12 +335,8 @@ loaderupdate:Session.eval() {
 			echo -n "${0##*/}> ${cmd##*/}"
 		fi
 		for arg in "$@"; do
-			if [ -n "${mountpoint}" -a \
-			     -n "${dev}" -a -n "${part}" -a \
-			     -z "${arg##${mountpoint}*}" ]; then
-				arg="${dev}p${part}:${arg#${mountpoint}}"
-			fi
 			case "${arg}" in
+			--*)    echo -n " ${arg}";;
 			-?*\ *) echo -n " ${arg%${arg#-?}}'${arg#-?}'";;
 			*\ *)   echo -n " '${arg}'";;
 			*)      echo -n " ${arg}";;
@@ -346,11 +344,24 @@ loaderupdate:Session.eval() {
 		done
 		echo
 	fi
+}
+
+loaderupdate:Session.runcmd() {
+	local IFS flags cmd arg
+	IFS=' '
+	cmd="${1}"
+	shift
+	$this.Flags flags
 	if $flags.check DEMO -eq 0; then
 		${cmd} "$@" \
 		|| bsda:err:raise E_LOADERUPDATE_CMD \
 			          "ERROR: Command failed with error $?: ${cmd} ${*}"
 	fi
+}
+
+loaderupdate:Session.cmd() {
+	$this.printcmd "$@"
+	$this.runcmd "$@"
 }
 
 loaderupdate:Session.run() {
@@ -454,7 +465,7 @@ loaderupdate:Session.run() {
 	done
 
 	# all pre-checks passed, commit/demo changes
-	local mount mountpoint var tag label
+	local mount partdev mountpoint var tag label
 	for dev in ${devs}; do
 		$dev.getBootparts bootparts
 		$dev.getEfiparts  efiparts
@@ -462,28 +473,34 @@ loaderupdate:Session.run() {
 
 		# install freebsd-boot loader
 		if [ -n "${bootparts}" ]; then
-			$this.eval /sbin/gpart bootcode -b"${pmbr}" "${dev}"
+			$this.cmd /sbin/gpart bootcode -b"${pmbr}" "${dev}"
 		fi
 		for part in ${bootparts}; do
-			$this.eval /sbin/gpart bootcode -p"${bootload}" -i"${part}" "${dev}"
+			$this.cmd /sbin/gpart bootcode -p"${bootload}" -i"${part}" "${dev}"
 		done
 
 		# install EFI loader
 		count=0
 		for part in ${efiparts}; do
 			count=$((count + 1))
-			mountpoint="/tmp/${0##*/}.$$/${dev}p${part}"
+			partdev="${dev}p${part}"
+			mountpoint="/tmp/${0##*/}.$$/${partdev}"
+			$this.printcmd mkdir -p "${partdev}"
+			$this.printcmd mount -tmsdosfs -osync \
+			               "/dev/${partdev}" "${partdev}"
 			if $flags.check DEMO -eq 0; then
 				loaderupdate:Mount mount \
-				                   "/dev/${dev}p${part}" \
+				                   "/dev/${partdev}" \
 				                   "${mountpoint}" \
 				                   -tmsdosfs -osync \
 				|| return $?
 				$caller.delete ${mount}
 			fi
-			$this.eval /bin/mkdir -p "${mountpoint}${efiimg%/*}" \
+			$this.printcmd mkdir -p "${partdev}${efiimg%/*}"
+			$this.runcmd /bin/mkdir -p "${mountpoint}${efiimg%/*}" \
 			|| return $?
-			$this.eval /bin/cp "${efiload}" "${mountpoint}${efiimg}" \
+			$this.printcmd cp "${efiload}" "${partdev}${efiimg}"
+			$this.runcmd /bin/cp "${efiload}" "${mountpoint}${efiimg}" \
 			|| return $?
 		done
 
@@ -495,7 +512,7 @@ loaderupdate:Session.run() {
 			${dev}/${machine}/${ostype} | \
 			${dev}p[0-9]/${machine}/${ostype} | \
 			${dev}p[0-9][0-9]/${machine}/${ostype})
-				$this.eval /usr/sbin/efibootmgr -B "${var}" \
+				$this.cmd /usr/sbin/efibootmgr -B "${var}" \
 				|| return $?
 			;;
 			esac
@@ -507,17 +524,20 @@ loaderupdate:Session.run() {
 		test $((count)) -le 1    && count=
 		$flags.check NOEFI -ne 0 && efiparts=
 		for part in ${efiparts}; do
-			mountpoint="/tmp/${0##*/}.$$/${dev}p${part}"
-			$this.eval /usr/sbin/efibootmgr \
-			           -cl "${mountpoint}${efiimg}" \
-			           -L "${dev}${count:+p${part}}/${machine}/${version}" \
+			partdev="${dev}p${part}"
+			mountpoint="/tmp/${0##*/}.$$/${partdev}"
+			$this.printcmd efibootmgr -cl "${partdev}${efiimg}" \
+			               -L "${dev}${count:+p${part}}/${machine}/${version}"
+			$this.runcmd /usr/sbin/efibootmgr \
+			             -cl "${mountpoint}${efiimg}" \
+			             -L "${dev}${count:+p${part}}/${machine}/${version}" \
 			|| return $?
 			while IFS=' ' read -r var tag label; do
 				var="${var#*Boot}"
 				var="${var%\*}"
 				case "${tag}" in
 				${dev}${count:+p${part}}/${machine}/${ostype})
-					$this.eval /usr/sbin/efibootmgr -a "${var}" \
+					$this.cmd /usr/sbin/efibootmgr -a "${var}" \
 					|| return $?
 				;;
 				esac
