@@ -7,20 +7,20 @@ bsda:err:createECs E_BSDA_ELF_NOENT
 
 bsda:obj:createClass bsda:elf:File \
 	r:private:filename \
+	r:private:virtual \
 	r:private:symbols \
 	i:private:init \
+	x:private:getTuple \
 	x:public:fetchEnc \
-	x:public:fetch \
-	x:public:select \
+	x:public:fetch
 
 bsda:elf:File.init() {
 	if ! [ -r "$1" ]; then
 		bsda:err:raise E_BSDA_ELF_NOENT "ERROR: File not found: ${1}"
 		return 1
 	fi
-	local virtual
 	setvar ${this}filename "$1"
-	setvar virtual "$(
+	setvar ${this}virtual "$(
 		/usr/bin/readelf -Wl "$1" 2>&- | while read -r type offs virt tail; do
 			if [ "${type}" = "LOAD" ] && [ $((offs)) -eq 0 ]; then
 				echo "${virt}"
@@ -29,26 +29,38 @@ bsda:elf:File.init() {
 		done
 	)"
 	setvar ${this}symbols "$(
-		addr=x
 		/usr/bin/nm --demangle --print-size "$1" 2>&- \
-		| while read -r addr size type name; do
-			if [ -n "${name}" ]; then
-				echo "name='${name}';type=${type};addr=$((0x${addr} - virtual));size=$((0x${size}));"
-			fi
-		done
+		| /usr/bin/awk "
+			\$4{
+				sub(/^/, \"addr=0x\")
+				sub(/ /, \";size=0x\")
+				sub(/ /, \";type=\")
+				sub(/ /, \";name='\")
+				sub(/$/, \"'\")
+				print
+			}
+		"
 	)"
 }
 
+bsda:elf:File.getTuple() {
+	local name type addr size offset
+	eval "$($this.getSymbols | /usr/bin/grep -F "name='${4}'")"
+	$this.getVirtual offset
+	$caller.setvar "${1}" "${type}"
+	$caller.setvar "${2}" "$((addr - offset))"
+	$caller.setvar "${3}" "$((size))"
+}
+
 bsda:elf:File.fetchEnc() {
-	local dst sym mode value filename addr name type addr size
+	local dst sym mode value type addr size filename
 	dst="$1"
 	sym="$2"
 	mode="$3"
 	shift;shift;shift
 	value=
-	addr="$($this.getSymbols | /usr/bin/grep -F "name='${sym}';")"
+	$this.getTuple type addr size "${sym}"
 	if [ -n "${addr}" ]; then
-		eval "${addr}"
 		$this.getFilename filename
 		value="$(
 			/bin/dd if="${filename}" bs=1 skip="${addr}" count="${size}" 2>&- \
@@ -64,11 +76,10 @@ bsda:elf:File.fetchEnc() {
 }
 
 bsda:elf:File.fetch() {
-	local value filename addr name type addr size
+	local value type addr size filename
 	value=
-	addr="$($this.getSymbols | /usr/bin/grep -F "name='${2}';")"
+	$this.getTuple type addr size "${2}"
 	if [ -n "${addr}" ]; then
-		eval "${addr}"
 		$this.getFilename filename
 		value="$(/bin/dd if="${filename}" bs=1 skip="${addr}" count="${size}" conv=sparse 2>&-)"
 	fi
