@@ -17,31 +17,18 @@ bsda:err:createECs \
 	E_LOADERUPDATE_UMOUNT=E_WARN \
 	E_LOADERUPDATE_CMD \
 
-bsda:obj:createClass loaderupdate:Devices \
-	a:private:Next=loaderupdate:Devices \
+#
+# Collects information about boot partitions on bootable devices.
+#
+bsda:obj:createClass loaderupdate:Device \
+	a:private:Next=loaderupdate:Device \
 	r:public:dev \
 	r:public:scheme \
 	r:public:bootparts \
 	r:public:efiparts \
-	x:public:devices \
 	i:private:init
 
-loaderupdate:Devices.devices() {
-	local devices device
-	devices=
-	device=${this}
-	while [ -n "${device}" ]; do
-		devices="${devices}${device}"$'\n'
-		$device.Next device
-	done
-	$caller.setvar "${1}" "${devices}"
-}
-
-loaderupdate:Devices.init() {
-	if [ -z "${1}" ]; then
-		return 1
-	fi
-
+loaderupdate:Device.init() {
 	local IFS gpart scheme bootparts efiparts index type start size label attr
 	setvar ${this}dev "${1}"
 	IFS=$' \t\n'
@@ -82,9 +69,33 @@ loaderupdate:Devices.init() {
 	fi
 	setvar ${this}bootparts "${bootparts}"
 	setvar ${this}efiparts "${efiparts}"
+}
 
-	shift
-	$class ${this}Next "$@" || return 0
+bsda:obj:createClass loaderupdate:Devices \
+	a:private:First=loaderupdate:Device \
+	x:public:devices \
+	i:private:init
+
+loaderupdate:Devices.devices() {
+	local devices device
+	devices=
+	$this.First device
+	while [ -n "${device}" ]; do
+		devices="${devices}${device}"$'\n'
+		getvar device ${device}Next
+	done
+	$caller.setvar "${1}" "${devices}"
+}
+
+loaderupdate:Devices.init() {
+	local name device dst
+	dst=${this}First
+	for name in "$@"; do
+		if loaderupdate:Device device "${name}"; then
+			setvar ${dst} ${device}
+			dst=${device}Next
+		fi
+	done
 }
 
 bsda:obj:createClass loaderupdate:Mount \
@@ -373,12 +384,9 @@ loaderupdate:Session.run() {
 	IFS=$'\n'
 	$this.getDevs devs
 
-	if loaderupdate:Devices devs ${devs}; then
-		$caller.delete "${devs}"
-		$devs.devices devs
-	else
-		devs=
-	fi
+	loaderupdate:Devices devs ${devs}
+	$caller.delete "${devs}"
+	$devs.devices devs
 
 	$this.getDestdir  destdir
 	$this.getOstype   ostype
