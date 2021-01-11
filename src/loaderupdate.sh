@@ -329,7 +329,9 @@ loaderupdate:Session.printcmd() {
 	shift
 	$this.Flags flags
 	if $flags.check QUIET -eq 0; then
-		if [ -t 1 ]; then
+		if $flags.check DEMO -ne 0; then
+			echo -n "${cmd##*/}"
+		elif [ -t 1 ]; then
 			printf "\033[38;5;112m%s\033[m> %s" "${0##*/}" "${cmd##*/}"
 		else
 			echo -n "${0##*/}> ${cmd##*/}"
