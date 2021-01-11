@@ -196,9 +196,8 @@ loaderupdate:Session.params() {
 		$options.getopt option "$1"
 		case "$option" in
 		ALL)
-			devs="$(/usr/sbin/gstat -pbI0 \
-			        | /usr/bin/awk 'NR>2 && $0=$10')"
-			devs=${devs:+"${devs}"$'\n'}
+			devs="${devs}$(/usr/sbin/gstat -pbI0 \
+			               | /usr/bin/awk 'NR>2 && $0=$10')"$'\n'
 		;;
 		DEMO | DUMP | NOEFI | QUIET)
 			$flags.add "$option"
@@ -382,10 +381,9 @@ loaderupdate:Session.run() {
 	      pmbr bootload efiload efiimg dev bootparts efiparts \
 	      part count i efivars demo quiet
 	IFS=$'\n'
-	$this.getDevs devs
 
-	loaderupdate:Devices devs ${devs}
-	$caller.delete "${devs}"
+	loaderupdate:Devices devs $($this.getDevs | /usr/bin/awk '!a[$0]++')
+	$caller.delete ${devs}
 	$devs.devices devs
 
 	$this.getDestdir  destdir
