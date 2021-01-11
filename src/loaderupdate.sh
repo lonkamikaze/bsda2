@@ -530,12 +530,12 @@ loaderupdate:Session.run() {
 loaderupdate:Session.help() {
 	local usage
 	$1.usage usage "\t%2.2s, %-12s  %s\n"
-	echo "usage: loaderupdate -h
-       loaderupdate [-D destdir] [-b bootloader] [-e efiloader] [-p pmbr]
-                    device ... [-dn]
-       loaderupdate [-D destdir] [-b bootloader] [-e efiloader] [-p pmbr]
-                    -a [-dn]
-       loaderupdate [-D destdir] [-b bootloader] [-e efiloader] [-p pmbr]
-                    -P [-an] [device ...]
+	echo "usage: loaderupdate [-D destdir] [-b bootloader] [-e efiloader] [-p pmbr] [-dn]
+                    device ...
+       loaderupdate [-D destdir] [-b bootloader] [-e efiloader] [-p pmbr] [-dn]
+                    -a
+       loaderupdate [-D destdir] [-b bootloader] [-e efiloader] [-p pmbr] [-n]
+                    -P [-a | device ...]
+       loaderupdate -h
 $(echo -n "$usage" | /usr/bin/sort -f)"
 }
