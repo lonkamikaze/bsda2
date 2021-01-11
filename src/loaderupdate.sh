@@ -183,7 +183,8 @@ loaderupdate:Session.params() {
 		$options.getopt option "$1"
 		case "$option" in
 		ALL)
-			devs="$(/sbin/gpart list | /usr/bin/sed -n 's/Geom name: //p')"
+			devs="$(/usr/sbin/gstat -pbI0 \
+			        | /usr/bin/awk 'NR>2 && $0=$10')"
 			devs=${devs:+"${devs}"$'\n'}
 		;;
 		DEMO | DUMP | NOEFI | QUIET)
