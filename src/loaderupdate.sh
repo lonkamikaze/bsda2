@@ -29,9 +29,8 @@ bsda:obj:createClass loaderupdate:Device \
 	i:private:init
 
 loaderupdate:Device.init() {
-	local IFS gpart scheme bootparts efiparts index type start size label attr
+	local gpart scheme bootparts efiparts index type start size label attr
 	setvar ${this}dev "${1}"
-	IFS=$' \t\n'
 	if ! gpart="$(/sbin/gpart backup "${1}" 2>&-)"; then
 		bsda:err:raise E_LOADERUPDATE_NODEVICE "ERROR: Cannot access device: $1"
 		return 1
@@ -39,7 +38,7 @@ loaderupdate:Device.init() {
 	scheme=
 	bootparts=
 	efiparts=
-	while read -r index type start size label attr; do
+	while IFS=' ' read -r index type start size label attr; do
 		case "${index}" in
 		GPT)
 			scheme="${index}"
@@ -359,15 +358,17 @@ loaderupdate:Session.printcmd() {
 }
 
 loaderupdate:Session.runcmd() {
-	local IFS flags cmd arg
+	local IFS flags e
 	IFS=' '
-	cmd="${1}"
-	shift
 	$this.Flags flags
 	if $flags.check DEMO -eq 0; then
-		${cmd} "$@" \
-		|| bsda:err:raise E_LOADERUPDATE_CMD \
-			          "ERROR: Command failed with error $?: ${cmd} ${*}"
+		"$@"
+		e=$?
+		if [ ${e} -ne 0 ]; then
+			bsda:err:raise E_LOADERUPDATE_CMD \
+			               "ERROR: Command failed with error ${e}: ${*}"
+		fi
+		return ${e}
 	fi
 }
 
@@ -481,10 +482,13 @@ loaderupdate:Session.run() {
 
 		# install freebsd-boot loader
 		if [ -n "${bootparts}" ]; then
-			$this.cmd /sbin/gpart bootcode -b"${pmbr}" "${dev}"
+			$this.cmd /sbin/gpart bootcode -b"${pmbr}" "${dev}" \
+			|| return 1
 		fi
 		for part in ${bootparts}; do
-			$this.cmd /sbin/gpart bootcode -p"${bootload}" -i"${part}" "${dev}"
+			$this.cmd /sbin/gpart bootcode -p"${bootload}" \
+			                      -i"${part}" "${dev}" \
+			|| return 1
 		done
 
 		# install EFI loader

@@ -16,7 +16,7 @@ bsda:obj:createClass bsda:elf:File \
 
 bsda:elf:File.init() {
 	if ! [ -r "$1" ]; then
-		bsda:err:raise E_BSDA_ELF_NOENT "ERROR: File not found: ${1}"
+		bsda:err:raise E_BSDA_ELF_NOENT "ERROR: Cannot read file: ${1}"
 		return 1
 	fi
 	setvar ${this}filename "$1"
