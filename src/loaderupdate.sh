@@ -4,6 +4,23 @@ readonly _loaderupdate_=1
 . ${bsda_dir:-.}/bsda_opts.sh
 . ${bsda_dir:-.}/bsda_elf.sh
 
+#
+# Error/exit codes for error reporting.
+#
+# | Code                      | Severity | Meaning                           |
+# |---------------------------|----------|-----------------------------------|
+# | E_LOADERUPDATE_PARAM      | error    | Invalid or conflicting arguments  |
+# | E_LOADERUPDATE_NODEVICE   | error    | Cannot access device              |
+# | E_LOADERUPDATE_DESTDIR    | error    | DESTDIR is not a directory        |
+# | E_LOADERUPDATE_NOKERNEL   | error    | Cannot access kernel              |
+# | E_LOADERUPDATE_SCHEME     | error    | Unsupported partitioning scheme   |
+# | E_LOADERUPDATE_NOPARTS    | error    | No freebsd-boot or efi partitions |
+# | E_LOADERUPDATE_EFIBOOTMGR | error    | Failed to run efibootmgr          |
+# | E_LOADERUPDATE_LOADER     | error    | Cannot access loader image        |
+# | E_LOADERUPDATE_MOUNT      | error    | Failed to mount efi partition     |
+# | E_LOADERUPDATE_UMOUNT     | warning  | Failed to unmount efi partition   |
+# | E_LOADERUPDATE_CMD        | error    | Failed to execute command         |
+#
 bsda:err:createECs \
 	E_LOADERUPDATE_PARAM \
 	E_LOADERUPDATE_NODEVICE \
@@ -18,16 +35,35 @@ bsda:err:createECs \
 	E_LOADERUPDATE_CMD \
 
 #
-# Collects information about boot partitions on bootable devices.
+# Retains information about boot partitions on a bootable device.
 #
 bsda:obj:createClass loaderupdate:Device \
 	a:private:Next=loaderupdate:Device \
-	r:public:dev \
-	r:public:scheme \
-	r:public:bootparts \
-	r:public:efiparts \
-	i:private:init
+	r:public:dev       "The name of the device" \
+	r:public:scheme    "The detected partitioning scheme" \
+	r:public:bootparts "List of freebsd-boot partition indices" \
+	r:public:efiparts  "List of efi partition indices" \
+	i:private:init     "Determine device properties"
 
+#
+# Collect information about and verify the given device.
+#
+# In order for initialisation to complete the following conditions
+# must be met:
+#
+# @param 1
+#	The name of the device
+# @retval 0
+#	The instance was initialised successfully
+# @retval 1
+#	The device does not meet requirements
+# @throws E_LOADERUPDATE_NODEVICE
+#	gpart(1) was not able to access the device
+# @throws E_LOADERUPDATE_SCHEME
+#	The device is not formatted using the GUID Partition Table scheme
+# @throws E_LOADERUPDATE_NOPARTS
+#	Neither efi nor freebsd-boot partitions are present
+#
 loaderupdate:Device.init() {
 	local gpart scheme bootparts efiparts index type start size label attr
 	setvar ${this}dev "${1}"
@@ -70,11 +106,23 @@ loaderupdate:Device.init() {
 	setvar ${this}efiparts "${efiparts}"
 }
 
+#
+# Collect and verify a given list of devices.
+#
+# @see loaderupdate:Device
+#	For device requirements and properties
+#
 bsda:obj:createClass loaderupdate:Devices \
 	a:private:First=loaderupdate:Device \
-	x:public:devices \
-	i:private:init
+	x:public:devices   "Produce a flat list of all device objects" \
+	i:private:init     "Construct a list of devices"
 
+#
+# Produce a flat list of all device objects.
+#
+# @param &1
+#	Destination variable for the list of devices
+#
 loaderupdate:Devices.devices() {
 	local devices device
 	devices=
@@ -86,6 +134,13 @@ loaderupdate:Devices.devices() {
 	$caller.setvar "${1}" "${devices}"
 }
 
+#
+# Build the device list of verified devices.
+#
+# @param @
+#	A list of device names
+# @see loaderupdate:Device.init()
+#
 loaderupdate:Devices.init() {
 	local name device dst
 	dst=${this}First
@@ -97,12 +152,33 @@ loaderupdate:Devices.init() {
 	done
 }
 
+#
+# Mount lifetime class.
+#
+# Performs a mount on initialisation and unmount on finalisation.
+#
 bsda:obj:createClass loaderupdate:Mount \
-	r:private:device \
-	r:private:mountpoint \
-	i:private:init \
-	c:private:clean
+	r:private:device     "The device path to mount" \
+	r:private:mountpoint "The mountpoint to mount to" \
+	i:private:init       "Perform mount(8)" \
+	c:private:clean      "Perform umount(8)"
 
+#
+# Create the given mountpoint and mount the given device.
+#
+# @param 1
+#	The device to mount
+# @param 2
+#	The mountpoint
+# @param @
+#	Additional arguments to the mount command
+# @retval 0
+#	The mount succeeded
+# @retval 1
+#	The mount failed
+# @throws E_LOADERUPDATE_MOUNT
+#	Failed to create mountpoint or failed to mount
+#
 loaderupdate:Mount.init() {
 	local device mountpoint
 	device="${1}"
@@ -124,6 +200,12 @@ loaderupdate:Mount.init() {
 	setvar ${this}device "${device}"
 }
 
+#
+# Unmount and remove the mountpoint.
+#
+# @throws E_LOADERUPDATE_UMOUNT
+#	Warn if umount or mountpoint removal fails
+#
 loaderupdate:Mount.clean() {
 	local device mountpoint
 	$this.getDevice device
@@ -146,29 +228,44 @@ loaderupdate:Mount.clean() {
 	return 0
 }
 
+#
+# The session class for loaderupdate.
+#
 bsda:obj:createClass loaderupdate:Session \
 	a:private:Flags=bsda:opts:Flags \
-	r:private:destdir \
-	r:private:ostype \
-	r:private:version \
-	r:private:machine \
-	r:private:pmbr \
-	r:private:bootload \
-	r:private:efiload \
-	r:private:devs \
-	i:private:init \
-	x:private:params \
-	x:private:printcmd \
-	x:private:runcmd \
-	x:private:cmd \
-	x:private:run \
-	x:private:help
+	r:private:destdir  "The boot environment mountpoint" \
+	r:private:ostype   "The kernel ostype" \
+	r:private:version  "The kernel version" \
+	r:private:machine  "The kernel machine architecture" \
+	r:private:pmbr     "The protective MBR image path" \
+	r:private:bootload "The freebsd-boot loader path" \
+	r:private:efiload  "The efi loader path" \
+	r:private:devs     "A list of device names" \
+	i:private:init     "Initialise and run session" \
+	x:private:params   "Parse command line arguments" \
+	x:private:printcmd "Print the given command" \
+	x:private:runcmd   "Run the given command" \
+	x:private:cmd      "Print and run the given command" \
+	x:private:run      "Perform the boot loader update" \
+	x:private:help     "Print a usage message"
 
+#
+# Initialise and run the session.
+#
+# @param @
+#	The command line arguments
+#
 loaderupdate:Session.init() {
 	$this.params "$@" || return $?
 	$this.run || return $?
 }
 
+#
+# Parse command line arguments.
+#
+# @param @
+#	The command line arguments
+#
 loaderupdate:Session.params() {
 	local flags options option destdir devs kernelpath kernel \
 	      msg e ostype version machine pmbr bootload efiload
@@ -331,6 +428,24 @@ loaderupdate:Session.params() {
 	setvar ${this}pmbr "${pmbr}"
 }
 
+#
+# Print the given command.
+#
+# The command is stripped of a leading path and and prefixed with
+# `loaderupdate> `.
+#
+# The following flags affect the execution:
+#
+# | Flag  | Effect                                     |
+# |-------|--------------------------------------------|
+# | QUIET | Suppress output                            |
+# | DEMO  | Do not prefix output with `loaderupdate> ` |
+#
+# @param 1
+#	The command to print
+# @param @
+#	The command arguments
+#
 loaderupdate:Session.printcmd() {
 	local IFS flags cmd arg
 	IFS=' '
@@ -357,6 +472,18 @@ loaderupdate:Session.printcmd() {
 	fi
 }
 
+#
+# Execute the given command.
+#
+# The DEMO flag deactivates command execution.
+#
+# @param @
+#	The command to execute
+# @return
+#	The exit code of the given command
+# @throws E_LOADERUPDATE_CMD
+#	In case the command fails
+#
 loaderupdate:Session.runcmd() {
 	local IFS flags e
 	IFS=' '
@@ -372,11 +499,37 @@ loaderupdate:Session.runcmd() {
 	fi
 }
 
+#
+# Print and execute the given command.
+#
+# @param @
+#	The command to execute
+# @return
+#	The exit code of the given command
+# @throws E_LOADERUPDATE_CMD
+#	In case the command fails
+# @see loaderupdate.Session.printcmd()
+# @see loaderupdate.Session.runcmd()
+#
 loaderupdate:Session.cmd() {
 	$this.printcmd "$@"
 	$this.runcmd "$@"
 }
 
+#
+# Perform the actions requested by the user.
+#
+# @throws E_LOADERUPDATE_NODEVICE
+#	gpart(1) was not able to access a device
+# @throws E_LOADERUPDATE_SCHEME
+#	A device is not formatted using the GUID Partition Table scheme
+# @throws E_LOADERUPDATE_NOPARTS
+#	Neither efi nor freebsd-boot partitions are present on a device
+# @throws E_LOADERUPDATE_MOUNT
+#	Failed to create a mountpoint or failed to mount
+# @throws E_LOADERUPDATE_CMD
+#	In case a command fails
+#
 loaderupdate:Session.run() {
 	local IFS flags devs destdir ostype version machine \
 	      pmbr bootload efiload efiimg dev bootparts efiparts \
