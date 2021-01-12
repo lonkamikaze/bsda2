@@ -536,7 +536,7 @@ loaderupdate:Session.cmd() {
 #
 loaderupdate:Session.run() {
 	local IFS flags devs destdir ostype version machine bootfs \
-	      pmbr bootload efiload efiimg dev bootparts efiparts \
+	      pmbr bootload efiload efifile dev bootparts efiparts \
 	      part count i efivars demo quiet
 	IFS=$'\n'
 
@@ -555,7 +555,7 @@ loaderupdate:Session.run() {
 	pmbr="${destdir}/${pmbr#/}"
 	bootload="${destdir}/${bootload#/}"
 	efiload="${destdir}/${efiload#/}"
-	efiimg="/efi/${ostype}/boot${machine}.efi"
+	efifile="/efi/${ostype}/boot${machine}.efi"
 
 	$this.Flags flags
 	if $flags.check DUMP -ne 0; then
@@ -583,7 +583,7 @@ loaderupdate:Session.run() {
 			done
 			count=0
 			for part in ${efiparts}; do
-				printf "    %-18s  %s\n" "install:" "${efiload} > ${dev}p${part}:${efiimg}"
+				printf "    %-18s  %s\n" "install:" "${efiload} > ${dev}p${part}:${efifile}"
 				count=$((count + 1))
 			done
 			$flags.check NOEFI -ne 0 && efiparts=
@@ -598,7 +598,7 @@ loaderupdate:Session.run() {
 
 	efivars=
 	if $flags.check NOEFI -eq 0; then
-		efivars="$(/usr/sbin/efibootmgr 2>&1)"
+		efivars="$(/usr/sbin/efibootmgr -v 2>&1)"
 	fi
 
 	# check whether all required loaders are readable
@@ -633,7 +633,7 @@ loaderupdate:Session.run() {
 	done
 
 	# all pre-checks passed, commit/demo changes
-	local mount partdev mountpoint var tag label
+	local mount partdev mountpoint var varfile etc
 	for dev in ${devs}; do
 		$dev.getBootparts bootparts
 		$dev.getEfiparts  efiparts
@@ -667,22 +667,22 @@ loaderupdate:Session.run() {
 				|| return $?
 				$caller.delete ${mount}
 			fi
-			$this.printcmd mkdir -p "${partdev}${efiimg%/*}"
-			$this.runcmd /bin/mkdir -p "${mountpoint}${efiimg%/*}" \
+			$this.printcmd mkdir -p "${partdev}${efifile%/*}"
+			$this.runcmd /bin/mkdir -p "${mountpoint}${efifile%/*}" \
 			|| return $?
-			$this.printcmd cp "${efiload}" "${partdev}${efiimg}"
-			$this.runcmd /bin/cp "${efiload}" "${mountpoint}${efiimg}" \
+			$this.printcmd cp "${efiload}" "${partdev}${efifile}"
+			$this.runcmd /bin/cp "${efiload}" "${mountpoint}${efifile}" \
 			|| return $?
 		done
 
 		# clear old EFI boot manager entries
-		while IFS=' ' read -r var tag label; do
-			var="${var#*Boot}"
-			var="${var%\*}"
-			case "${tag}" in
-			${dev}/${machine}/${ostype} | \
-			${dev}p[0-9]/${machine}/${ostype} | \
-			${dev}p[0-9][0-9]/${machine}/${ostype})
+		while IFS=' ' read -r var etc; do
+			case "${var}" in
+			*Boot[0-9]*)
+				IFS=' ' read -r varfile etc
+				test "${varfile}" = "${partdev}:${efifile}" || continue
+				var="${var#*Boot}"
+				var="${var%\*}"
 				$this.cmd /usr/sbin/efibootmgr -B "${var}" \
 				|| return $?
 			;;
@@ -697,23 +697,23 @@ loaderupdate:Session.run() {
 		for part in ${efiparts}; do
 			partdev="${dev}p${part}"
 			mountpoint="/tmp/${0##*/}.$$/${partdev}"
-			$this.printcmd efibootmgr -cl "${partdev}${efiimg}" \
-			               -L "${dev}${count:+p${part}}/${machine}/${version}"
-			$this.runcmd /usr/sbin/efibootmgr \
-			             -cl "${mountpoint}${efiimg}" \
-			             -L "${dev}${count:+p${part}}/${machine}/${version}" \
+			$this.cmd /usr/sbin/efibootmgr \
+			          -cl "${partdev}:${efifile}" \
+			          -L "${dev}${count:+p${part}}/${machine}/${version}" \
 			|| return $?
-			while IFS=' ' read -r var tag label; do
-				var="${var#*Boot}"
-				var="${var%\*}"
-				case "${tag}" in
-				${dev}${count:+p${part}}/${machine}/${ostype})
+			while IFS=' ' read -r var etc; do
+				case "${var}" in
+				*Boot[0-9]*)
+					IFS=' ' read -r varfile etc
+					test "${varfile}" = "${partdev}:${efifile}" || continue
+					var="${var#*Boot}"
+					var="${var%\*}"
 					$this.cmd /usr/sbin/efibootmgr -a "${var}" \
 					|| return $?
 				;;
 				esac
 			done <<- EFIVARS
-			$(/usr/sbin/efibootmgr 2>&1)
+			$(/usr/sbin/efibootmgr -v 2>&1)
 			EFIVARS
 		done
 	done
