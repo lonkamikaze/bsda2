@@ -237,6 +237,7 @@ bsda:obj:createClass loaderupdate:Session \
 	r:private:ostype   "The kernel ostype" \
 	r:private:version  "The kernel version" \
 	r:private:machine  "The kernel machine architecture" \
+	r:private:bootfs   "The file system of the boot environment" \
 	r:private:pmbr     "The protective MBR image path" \
 	r:private:bootload "The freebsd-boot loader path" \
 	r:private:efiload  "The efi loader path" \
@@ -415,6 +416,9 @@ loaderupdate:Session.params() {
 	bootfs="$(/sbin/mount -p | /usr/bin/awk -vDESTDIR="${destdir:-/}" '
 		$2 == DESTDIR && $0 = $3
 	')"
+	bootfs="${bootfs##*$'\n'}"
+	setvar ${this}bootfs "${bootfs}"
+
 	case "${bootfs}" in
 	ufs) bootload="${bootload:-/boot/gptboot}";;
 	zfs) bootload="${bootload:-/boot/gptzfsboot}";;
@@ -531,7 +535,7 @@ loaderupdate:Session.cmd() {
 #	In case a command fails
 #
 loaderupdate:Session.run() {
-	local IFS flags devs destdir ostype version machine \
+	local IFS flags devs destdir ostype version machine bootfs \
 	      pmbr bootload efiload efiimg dev bootparts efiparts \
 	      part count i efivars demo quiet
 	IFS=$'\n'
@@ -544,6 +548,7 @@ loaderupdate:Session.run() {
 	$this.getOstype   ostype
 	$this.getVersion  version
 	$this.getMachine  machine
+	$this.getBootfs   bootfs
 	$this.getPmbr     pmbr
 	$this.getBootload bootload
 	$this.getEfiload  efiload
@@ -561,6 +566,7 @@ loaderupdate:Session.run() {
 		       "ostype:"              "${ostype}" \
 		       "kernel version:"      "${version}" \
 		       "kernel arch:"         "${machine}" \
+		       "file system:"         "${bootfs}" \
 		       "protective MBR:"      "${pmbr}" \
 		       "freebsd-boot loader:" "${bootload}" \
 		       "EFI loader:"          "${efiload}"
