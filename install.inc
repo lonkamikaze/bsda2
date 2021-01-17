@@ -9,6 +9,7 @@ src/bsda_elf.sh,0644,%%DATADIR%%/bsda_elf.sh
 src/bsda_err.sh,0644,%%DATADIR%%/bsda_err.sh
 ref/bsda_err.md,0644,%%DOCSDIR%%/ref/bsda_err.md
 src/bsda_fifo.sh,0644,%%DATADIR%%/bsda_fifo.sh
+src/bsda_fmt.sh,0644,%%DATADIR%%/bsda_fmt.sh
 src/bsda_obj.sh,0644,%%DATADIR%%/bsda_obj.sh
 ref/bsda_obj.md,0644,%%DOCSDIR%%/ref/bsda_obj.md
 src/bsda_opts.sh,0644,%%DATADIR%%/bsda_opts.sh

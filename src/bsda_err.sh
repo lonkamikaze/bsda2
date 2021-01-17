@@ -116,14 +116,14 @@ bsda_err_context=
 #
 # @param 1
 #	An error/exit code
-# @param 2
+# @param @
 #	An optional message printed on stderr, regardless of the error/exit code
 # @warning
 #	Terminates the program if the error/exit code is non-zero
 #
 bsda:err:panic() {
 	if [ -n "$2" ]; then
-		echo "$2" >&2
+		(shift; IFS=$'\n'; echo "$*") >&2
 	fi
 	if ! ( : $(($1)) ) 2>&-; then
 		echo "bsda:err:panic: Not a valid exit code: $1" >&2
@@ -156,7 +156,7 @@ bsda:err:collect() {
 #
 # @param 1
 #	An error/exit code
-# @param 2
+# @param @
 #	An error/warning message
 # @warning
 #	May terminate the program if the error/exit code is non-zero
@@ -201,7 +201,7 @@ bsda:err:get() {
 #
 # @param 1
 #	An error/exit code
-# @param 2
+# @param @
 #	An error/warning message
 # @warning
 #	May terminate the program if the error/exit code is non-zero
@@ -236,12 +236,14 @@ bsda:obj:createClass bsda:err:Issue \
 #
 # @param 1
 #	An error/exit code
-# @param 2
+# @param @
 #	An error/warning message
 #
 bsda:err:Issue.init() {
+	local IFS=$'\n'
 	setvar ${this}e  "$1"
-	setvar ${this}msg "$2"
+	shift
+	setvar ${this}msg "$*"
 }
 
 #
@@ -330,15 +332,14 @@ bsda:err:Context.clean() {
 #
 # @param 1
 #	An error/exit code
-# @param 2
+# @param @
 #	An error/warning message
 #
 bsda:err:Context.raise() {
-	local nl issues issue
-	nl=$'\n'
+	local issues issue
 	$this.getIssues issues
 	bsda:err:Issue issue "$@"
-	setvar ${this}issues "${issues}${issue}${nl}"
+	setvar ${this}issues "${issues}${issue}"$'\n'
 }
 
 #
