@@ -38,6 +38,7 @@ bsda:err:createECs \
 . ${bsda_dir:-.}/bsda_opts.sh
 . ${bsda_dir:-.}/bsda_elf.sh
 . ${bsda_dir:-.}/bsda_fmt.sh
+. ${bsda_dir:-.}/bsda_util.sh
 
 #
 # Retains information about boot partitions on a bootable device.
@@ -119,8 +120,9 @@ loaderupdate:Device.init() {
 #
 bsda:obj:createClass loaderupdate:Devices \
 	a:private:First=loaderupdate:Device \
+	r:private:devs     "A list of already added devices" \
 	x:public:devices   "Produce a flat list of all device objects" \
-	i:private:init     "Construct a list of devices"
+	i:public:add       "Construct/add to a list of devices"
 
 #
 # Produce a flat list of all device objects.
@@ -140,19 +142,29 @@ loaderupdate:Devices.devices() {
 }
 
 #
-# Build the device list of verified devices.
+# Build/append to the device list of verified devices.
 #
 # @param @
 #	A list of device names
 # @see loaderupdate:Device.init()
 #
-loaderupdate:Devices.init() {
-	local name device dst
+loaderupdate:Devices.add() {
+	local name device dst devs
 	dst=${this}First
+	$this.getDevs devs
+	$this.First device
+	while [ -n "${device}" ]; do
+		dst=${device}Next
+		getvar device ${device}Next
+	done
 	for name in "$@"; do
+		bsda:util:in "${name}" ${devs} && continue
 		if loaderupdate:Device device "${name}"; then
 			setvar ${dst} ${device}
 			dst=${device}Next
+			devs="${devs}${name}"$'\n'
+			setvar ${this}devs "${devs}"
+			setvar ${this}last "${device}"
 		fi
 	done
 }
@@ -238,6 +250,7 @@ loaderupdate:Mount.clean() {
 #
 bsda:obj:createClass loaderupdate:Session \
 	a:private:Flags=bsda:opts:Flags \
+	a:private:Devices=loaderupdate:Devices \
 	r:private:destdir  "The boot environment mountpoint" \
 	r:private:ostype   "The kernel ostype" \
 	r:private:version  "The kernel version" \
@@ -247,7 +260,6 @@ bsda:obj:createClass loaderupdate:Session \
 	r:private:bootload "The freebsd-boot loader path" \
 	r:private:efiload  "The efi loader path" \
 	r:private:efilabel "The efi boot manager entry label" \
-	r:private:devs     "A list of device names" \
 	i:private:init     "Initialise and run session" \
 	x:private:params   "Parse command line arguments" \
 	x:private:printcmd "Print the given command" \
@@ -274,7 +286,7 @@ loaderupdate:Session.init() {
 #	The command line arguments
 #
 loaderupdate:Session.params() {
-	local flags options option destdir devs kernelpath kernel \
+	local flags options devices option destdir devs kernelpath kernel \
 	      msg e ostype version machine pmbr bootload efiload efilabel
 	bsda:opts:Flags ${this}Flags
 	$this.Flags flags
@@ -293,7 +305,9 @@ loaderupdate:Session.params() {
 	HELP     -h  --help       'Display the list of command arguments'
 	$caller.delete $options
 
-	devs=
+	loaderupdate:Devices ${this}Devices
+	$this.Devices devices
+
 	destdir="$(/usr/bin/printenv DESTDIR)"
 	bootload=
 	efiload=
@@ -304,8 +318,12 @@ loaderupdate:Session.params() {
 		$options.getopt option "$1"
 		case "$option" in
 		ALL)
-			devs="${devs}$(/usr/sbin/gstat -pbI0 \
-			               | /usr/bin/awk 'NR>2 && $0=$10')"$'\n'
+			bsda:err:collect
+			$devices.add $(/usr/sbin/gstat -pbI0 \
+			               | /usr/bin/awk 'NR>2 && $0=$10')
+			while bsda:err:get e msg; do
+				bsda:err:forward E_WARN "NOTE:${msg#ERROR:}"
+			done
 		;;
 		DEMO | DUMP | NOEFI | QUIET)
 			$flags.add "$option"
@@ -363,7 +381,7 @@ loaderupdate:Session.params() {
 			continue
 		;;
 		OPT_NOOPT)
-			devs="${devs}${1}"$'\n'
+			$devices.add "${1}"
 		;;
 		esac
 		shift
@@ -374,12 +392,12 @@ loaderupdate:Session.params() {
 		return 1
 	fi
 
+	$devices.devices devs
 	if $flags.check DUMP -eq 0 && [ -z "${devs}" ]; then
 		$this.help "$options"
 		bsda:err:raise E_LOADERUPDATE_NODEVICE "ERROR: No device selected"
 		return 1
 	fi
-	setvar ${this}devs "${devs}"
 
 	destdir="${destdir%/}"
 	if [ -n "${destdir}" ] && ! [ -d "${destdir}" ]; then
@@ -572,8 +590,7 @@ loaderupdate:Session.run() {
 	      part count i efivars demo quiet label
 	IFS=$'\n'
 
-	loaderupdate:Devices devs $($this.getDevs | /usr/bin/awk '!a[$0]++')
-	$caller.delete ${devs}
+	$this.Devices devs
 	$devs.devices devs
 
 	$this.getDestdir  destdir
