@@ -1,8 +1,7 @@
 test -n "$_loaderupdate_" && return 0
 readonly _loaderupdate_=1
 
-. ${bsda_dir:-.}/bsda_opts.sh
-. ${bsda_dir:-.}/bsda_elf.sh
+. ${bsda_dir:-.}/bsda_err.sh
 
 #
 # Error/exit codes for error reporting.
@@ -13,6 +12,7 @@ readonly _loaderupdate_=1
 # | E_LOADERUPDATE_NODEVICE   | error    | Cannot access device              |
 # | E_LOADERUPDATE_DESTDIR    | error    | DESTDIR is not a directory        |
 # | E_LOADERUPDATE_NOKERNEL   | error    | Cannot access kernel              |
+# | E_LOADERUPDATE_EFILABEL   | error    | Invalid EFI label                 |
 # | E_LOADERUPDATE_SCHEME     | error    | Unsupported partitioning scheme   |
 # | E_LOADERUPDATE_NOPARTS    | error    | No freebsd-boot or efi partitions |
 # | E_LOADERUPDATE_EFIBOOTMGR | error    | Failed to run efibootmgr          |
@@ -26,6 +26,7 @@ bsda:err:createECs \
 	E_LOADERUPDATE_NODEVICE \
 	E_LOADERUPDATE_DESTDIR \
 	E_LOADERUPDATE_NOKERNEL \
+	E_LOADERUPDATE_EFILABEL \
 	E_LOADERUPDATE_SCHEME \
 	E_LOADERUPDATE_NOPARTS \
 	E_LOADERUPDATE_EFIBOOTMGR \
@@ -33,6 +34,10 @@ bsda:err:createECs \
 	E_LOADERUPDATE_MOUNT \
 	E_LOADERUPDATE_UMOUNT=E_WARN \
 	E_LOADERUPDATE_CMD \
+
+. ${bsda_dir:-.}/bsda_opts.sh
+. ${bsda_dir:-.}/bsda_elf.sh
+. ${bsda_dir:-.}/bsda_fmt.sh
 
 #
 # Retains information about boot partitions on a bootable device.
@@ -241,6 +246,7 @@ bsda:obj:createClass loaderupdate:Session \
 	r:private:pmbr     "The protective MBR image path" \
 	r:private:bootload "The freebsd-boot loader path" \
 	r:private:efiload  "The efi loader path" \
+	r:private:efilabel "The efi boot manager entry label" \
 	r:private:devs     "A list of device names" \
 	i:private:init     "Initialise and run session" \
 	x:private:params   "Parse command line arguments" \
@@ -269,7 +275,7 @@ loaderupdate:Session.init() {
 #
 loaderupdate:Session.params() {
 	local flags options option destdir devs kernelpath kernel \
-	      msg e ostype version machine pmbr bootload efiload
+	      msg e ostype version machine pmbr bootload efiload efilabel
 	bsda:opts:Flags ${this}Flags
 	$this.Flags flags
 
@@ -278,6 +284,7 @@ loaderupdate:Session.params() {
 	BOOTLOAD -b* --bootloader 'The freebsd-boot loader to install, e.g. /boot/gptboot' \
 	EFILOAD  -e* --efiloader  'The EFI loader to install, e.g. /boot/loader.efi' \
 	PMBR     -p* --pmbr       'The protective MBR image, e.g. /boot/pmbr' \
+	EFILABEL -L* --label      'The EFI Boot Manager entry label' \
 	NOEFI    -n  --noefi      'Do not create EFI Boot Manager entries' \
 	DEMO     -d  --demo       'Print the actions that would be performed' \
 	DESTDIR  -D* --destdir    'The root containing /boot' \
@@ -288,6 +295,10 @@ loaderupdate:Session.params() {
 
 	devs=
 	destdir="$(/usr/bin/printenv DESTDIR)"
+	bootload=
+	efiload=
+	pmbr=
+	efilabel=
 
 	while [ $# -gt 0 ]; do
 		$options.getopt option "$1"
@@ -328,6 +339,14 @@ loaderupdate:Session.params() {
 			pmbr="${pmbr#--pmbr}"
 			if [ -z "${pmbr}" ]; then
 				pmbr="${2}"
+				shift
+			fi
+		;;
+		EFILABEL)
+			efilabel="${1#-L}"
+			efilabel="${efilabel#--label}"
+			if [ -z "${efilabel}" ]; then
+				efilabel="${2}"
 				shift
 			fi
 		;;
@@ -430,6 +449,19 @@ loaderupdate:Session.params() {
 
 	pmbr="${pmbr:-/boot/pmbr}"
 	setvar ${this}pmbr "${pmbr}"
+
+	efilabel="${efilabel:-"{version} {arch} [{pdev}]"}"
+	bsda:err:collect
+	bsda:fmt:printf "${efilabel}" > /dev/null \
+	                dev= pdev= index=0 version= arch=
+	while bsda:err:get e msg; do
+		bsda:err:forward E_LOADERUPDATE_EFILABEL \
+		                 "${msg}" \
+		                 '       Note, EFI label may use:' \
+		                 '           {dev}, {pdev}, {index}, {version}, {arch}'
+		return 1
+	done
+	setvar ${this}efilabel "${efilabel}"
 }
 
 #
@@ -536,8 +568,8 @@ loaderupdate:Session.cmd() {
 #
 loaderupdate:Session.run() {
 	local IFS flags devs destdir ostype version machine bootfs \
-	      pmbr bootload efiload efifile dev bootparts efiparts \
-	      part count i efivars demo quiet
+	      pmbr bootload efiload efilabel efifile dev bootparts efiparts \
+	      part count i efivars demo quiet label
 	IFS=$'\n'
 
 	loaderupdate:Devices devs $($this.getDevs | /usr/bin/awk '!a[$0]++')
@@ -552,6 +584,7 @@ loaderupdate:Session.run() {
 	$this.getPmbr     pmbr
 	$this.getBootload bootload
 	$this.getEfiload  efiload
+	$this.getEfilabel efilabel
 	pmbr="${destdir}/${pmbr#/}"
 	bootload="${destdir}/${bootload#/}"
 	efiload="${destdir}/${efiload#/}"
@@ -589,8 +622,14 @@ loaderupdate:Session.run() {
 			$flags.check NOEFI -ne 0 && efiparts=
 			test $((count)) -le 1    && count=
 			for part in ${efiparts}; do
+				bsda:fmt label "${efilabel}" \
+				         dev="${dev}" \
+				         pdev="${dev}p${part}" \
+				         index="${part}" \
+				         version="${version}" \
+				         arch="${machine}" || return $?
 				printf "    %-18s  %s\n" \
-				       "EFI boot entry:" "${dev}${count:+p${part}}/${machine}/${version}"
+				       "EFI boot entry:" "${label}"
 			done
 		done
 		return 0
@@ -633,7 +672,7 @@ loaderupdate:Session.run() {
 	done
 
 	# all pre-checks passed, commit/demo changes
-	local mount partdev mountpoint var varfile etc
+	local mount mountpoint var varfile etc partdev
 	for dev in ${devs}; do
 		$dev.getBootparts bootparts
 		$dev.getEfiparts  efiparts
@@ -697,9 +736,14 @@ loaderupdate:Session.run() {
 		for part in ${efiparts}; do
 			partdev="${dev}p${part}"
 			mountpoint="/tmp/${0##*/}.$$/${partdev}"
+			bsda:fmt label "${efilabel}" \
+			         dev="${dev}" \
+			         pdev="${dev}p${part}" \
+			         index="${part}" \
+			         version="${version}" \
+			         arch="${machine}" || return $?
 			$this.cmd /usr/sbin/efibootmgr \
-			          -cl "${partdev}:${efifile}" \
-			          -L "${dev}${count:+p${part}}/${machine}/${version}" \
+			          -cl "${partdev}:${efifile}" -L "${label}" \
 			|| return $?
 			while IFS=' ' read -r var etc; do
 				case "${var}" in
@@ -725,12 +769,12 @@ loaderupdate:Session.run() {
 loaderupdate:Session.help() {
 	local usage
 	$1.usage usage "\t%2.2s, %-12s  %s\n"
-	echo "usage: loaderupdate [-D destdir] [-b bootloader] [-e efiloader] [-p pmbr] [-dn]
-                    device ...
-       loaderupdate [-D destdir] [-b bootloader] [-e efiloader] [-p pmbr] [-dn]
-                    -a
-       loaderupdate [-D destdir] [-b bootloader] [-e efiloader] [-p pmbr] [-n]
-                    -P [-a | device ...]
+	echo "usage: loaderupdate [-D destdir] [-L efilabel] [-b bootloader] [-e efiloader]
+                    [-p pmbr] [-dn] device ...
+       loaderupdate [-D destdir] [-L efilabel] [-b bootloader] [-e efiloader]
+                    [-p pmbr] [-dn] -a
+       loaderupdate [-D destdir] [-L efilabel] [-b bootloader] [-e efiloader]
+                    [-p pmbr] [-n] -P [-a | device ...]
        loaderupdate -h
 $(echo -n "$usage" | /usr/bin/sort -f)"
 }
