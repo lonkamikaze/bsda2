@@ -25,10 +25,11 @@ TOC
 1. [Tools](#tools)
    1. [pkg_libchk](#pkg_libchk)
    2. [pkg_trim](#pkg_trim)
-   2. [pkg_validate](#pkg_validate)
-   3. [distviper](#distviper)
-   4. [buildflags](#buildflags)
-   5. [makeplist](#makeplist)
+   3. [pkg_validate](#pkg_validate)
+   4. [distviper](#distviper)
+   5. [buildflags](#buildflags)
+   6. [makeplist](#makeplist)
+   7. [loaderupdate](#loaderupdate)
 2. [bsda:obj](#bsdaobj)
 3. [Install](#install)
 3. [LICENSE](#license)
@@ -76,7 +77,7 @@ on the current location in the file system.
 
 A `buildflags.conf` may look like this:
 
-~~~mk
+```mk
 /usr/ports/*{
 	WRKDIRPREFIX=/tmp/obj
 
@@ -96,11 +97,11 @@ A `buildflags.conf` may look like this:
 	*/audio/cmus             {!USE_CCACHE !USE_DISTCC}
 	*/archivers/lzip         {!USE_CCACHE !USE_DISTCC}
 }
-~~~
+```
 
 It results in the following `make` output:
 
-~~~mk
+```mk
 .if ${.CURDIR:M/usr/ports/*}
 WRKDIRPREFIX=/tmp/obj
 
@@ -126,7 +127,7 @@ PAPERSIZE=a4
 .undef USE_DISTCC
 .endif # */archivers/lzip
 .endif # /usr/ports/*
-~~~
+```
 
 ### makeplist
 
@@ -136,6 +137,56 @@ to automatically generate a `pkg-plist` file.
 What sets it apart is its support for options and that it plays nice
 with a lot of `bsd.port.mk` macros like `DESKTOP_ENTRIES`, `USE_RC_SUBR`
 or `PLIST_FILES`.
+
+### loaderupdate
+
+Update the boot loaders of bootable devices, by applying the loaders
+from a boot environment to a set of bootable devices.
+
+A boot environment, a mount containing a populated `/boot`, can be
+provided via the `-D` parameter or `DESTDIR` environment variable.
+
+The first command to run is `loaderupdate --dump`, it publishes
+loaderupdate's understanding of the boot environment and its tasks:
+
+```sh
+# loaderupdate -P nvd0
+Boot Environment
+----------------
+destdir:                /
+ostype:                 FreeBSD
+kernel version:         FreeBSD 12.2-STABLE 760e643de558(kami/12) SCO15M19
+kernel arch:            amd64
+file system:            zfs
+protective MBR:         /boot/pmbr
+freebsd-boot loader:    /boot/gptzfsboot
+EFI loader:             /boot/loader.efi
+
+Device nvd0
+-----------
+    install:            /boot/pmbr > nvd0
+    install:            /boot/gptzfsboot > nvd0p1
+    install:            /boot/loader.efi > nvd0p2:/efi/FreeBSD/bootamd64.efi
+    EFI boot entry:     FreeBSD 12.2-STABLE 760e643de558(kami/12) SCO15M19 amd64 [nvd0p2]
+```
+
+Before committing to an update `loaderupdate --demo` can list all
+of the commands it will run:
+
+```sh
+# loaderupdate -d nvd0
+gpart bootcode -b/boot/pmbr nvd0
+gpart bootcode -p/boot/gptzfsboot -i1 nvd0
+mkdir -p nvd0p2
+mount -tmsdosfs -osync /dev/nvd0p2 nvd0p2
+mkdir -p nvd0p2/efi/FreeBSD
+cp /boot/loader.efi nvd0p2/efi/FreeBSD/bootamd64.efi
+efibootmgr -B 0001
+efibootmgr -cl nvd0p2:/efi/FreeBSD/bootamd64.efi -L 'FreeBSD 12.2-STABLE 760e643de558(kami/12) SCO15M19 amd64 [nvd0p2]'
+efibootmgr -a 0001
+```
+
+This enables users to review every command performed and tweak parameters.
 
 [bsda:obj](ref/bsda_obj.md)
 ---------------------------

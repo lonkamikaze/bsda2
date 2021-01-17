@@ -27,6 +27,7 @@ src/distviper.sh,0644,%%DATADIR%%/distviper.sh
 src/interrupt.mk,0644,%%DATADIR%%/interrupt.mk
 src/loaderupdate,0755,%%PREFIX%%/sbin/loaderupdate
 src/loaderupdate.sh,0644,%%DATADIR%%/loaderupdate.sh
+man/loaderupdate.8,0644,%%MAN%%/man8/loaderupdate.8.gz
 src/makeplist,0755,%%PREFIX%%/sbin/makeplist
 man/makeplist.8,0644,%%MAN%%/man8/makeplist.8.gz
 src/makeplist_filter.awk,0755,%%DATADIR%%/makeplist_filter.awk

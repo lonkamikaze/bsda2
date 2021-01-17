@@ -1,0 +1,283 @@
+.Dd 17 January, 2021
+.Dt LOADERUPDATE 8
+.Os
+.Sh NAME
+.Nm loaderupdate
+.Nd update boot loaders
+.Sh SYNOPSIS
+.Nm
+.Op Fl D Ar destdir
+.Op Fl L Ar efilabel
+.Op Fl b Ar bootloader
+.Op Fl e Ar efiloader
+.Op Fl p Ar pmbr
+.Op Fl dn
+.Ar device ...
+.Nm
+.Op Fl D Ar destdir
+.Op Fl L Ar efilabel
+.Op Fl b Ar bootloader
+.Op Fl e Ar efiloader
+.Op Fl p Ar pmbr
+.Op Fl dn
+.Fl a
+.Nm
+.Op Fl D Ar destdir
+.Op Fl L Ar efilabel
+.Op Fl b Ar bootloader
+.Op Fl e Ar efiloader
+.Op Fl p Ar pmbr
+.Op Fl n
+.Fl P
+.Op Fl a | Ar device ...
+.Nm
+.Fl h
+.Sh DESCRIPTION
+The
+.Nm
+script updates the boot loaders of a given set of bootable devices
+according to a given boot environment.
+.Pp
+The boot environment must contain a system kernel under
+.Pa /boot/kernel/kernel
+as well as the required loader images. The defaults of which can
+be overridden by the
+.Fl b , e
+and
+.Fl p
+parameters. Which boot loaders are used by default also depends on
+the file system of the boot environment.
+.Pp
+The default boot environment
+.Pa /
+can be overridden by providing the path to the current mountpoint
+of a different boot environment via the
+.Ev DESTDIR
+environment variable, or the
+.Fl D
+parameter.
+.Pp
+The
+.Sx BOOTSTRAPPING
+section of
+.Xr gpart 8
+provides a good overview of the boot process.
+.Ss Arguments
+The following argument types can be given:
+.Bl -tag -with indent
+.It Ar destdir
+The path of the mountpoint for the boot environment containing the
+kernel and boot loader images. The default boot environment is
+.Pa / .
+.It Ar efilabel
+Formatting string for EFI boot manager entry labels, defaults to:
+.Dl Dq {version} {arch} [{pdev}]
+.Pp
+The following substitutions are available:
+.Bl -tag -offset indent -width 12m -compact
+.It Brq Ar dev
+The device containing the partition
+.It Brq Ar pdev
+The device of the efi partition
+.It Brq Ar index
+The index of the efi partition
+.It Brq Ar version
+The kernel version
+.It Brq Ar arch
+The kernel architecture
+.El
+.Pp
+Supports the character escape sequences and formatting flags described in
+.Xr printf 1 .
+Formatting flags are separated from the substitution name by a colon
+character. If no formatting field is given string formatting is assumed.
+E.g.:
+.Dl Dq {version:.12} {arch} [{index:2d}]
+.It Ar bootloader
+The boot loader image to use for
+.Nm freebsd-boot
+partitions. The default is either
+.Pa /boot/gptboot
+or
+.Pa /boot/gptzfsboot ,
+depending on the file system containing boot environment.
+.It Ar efiloader
+The boot loader image to use for
+.Nm efi
+partitions, the default is
+.Pa /boot/loader.efi ,
+the
+.Nm efi
+variant of
+.Xr loader 8 .
+.It Ar pmbr
+The protective MBR image installed in front of the GUID Partition
+Table. The protective MBR chain-boots the
+.Nm freebsd-boot
+partition on systems booting in legacy BIOS mode. This is only installed
+if a
+.Nm freebsd-boot
+partition is present. The default protective MBR image is
+.Pa /boot/pmbr .
+.It Ar device
+The hard disk device to update.
+.El
+.Ss Options
+The following options are available:
+.Bl -tag -width indent
+.It Fl a -all
+Selects all available devices.
+.It Fl b -bootloader Ar bootloader
+Override the default
+.Nm freebsd-boot
+loader image.
+.It Fl d -demo
+Instead of updating the boot loaders just show the commands that
+would be run. In combination with
+.Fl q
+this does not print anything apart from errors, which is useful to
+run all checks performed by
+.Nm
+without committing any changes.
+.It Fl D -destdir Ar destdir
+Override the default boot environment.
+.It Fl e -efiloader Ar efiloader
+Override the default
+.Nm efi
+loader image.
+.It Fl L -label Ar efilabel
+Set a custom label for EFI boot manager entries.
+.It Fl n -noefi
+Do not create EFI boot manager entries via the
+.Xr efibootmgr 8
+command. This is useful when preparing a disk for another system.
+.It Fl P -dump
+Instead of performing boot loader updates print a summary of the boot
+environment and selected devices.
+.It Fl p -pmbr Ar pmbr
+Override the default protective MBR image.
+.It Fl q -quiet
+Do not print the commands that are run. This flag does not suppress
+the output from those commands.
+.El
+.Sh ENVIRONMENT
+.Bl -tag -with indent
+.It Ev DESTDIR
+Overrides the default boot environment.
+.El
+.Sh FILES
+.Bl -tag -with indent
+.It Pa /boot/kernel/kernel
+Used to determine the version, architecture and OS to boot by extracting
+the
+.Va version , machine
+and
+.Va ostype
+symbols from the kernel binary.
+.It Pa /boot/gptboot
+The
+.Nm freebsd-boot
+partition image for booting from
+.Nm UFS ,
+see
+.Xr gptboot 8 .
+.It Pa /boot/gptzfsboot
+The
+.Nm freebsd-boot
+partition image for booting from
+.Nm ZFS ,
+see
+.Xr gptboot 8 .
+.It Pa /boot/loader.efi
+The default
+.Nm efi
+variant of
+.Xr loader 8 .
+Capable of booting from
+.Nm UFS
+and
+.Nm Zfs ,
+alternatives include
+.Pa /boot/loader_4th.efi , /boot/loader_lua.efi
+and
+.Pa /boot/loader_simp.efi .
+.It Pa /boot/pmbr
+The default protective MBR image.
+.El
+.Sh EXIT STATUS
+The following is a list of all anticipated exit codes. Codes labelled
+generic should be handled internally.
+.Bl -tag -with indent
+.It Er EOK=0
+Command completed successfully.
+.It Er ESIGNAL=1
+Interrupted by signal.
+.It Er EFAIL=2
+Generic application logic error.
+.It Er EPARAM=3
+Invalid or conflicting arguments were supplied.
+.It Er ENODEVICE=4
+No or inaccessible devices selected.
+.It Er EDESTDIR=5
+The
+.Ar destdir
+is not a directory.
+.It Er ENOKERNEL=6
+Cannot access kernel in
+.Ar destdir .
+.It Er EEFILABEL=7
+Corrupt label formatting, see
+.Ar efilabel
+in the
+.Sx Arguments
+section.
+.It Er ESCHEME=8
+None or unsupported partitioning scheme detected in device.
+.It Er ENOPARTS=9
+Neither a
+.Nm freebsd-boot
+nor an
+.Nm efi
+boot partition was found on a selected device.
+.It Er EEFIBOOTMGR=10
+Failed to run
+.Xr efibootmgr 8 .
+.It Er ELOADER=11
+Cannot read a required loader image.
+.It Er EMOUNT=12
+Failed to mount the
+.Nm efi
+boot partition.
+.It Er ECMD=13
+Failed to execute a command during the update procedure.
+.El
+.Sh EXAMPLES
+Run
+.Xr gpart 8
+for a list of devices:
+.Dl gpart show
+.Pp
+Inspect the boot environment and the desired device:
+.Dl loaderupdate -P nvd0
+.Pp
+Review the commands to execute:
+.Dl loaderupdate -d nvd0
+.Pp
+Finally update the loaders for the device:
+.Dl loaderupdate nvd0
+.Sh SEE ALSO
+.Xr efibootmgr 8 ,
+.Xr gpart 8 ,
+.Xr gptboot 8 ,
+.Xr gptzfsboot 8 ,
+.Xr loader 8
+.Sh HISTORY
+The
+.Nm
+command was added with the
+.Sy bsda2-0.4.0
+release.
+.Sh AUTHORS
+.An Dominic Fandrey Aq Mt freebsd@k4m1.org
+.Sh CAVEATS
+Only supports GUID Partition Table formatted devices.
