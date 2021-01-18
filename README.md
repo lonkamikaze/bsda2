@@ -144,7 +144,7 @@ Update the boot loaders of bootable devices, by applying the loaders
 from a boot environment to a set of bootable devices.
 
 A boot environment, a mount containing a populated `/boot`, can be
-provided via the `-D` parameter or `DESTDIR` environment variable.
+provided via the `-d` parameter or `DESTDIR` environment variable.
 
 The first command to run is `loaderupdate --dump`, it publishes
 loaderupdate's understanding of the boot environment and its tasks:
@@ -170,11 +170,11 @@ Device nvd0
     EFI boot entry:     FreeBSD 12.2-STABLE 760e643de558(kami/12) SCO15M19 amd64 [nvd0p2]
 ```
 
-Before committing to an update `loaderupdate --demo` can list all
+Before committing to an update `loaderupdate --dry-run` can list all
 of the commands it will run:
 
 ```sh
-# loaderupdate -d nvd0
+# loaderupdate -D nvd0
 gpart bootcode -b/boot/pmbr nvd0
 gpart bootcode -p/boot/gptzfsboot -i1 nvd0
 mkdir -p nvd0p2

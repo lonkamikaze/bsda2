@@ -6,23 +6,23 @@
 .Nd update boot loaders
 .Sh SYNOPSIS
 .Nm
-.Op Fl D Ar destdir
+.Op Fl d Ar destdir
 .Op Fl L Ar efilabel
 .Op Fl b Ar bootloader
 .Op Fl e Ar efiloader
 .Op Fl p Ar pmbr
-.Op Fl dn
+.Op Fl Dn
 .Ar device ...
 .Nm
-.Op Fl D Ar destdir
+.Op Fl d Ar destdir
 .Op Fl L Ar efilabel
 .Op Fl b Ar bootloader
 .Op Fl e Ar efiloader
 .Op Fl p Ar pmbr
-.Op Fl dn
+.Op Fl Dn
 .Fl a
 .Nm
-.Op Fl D Ar destdir
+.Op Fl d Ar destdir
 .Op Fl L Ar efilabel
 .Op Fl b Ar bootloader
 .Op Fl e Ar efiloader
@@ -54,7 +54,7 @@ can be overridden by providing the path to the current mountpoint
 of a different boot environment via the
 .Ev DESTDIR
 environment variable, or the
-.Fl D
+.Fl d
 parameter.
 .Pp
 The
@@ -100,7 +100,7 @@ partitions. The default is either
 .Pa /boot/gptboot
 or
 .Pa /boot/gptzfsboot ,
-depending on the file system containing boot environment.
+depending on the file system containing the boot environment.
 .It Ar efiloader
 The boot loader image to use for
 .Nm efi
@@ -131,7 +131,7 @@ Selects all available devices.
 Override the default
 .Nm freebsd-boot
 loader image.
-.It Fl d -demo
+.It Fl D -dry-run
 Instead of updating the boot loaders just show the commands that
 would be run. In combination with
 .Fl q
@@ -139,7 +139,7 @@ this does not print anything apart from errors, which is useful to
 run all checks performed by
 .Nm
 without committing any changes.
-.It Fl D -destdir Ar destdir
+.It Fl d -destdir Ar destdir
 Override the default boot environment.
 .It Fl e -efiloader Ar efiloader
 Override the default
@@ -205,8 +205,7 @@ and
 The default protective MBR image.
 .El
 .Sh EXIT STATUS
-The following is a list of all anticipated exit codes. Codes labelled
-generic should be handled internally.
+The following is a list of all anticipated exit codes:
 .Bl -tag -with indent
 .It Er EOK=0
 Command completed successfully.
@@ -261,7 +260,7 @@ Inspect the boot environment and the desired device:
 .Dl loaderupdate -P nvd0
 .Pp
 Review the commands to execute:
-.Dl loaderupdate -d nvd0
+.Dl loaderupdate -D nvd0
 .Pp
 Finally update the loaders for the device:
 .Dl loaderupdate nvd0

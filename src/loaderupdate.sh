@@ -298,8 +298,8 @@ loaderupdate:Session.params() {
 	PMBR     -p* --pmbr       'The protective MBR image, e.g. /boot/pmbr' \
 	EFILABEL -L* --label      'The EFI Boot Manager entry label' \
 	NOEFI    -n  --noefi      'Do not create EFI Boot Manager entries' \
-	DEMO     -d  --demo       'Print the actions that would be performed' \
-	DESTDIR  -D* --destdir    'The root containing /boot' \
+	DRYRUN   -D  --dry-run    'Print the actions that would be performed' \
+	DESTDIR  -d* --destdir    'The root containing /boot' \
 	DUMP     -P  --dump       'Show the detected partitioning' \
 	QUIET    -q  --quiet      'Do not produce any additional output' \
 	HELP     -h  --help       'Display the list of command arguments'
@@ -325,11 +325,11 @@ loaderupdate:Session.params() {
 				bsda:err:forward E_WARN "NOTE:${msg#ERROR:}"
 			done
 		;;
-		DEMO | DUMP | NOEFI | QUIET)
-			$flags.add "$option"
+		DRYRUN | DUMP | NOEFI | QUIET)
+			$flags.add "${option}"
 		;;
 		DESTDIR)
-			destdir="${1#-D}"
+			destdir="${1#-d}"
 			destdir="${destdir#--destdir}"
 			if [ -z "${destdir}" ]; then
 				destdir="${2}"
@@ -387,8 +387,8 @@ loaderupdate:Session.params() {
 		shift
 	done
 
-	if $flags.check DEMO -ne 0 && $flags.check DUMP -ne 0; then
-		bsda:err:raise E_LOADERUPDATE_PARAM "ERROR: The -d and -P flags are mutually exclusive"
+	if $flags.check DRYRUN -ne 0 && $flags.check DUMP -ne 0; then
+		bsda:err:raise E_LOADERUPDATE_PARAM "ERROR: The -D and -P flags are mutually exclusive"
 		return 1
 	fi
 
@@ -490,10 +490,10 @@ loaderupdate:Session.params() {
 #
 # The following flags affect the execution:
 #
-# | Flag  | Effect                                     |
-# |-------|--------------------------------------------|
-# | QUIET | Suppress output                            |
-# | DEMO  | Do not prefix output with `loaderupdate> ` |
+# | Flag   | Effect                                     |
+# |--------|--------------------------------------------|
+# | QUIET  | Suppress output                            |
+# | DRYRUN | Do not prefix output with `loaderupdate> ` |
 #
 # @param 1
 #	The command to print
@@ -507,7 +507,7 @@ loaderupdate:Session.printcmd() {
 	shift
 	$this.Flags flags
 	if $flags.check QUIET -eq 0; then
-		if $flags.check DEMO -ne 0; then
+		if $flags.check DRYRUN -ne 0; then
 			echo -n "${cmd##*/}"
 		elif [ -t 1 ]; then
 			printf "\033[38;5;112m%s\033[m> %s" "${0##*/}" "${cmd##*/}"
@@ -529,7 +529,7 @@ loaderupdate:Session.printcmd() {
 #
 # Execute the given command.
 #
-# The DEMO flag deactivates command execution.
+# The DRYRUN flag deactivates command execution.
 #
 # @param @
 #	The command to execute
@@ -542,7 +542,7 @@ loaderupdate:Session.runcmd() {
 	local IFS flags e
 	IFS=' '
 	$this.Flags flags
-	if $flags.check DEMO -eq 0; then
+	if $flags.check DRYRUN -eq 0; then
 		"$@"
 		e=$?
 		if [ ${e} -ne 0 ]; then
@@ -713,9 +713,10 @@ loaderupdate:Session.run() {
 			partdev="${dev}p${part}"
 			mountpoint="/tmp/${0##*/}.$$/${partdev}"
 			$this.printcmd mkdir -p "${partdev}"
+			$this.runcmd /bin/mkdir -p "${mountpoint}"
 			$this.printcmd mount -tmsdosfs -osync \
 			               "/dev/${partdev}" "${partdev}"
-			if $flags.check DEMO -eq 0; then
+			if $flags.check DRYRUN -eq 0; then
 				loaderupdate:Mount mount \
 				                   "/dev/${partdev}" \
 				                   "${mountpoint}" \
@@ -786,10 +787,10 @@ loaderupdate:Session.run() {
 loaderupdate:Session.help() {
 	local usage
 	$1.usage usage "\t%2.2s, %-12s  %s\n"
-	echo "usage: loaderupdate [-D destdir] [-L efilabel] [-b bootloader] [-e efiloader]
-                    [-p pmbr] [-dn] device ...
+	echo "usage: loaderupdate [-d destdir] [-L efilabel] [-b bootloader] [-e efiloader]
+                    [-p pmbr] [-Dn] device ...
        loaderupdate [-D destdir] [-L efilabel] [-b bootloader] [-e efiloader]
-                    [-p pmbr] [-dn] -a
+                    [-p pmbr] [-Dn] -a
        loaderupdate [-D destdir] [-L efilabel] [-b bootloader] [-e efiloader]
                     [-p pmbr] [-n] -P [-a | device ...]
        loaderupdate -h
