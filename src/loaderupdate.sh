@@ -261,6 +261,7 @@ bsda:obj:createClass loaderupdate:Session \
 	r:private:efiload  "The efi loader path" \
 	r:private:efilabel "The efi boot manager entry label" \
 	i:private:init     "Initialise and run session" \
+	x:private:all      "Add all viable devices" \
 	x:private:params   "Parse command line arguments" \
 	x:private:printcmd "Print the given command" \
 	x:private:runcmd   "Run the given command" \
@@ -277,6 +278,28 @@ bsda:obj:createClass loaderupdate:Session \
 loaderupdate:Session.init() {
 	$this.params "$@" || return $?
 	$this.run || return $?
+}
+
+#
+# Add all physical providers listed by `gpart show`.
+#
+# Convert errors to notes.
+#
+loaderupdate:Session.all() {
+	local devices devs e msg
+	$this.Devices devices
+	bsda:err:collect
+	# take all devices gpart suggests and intersect them with the
+	# list of physical providers
+	devs="$(/sbin/gpart show 2>&- | /usr/bin/awk '/^=>/ && $0=$4')"
+	devs="$(/usr/sbin/gstat -pbI0 2>&- \
+	        | /usr/bin/awk 'NR>2 && $0=$10' \
+	        | /usr/bin/grep -Fx "${devs}")"
+	$devices.add ${devs}
+	while bsda:err:get e msg; do
+		msg="${msg#ERROR:}"
+		bsda:err:forward E_WARN "NOTE: ${msg# }"
+	done
 }
 
 #
@@ -318,12 +341,8 @@ loaderupdate:Session.params() {
 		$options.getopt option "$1"
 		case "$option" in
 		ALL)
-			bsda:err:collect
-			$devices.add $(/usr/sbin/gstat -pbI0 \
-			               | /usr/bin/awk 'NR>2 && $0=$10')
-			while bsda:err:get e msg; do
-				bsda:err:forward E_WARN "NOTE:${msg#ERROR:}"
-			done
+			$this.all
+			$flags.add "${option}"
 		;;
 		DRYRUN | DUMP | NOEFI | QUIET)
 			$flags.add "${option}"
