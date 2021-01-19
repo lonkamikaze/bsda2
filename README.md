@@ -30,6 +30,7 @@ TOC
    5. [buildflags](#buildflags)
    6. [makeplist](#makeplist)
    7. [loaderupdate](#loaderupdate)
+   8. [bprintf](#bprintf)
 2. [bsda:obj](#bsdaobj)
 3. [Install](#install)
 3. [LICENSE](#license)
@@ -187,6 +188,22 @@ efibootmgr -a 0001
 ```
 
 This enables users to review every command performed and tweak parameters.
+
+### bprintf
+
+A printf(1) like tool providing string formatting based on named
+fields instead of argument order.
+
+- Named arguments enable multiple use of the same argument within
+  a string
+- Formatting strings that do not use all arguments can be used
+- Arithmetic expressions within format specifications provide additional
+  formatting flexibility
+
+```sh
+# bprintf '| {var:(wx/3-3)} | {value:(wx/3+wx%3-2).3f} {unit:-(wx/3-3)} |\n' wx=36 var=g value=9.81 unit=m/s^2
+|         g |      9.810 m/s^2     |
+```
 
 [bsda:obj](ref/bsda_obj.md)
 ---------------------------
