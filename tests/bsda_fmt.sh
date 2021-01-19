@@ -221,6 +221,18 @@ bsda:fmt str '{str:(a % b)}' a=3 b=4 str=
 test "${#str}" = 3
 bsda:fmt str '{str:(b % a)}' a=3 b=4 str=
 test "${#str}" = 1
+bsda:fmt str '{str:(a << a)}' a=3 b=4 str=
+test "${#str}" = 24
+bsda:fmt str '{str:(a << b)}' a=3 b=4 str=
+test "${#str}" = 48
+bsda:fmt str '{str:(b << a)}' a=3 b=4 str=
+test "${#str}" = 32
+bsda:fmt str '{str:(a >> a)}' a=3 b=4 str=
+test "${#str}" = 0
+bsda:fmt str '{str:(a >> b)}' a=48 b=4 str=
+test "${#str}" = 3
+bsda:fmt str '{str:(b >> a)}' a=3 b=32 str=
+test "${#str}" = 4
 bsda:fmt str '{str:(a == a)}' a=3 b=4 str=
 test "${#str}" = 1
 bsda:fmt str '{str:(a == b)}' a=3 b=4 str=
@@ -245,6 +257,22 @@ bsda:fmt str '{str:(a >= b)}' a=3 b=4 str=
 test "${#str}" = 0
 bsda:fmt str '{str:(b >= a)}' a=3 b=4 str=
 test "${#str}" = 1
+bsda:fmt str '{str:(a && a)}' a=3 b=0 str=
+test "${#str}" = 1
+bsda:fmt str '{str:(a && b)}' a=3 b=0 str=
+test "${#str}" = 0
+bsda:fmt str '{str:(b && a)}' a=3 b=0 str=
+test "${#str}" = 0
+bsda:fmt str '{str:(b && b)}' a=3 b=0 str=
+test "${#str}" = 0
+bsda:fmt str '{str:(a || a)}' a=3 b=0 str=
+test "${#str}" = 1
+bsda:fmt str '{str:(a || b)}' a=3 b=0 str=
+test "${#str}" = 1
+bsda:fmt str '{str:(b || a)}' a=3 b=0 str=
+test "${#str}" = 1
+bsda:fmt str '{str:(b || b)}' a=3 b=0 str=
+test "${#str}" = 0
 bsda:fmt str '{str:(a - a)}' a=3 b=4 str=
 test "${#str}" = 0
 bsda:fmt str '{str:(a - b)}' a=3 b=4 str=

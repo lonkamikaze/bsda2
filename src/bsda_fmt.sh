@@ -23,7 +23,7 @@
 # printf. Printf style formatting can be applied by following the
 # substitution name with a colon and a printf formatting.
 # E.g. `{name:04d}` is formatted like `%04d` by printf. The padding
-# and spacing rules can be given with out the type character, in
+# and spacing rules can be given without the type character, in
 # that case 's' is implied.
 #
 # A special twist is that arithmetic expressions are allowed within
@@ -38,13 +38,15 @@
 #
 # Error/exit codes for error reporting.
 #
-# | Code                       | Severity | Meaning                           |
-# |----------------------------|----------|-----------------------------------|
-# | E_BSDA_FMT_SUB             | error    | Substitution argument missing     |
-# | E_BSDA_FMT_SUB_ID          | error    | Illegal substitution identifier   |
-# | E_BSDA_FMT_SUB_FORMAT      | error    | Illegal substitution format       |
-# | E_BSDA_FMT_EXPR            | error    | Illegal arithmetic expression     |
-# | E_BSDA_FMT_ARG             | error    | Illegal argument                  |
+# | Code                   | Severity | Meaning                             |
+# |------------------------|----------|-------------------------------------|
+# | E_BSDA_FMT_SUB         | error    | Substitution argument missing       |
+# | E_BSDA_FMT_SUB_ID      | error    | Illegal substitution identifier     |
+# | E_BSDA_FMT_SUB_FORMAT  | error    | Illegal substitution format         |
+# | E_BSDA_FMT_EXPR        | error    | Illegal arithmetic expression       |
+# | E_BSDA_FMT_EXPR_ASSIGN | error    | Assignment in arithmetic expression |
+# | E_BSDA_FMT_ARG         | error    | Illegal argument                    |
+# | E_BSDA_FMT_TYPE        | error    | Wrong data type in field            |
 #
 bsda:err:createECs \
 	E_BSDA_FMT_SUB \
@@ -81,6 +83,8 @@ bsda:err:createECs \
 #	Assignment in expression
 # @throws E_BSDA_FMT_ARG
 #	Illegal character in substitution argument
+# @throws E_BSDA_FMT_TYPE
+#	A field used in an arithmetic expression is not assigned an integer
 #
 bsda:fmt() {
 	local _bsda_fmt_dst _bsda_fmt_res
@@ -115,6 +119,8 @@ bsda:fmt() {
 #	Assignment in expression
 # @throws E_BSDA_FMT_ARG
 #	Illegal character in substitution argument
+# @throws E_BSDA_FMT_TYPE
+#	A field used in an arithmetic expression is not assigned an integer
 #
 bsda:fmt:printf() {
 	local _bsda_fmt_dst _bsda_fmt_res
@@ -150,6 +156,8 @@ bsda:fmt:printf() {
 #	Assignment in expression
 # @throws E_BSDA_FMT_ARG
 #	Illegal character in substitution argument
+# @throws E_BSDA_FMT_TYPE
+#	A field used in an arithmetic expression is not assigned an integer
 #
 bsda:fmt:run() {
 	local IFS _fmt _arg _val _args _vars
@@ -602,7 +610,7 @@ bsda:fmt:expr:operator() {
 	case "${1}" in
 	%%*) # fix the sanitiser doubling % characters
 	     f="${f}%";               bsda:fmt:expr "${1#??}" ${2};;
-	'=='*|'!='*|'<='*|'>='*)
+	'<<'*|'>>'*|'<='*|'>='*|'=='*|'!='*|'&&'*|'||'*)
 	     f="${f}${1%%"${1#??}"}"; bsda:fmt:expr "${1#??}" ${2};;
 	--*|++*|=*)
 	     bsda:err:raise E_BSDA_FMT_EXPR_ASSIGN \
