@@ -1,0 +1,163 @@
+.Dd 19 January, 2021
+.Dt BPRINTF 1
+.Os
+.Sh NAME
+.Nm bprintf
+.Nd formatted output with named arguments
+.Sh SYNOPSIS
+.Nm
+.Ar format
+.Op Ar field Ns Cm = Ns Ar value ...
+.Sh DESCRIPTION
+The
+.Nm
+command is an advanced string formatting utility. It is a semantic
+wrapper for
+.Xr printf 1 .
+.Nm
+replaces argument order with named arguments and can perform arithmetic
+within format specifications.
+.Pp
+A
+.Ar format
+string can contain a set of substitutions. A substitution consists
+of a
+.Ar field
+name and an optional format specification. The format specification
+determines how the field
+.Ar value
+is interpreted and displayed. A single
+.Ar field
+may be used within multiple substitutions, each with its own formatting.
+.Ss Format Syntax
+The
+.Ar format
+string is reproduced on
+.Pa stdout
+after performing substitutions.
+.Pp
+The backslash notation character escape sequences supported by
+.Xr printf 1
+can be used. The
+.Sq %
+character has no special meaning.
+.Pp
+A substitution is enclosed in curly braces. To print a literal opening
+or closing curly brace escape it with a backslash, i.e.
+.Ql \e{
+and
+.Ql \e}
+respectively.
+.Pp
+A substitution consists of the field name and an optional format
+specification:
+.Dl Brq Ar field Ns Op Cm : Ns Ar specification
+.Pp
+A substitution without a
+.Ar specification
+behaves like a
+.Sq %s
+field in
+.Xr printf 1 .
+.Pp
+The format specification consists of the same flags, Field Width,
+Precision and Format characters described by
+.Xr printf 1 .
+If the format character is not supplied,
+.Sq s
+is implied. An arithmetic expression can be inserted into the format
+by enclosing it in parenthesis.
+.Ss Arithmetic Expressions
+Arithmetic expressions support the same Values, Constants and Variables
+as well as the same Unary, Binary and Conditional operators as described
+in the
+.Sx Arithmetic Expansion
+section of
+.Xr sh 1 .
+.Pp
+Note, this list does not include Assignment operators.
+.Pp
+All variables referred to within an expression must have a corresponding
+field with an integral value assigned. Variables can be assigned
+values with the same syntax as constants, i.e. an optional sign followed
+by either a decimal value, hexadecimal value
+starting with
+.Sq 0x
+or an octal value starting with
+.Sq 0 .
+.Ss Field Assignments
+The
+.Ar format
+string may use all and any fields supplied by the subsequent
+.Ar field Ns Cm = Ns Ar value
+arguments. Fields not occurring in the format string are discarded
+from the output. Values are arbitrary unless used within arithmetic
+expressions.
+.Pp
+Field names must be made up of the pattern
+.Ql [a-zA-Z][a-zA-Z0-9_]* .
+.Sh EXIT STATUS
+The following is a list of all anticipated exit codes:
+.Bl -tag -with indent
+.It Er EOK=0
+Command completed successfully.
+.It Er ESIGNAL=1
+Interrupted by signal.
+.It Er EFAIL=2
+Generic application logic error.
+.It Er ENOARGS=3
+No format string was supplied.
+.It Er ESUB=4
+A substitution field has no corresponding field assignment argument.
+.It Er EID=5
+A substitution field name is illegal.
+.It Er EFORMAT=6
+A substitution format specification is ill-formed.
+.It Er EEXPR=7
+An arithmetic expression is ill-formed.
+.It Er EASSIGN=8
+An arithmetic expression contains an assignment.
+.It Er EARG=9
+An argument uses an illegal field name.
+.It Er ETYPE=10
+A field value used in an arithmetic expression is not an integer.
+.El
+.Sh EXAMPLES
+Simple substitution:
+.Bd -literal -offset indent
+$ bprintf 'My name is {name}.\en' name=Johnny
+My name is Johnny.
+.Ed
+.Pp
+Using a field multiple times:
+.Bd -literal -offset indent
+$ bprintf '{str:.5}\en{str:.10}\en{str}\en' str=SugarHoneyMilk
+Sugar
+SugarHoney
+SugarHoneyMilk
+.Ed
+.Pp
+Use different field types:
+.Bd -literal -offset indent
+$ bprintf '{var:16} = {value:g} {unit}\en' var=g value=9.81 unit=mps^2
+               g = 9.81 mps^2
+.Ed
+.Pp
+Compute column width using arithmetic expressions:
+.Bd -literal -offset indent
+$ bprintf '| {name:-16} | {val:(cols-36)} {unit:-12} |\en' cols=64 name=Name val=Value unit=Unit
+| Name             |                        Value Unit         |
+$ bprintf '| {name:-16} | {val:(cols-36).3f} {unit:-12} |\en' cols=64 name=g val=9.81 unit=mps^2
+| g                |                        9.810 mps^2        |
+.Ed
+.Sh SEE ALSO
+.Xr printf 1 ,
+.Xr sh 1
+.Sh HISTORY
+The
+.Nm
+command was added with the
+.Sy bsda2-0.4.0
+release.
+.Sh AUTHORS
+.An Dominic Fandrey Aq Mt freebsd@k4m1.org

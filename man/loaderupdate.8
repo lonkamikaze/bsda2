@@ -87,12 +87,8 @@ The kernel version
 The kernel architecture
 .El
 .Pp
-Supports the character escape sequences and formatting flags described in
-.Xr printf 1 .
-Formatting flags are separated from the substitution name by a colon
-character. If no formatting field is given string formatting is assumed.
-E.g.:
-.Dl Dq {version:.12} {arch} [{index:2d}]
+Supports the formatting style described by
+.Xr bprintf 1 .
 .It Ar bootloader
 The boot loader image to use for
 .Nm freebsd-boot
@@ -265,6 +261,7 @@ Review the commands to execute:
 Finally update the loaders for the device:
 .Dl loaderupdate nvd0
 .Sh SEE ALSO
+.Xr bprintf 1 ,
 .Xr efibootmgr 8 ,
 .Xr gpart 8 ,
 .Xr gptboot 8 ,

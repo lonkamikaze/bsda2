@@ -1,0 +1,20 @@
+#!/bin/sh
+set -f
+bsda_dir="%%DATADIR%%"
+#HACK
+bsda_dir="${0%${0##*/}}";bsda_dir="${bsda_dir%/}"
+test -n "${bsda_dir##/*}" && bsda_dir="$PWD/$bsda_dir"
+#hack
+readonly bsda_dir
+
+. ${bsda_dir:-.}/bsda_err.sh
+
+bsda:err:createECs ENOARGS
+
+. ${bsda_dir:-.}/bsda_fmt.sh
+
+if [ -z "${*}" ]; then
+	bsda:err:raise ENOARGS "usage: ${0##*/} format [field=value ...]"
+fi
+
+bsda:fmt:printf "$@"

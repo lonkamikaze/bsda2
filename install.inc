@@ -1,6 +1,8 @@
 set -f
 
 files="
+src/bprintf,0755,%%PREFIX%%/bin/bprintf
+man/bprintf.1,0644,%%MAN%%/man1/bprintf.1.gz
 src/bsda_async.sh,0644,%%DATADIR%%/bsda_async.sh
 src/bsda_bsdmake.sh,0644,%%DATADIR%%/bsda_bsdmake.sh
 src/bsda_container.sh,0644,%%DATADIR%%/bsda_container.sh
