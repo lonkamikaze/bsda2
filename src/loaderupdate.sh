@@ -732,7 +732,6 @@ loaderupdate:Session.run() {
 			partdev="${dev}p${part}"
 			mountpoint="/tmp/${0##*/}.$$/${partdev}"
 			$this.printcmd mkdir -p "${partdev}"
-			$this.runcmd /bin/mkdir -p "${mountpoint}"
 			$this.printcmd mount -tmsdosfs -osync \
 			               "/dev/${partdev}" "${partdev}"
 			if $flags.check DRYRUN -eq 0; then
