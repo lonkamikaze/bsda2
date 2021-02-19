@@ -768,7 +768,7 @@ loaderupdate:Session.run() {
 			mountpoint="/tmp/${0##*/}.$$/${partdev}"
 			bsda:fmt label "${efilabel}" \
 			         dev="${dev}" \
-			         pdev="${dev}p${part}" \
+			         pdev="${partdev}" \
 			         index="${part}" \
 			         version="${version}" \
 			         arch="${machine}" || return $?
