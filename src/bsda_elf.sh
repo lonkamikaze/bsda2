@@ -50,7 +50,7 @@ bsda:elf:File.init() {
 	fi
 	setvar ${this}filename "$1"
 	setvar ${this}virtual "$(
-		/usr/bin/readelf -Wl "$1" 2>&- | while read -r type offs virt tail; do
+		/usr/bin/readelf -Wl "$1" 2>&1 | while read -r type offs virt tail; do
 			if [ "${type}" = "LOAD" ] && [ $((offs)) -eq 0 ]; then
 				echo "${virt}"
 				return
@@ -58,7 +58,7 @@ bsda:elf:File.init() {
 		done
 	)"
 	setvar ${this}symbols "$(
-		/usr/bin/nm --demangle --print-size "$1" 2>&- \
+		/usr/bin/nm --demangle --print-size "$1" 2>&1 \
 		| /usr/bin/awk "
 			\$4{
 				sub(/^/, \"addr=0x\")
