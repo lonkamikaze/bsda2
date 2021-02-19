@@ -606,7 +606,7 @@ loaderupdate:Session.cmd() {
 loaderupdate:Session.run() {
 	local IFS flags devs destdir ostype version machine bootfs \
 	      pmbr bootload efiload efilabel efifile dev bootparts efiparts \
-	      part count i efivars demo quiet label
+	      part i efivars demo quiet label
 	IFS=$'\n'
 
 	$this.Devices devs
@@ -650,13 +650,10 @@ loaderupdate:Session.run() {
 			for part in ${bootparts}; do
 				printf "    %-18s  %s\n" "install:" "${bootload} > ${dev}p${part}"
 			done
-			count=0
 			for part in ${efiparts}; do
 				printf "    %-18s  %s\n" "install:" "${efiload} > ${dev}p${part}:${efifile}"
-				count=$((count + 1))
 			done
 			$flags.check NOEFI -ne 0 && efiparts=
-			test $((count)) -le 1    && count=
 			for part in ${efiparts}; do
 				bsda:fmt label "${efilabel}" \
 				         dev="${dev}" \
@@ -726,9 +723,7 @@ loaderupdate:Session.run() {
 		done
 
 		# install EFI loader
-		count=0
 		for part in ${efiparts}; do
-			count=$((count + 1))
 			partdev="${dev}p${part}"
 			mountpoint="/tmp/${0##*/}.$$/${partdev}"
 			$this.printcmd mkdir -p "${partdev}"
@@ -767,7 +762,6 @@ loaderupdate:Session.run() {
 		EFIVARS
 
 		# make EFI boot manager entry
-		test $((count)) -le 1    && count=
 		$flags.check NOEFI -ne 0 && efiparts=
 		for part in ${efiparts}; do
 			partdev="${dev}p${part}"
