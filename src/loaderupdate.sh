@@ -465,7 +465,7 @@ loaderupdate:Session.params() {
 		# the version must start with the ostype
 		version="${ostype} ${version}"
 	fi
-	setvar ${this}version "${version}"
+	setvar ${this}version "${version%%$'\n'*}"
 	setvar ${this}machine "${machine}"
 	setvar ${this}ostype "${ostype}"
 
