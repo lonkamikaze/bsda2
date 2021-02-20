@@ -606,7 +606,7 @@ loaderupdate:Session.cmd() {
 loaderupdate:Session.run() {
 	local IFS flags devs destdir ostype version machine bootfs \
 	      pmbr bootload efiload efilabel efifile dev bootparts efiparts \
-	      part i efivars demo quiet label
+	      part i efivars ecompat demo quiet label
 	IFS=$'\n'
 
 	$this.Devices devs
@@ -669,8 +669,14 @@ loaderupdate:Session.run() {
 	fi
 
 	efivars=
+	ecompat=
 	if $flags.check NOEFI -eq 0; then
 		efivars="$(/usr/sbin/efibootmgr -v 2>&1)"
+		# FreeBSD 13 broke the -a, -A and -B parameters by
+		# requiring an additional parameteter
+		case "$(/usr/sbin/efibootmgr -h 2>&1)" in
+		*'-b bootnum'*) ecompat=b;;
+		esac
 	fi
 
 	# check whether all required loaders are readable
@@ -753,7 +759,7 @@ loaderupdate:Session.run() {
 				test "${varfile}" = "${partdev}:${efifile}" || continue
 				var="${var#*Boot}"
 				var="${var%\*}"
-				$this.cmd /usr/sbin/efibootmgr -B "${var}" \
+				$this.cmd /usr/sbin/efibootmgr -B${ecompat} "${var}" \
 				|| return $?
 			;;
 			esac
@@ -782,7 +788,7 @@ loaderupdate:Session.run() {
 					test "${varfile}" = "${partdev}:${efifile}" || continue
 					var="${var#*Boot}"
 					var="${var%\*}"
-					$this.cmd /usr/sbin/efibootmgr -a "${var}" \
+					$this.cmd /usr/sbin/efibootmgr -a${ecompat} "${var}" \
 					|| return $?
 				;;
 				esac
