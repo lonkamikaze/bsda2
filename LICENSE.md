@@ -1,4 +1,4 @@
-Copyright © 2006 - 2020 Dominic Fandrey <kami@freebsd.org>
+Copyright © 2006 - 2021 Dominic Fandrey <freebsd@k4m1.org>
 
 Permission to use, copy, modify, and distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
