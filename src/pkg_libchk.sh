@@ -246,7 +246,7 @@ pkg:libchk:Session.print() {
 
 	# Discard indirect dependencies
 	if $flags.check VERBOSE -eq 0 && $flags.check NO_FILTER -eq 0; then
-		misses="$(echo "$misses" | /usr/bin/grep -F '|[direct]')"
+		misses="$(echo "$misses" | /usr/bin/grep '\[direct\]$')"
 	fi
 
 	test -z "$misses" && return
@@ -263,14 +263,21 @@ pkg:libchk:Session.print() {
 	for miss in $misses; {
 		file="${miss%%|*}"
 		lib="${miss#*|}";lib="${lib%%|*}"
-		if $flags.check VERBOSE -eq 0; then
+		if [ -z "${miss##*|\[miss]\[direct]}" ]; then
 			output="${output:+$output$IFS}$pkg: $file misses $lib"
+		elif [ -z "${miss##*|\[compat]\[direct]}" ]; then
+			output="${output:+$output$IFS}$pkg: $file uses $lib"
+		elif [ -z "${miss##*|\[miss]}" ]; then
+			output="${output:+$output$IFS}$pkg: $file indirectly misses $lib"
+		elif [ -z "${miss##*|\[compat]}" ]; then
+			output="${output:+$output$IFS}$pkg: $file indirectly uses $lib"
+		elif [ -z "${miss##*|\[verbose]*}" ]; then
+			output="${output:+$output$IFS}$pkg: $file: $lib"
+		elif [ -z "${miss##*|\[invalid]*}" ]; then
+			output="${output:+$output$IFS}$pkg: ldd(1): $lib"
 		else
-			if [ -z "${miss##*|\[direct]}" ]; then
-				output="${output:+$output$IFS}$pkg: $file directly misses $lib"
-			else
-				output="${output:+$output$IFS}$pkg: $file indirectly misses $lib"
-			fi
+			# should not be reached
+			output="${output:+$output$IFS}$pkg: $file ??? $lib"
 		fi
 	}
 	$($this.Term).stdout "$output"
@@ -340,6 +347,84 @@ pkg:libchk:Session.run() {
 }
 
 #
+# Static function for ldd(1) output processing.
+#
+# Expects ldd(1) output on stdin and performs the following processing
+# steps:
+#
+# 1. Filter irrelevant lines
+# 2. Format lines
+# 3. Classify (i.e. tag) lines
+#
+# This exists, because `ldd -f` is unreliable
+# [see](https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=259069).
+# This is not the first time that pkg_libchk silently failed to detect
+# missing libraries, because something about ldd changed.
+#
+# Input lines that indicate the given file is not a binary executable/library
+# or that a dependency was successfully resolved are dismissed.
+# The remaining lines are converted to the following format:
+#
+#	binary|info|[tag]
+#
+# The following tags exist:
+#
+# | Tag     | Binary | Info                | Description                    |
+# |---------|--------|---------------------|--------------------------------|
+# | compat  | yes    | dependency path     | Path matches `*/lib*/compat/*` |
+# | miss    | yes    | dependency filename | Dependency was not found       |
+# | verbose | yes    | error message       | Binary specific ldd(1) error   |
+# | invalid | -      | whole input line    | Unknown ldd(1) output          |
+#
+# @param 1
+#	A boolean value indicating whether the use of compat libraries
+#	should be tagged (1) or discarded (0)
+#
+pkg:libchk:Session.ldd_filter() {
+	/usr/bin/awk -vCOMPAT="$1" '
+	# update binary name
+	/^[^\t].*:$/ {
+		sub(/:$/, "")
+		BIN=$0
+		next
+	}
+	# compat library
+	COMPAT && /^\t.* => .*\/lib[^\/]*\/compat\/.* \(0x[0-9a-f]+\)$/ {
+		sub(/^\t.* => /, "")
+		sub(/ \(0x[0-9a-f]+\)$/, "")
+		printf("%s|%s|[compat]\n", BIN, $0)
+		next
+	}
+	# ignore
+	/^\t.* \(0x[0-9a-f]+\)$/                  || # library was found
+	/^ldd: .*: not a dynamic ELF executable$/ || # non-executable
+	/^ldd: .*: Invalid argument$/             || # non-executable
+	/^.*: exit status 1$/                     {  # redundant message
+		next
+	}
+	# missing library
+	/\(0\)$/ {
+		sub(/^\t/, "")
+		sub(/ => .*/, "")
+		printf("%s|%s|[miss]\n", BIN, $0)
+		next
+	}
+	# verbose error
+	/ldd: .*: .*/ {
+		sub(/ldd: /, "")
+		file=$0
+		sub(/: [^:]*$/, "", file)
+		sub(/.*: /, "")
+		printf("%s|%s|[verbose]\n", file, $0)
+		next
+	}
+	# unknown/invalid ldd output
+	{
+		printf("|%s|[invalid]\n", $0)
+	}'
+}
+
+#
 # Check files in a package for missing libraries.
 #
 # @param 1
@@ -348,46 +433,46 @@ pkg:libchk:Session.run() {
 #	The status line this job is listed on
 #
 pkg:libchk:Session.job() {
-	local IFS file files lib misses miss res pfiles flags
-	local compat
+	local IFS file files lib misses miss res flags compat
 	IFS=$'\n'
 	$this.Flags flags
-	$flags.check NO_COMPAT -eq 0 && compat=1 || compat=
+	$flags.check NO_COMPAT -eq 0 && compat=1 || compat=0
 
 	# The files of the package
 	files="$(pkg:info:files $1)"
 
 	# Get misses
 	misses="$(printf '%s\0' $files \
-	          | /usr/bin/xargs -0 -P3 /usr/bin/ldd -f '%A|%o|%p\n' 2>&- \
-	          | /usr/bin/sed -n 's/|not found$/|/p' )"
+	          | /usr/bin/xargs -0 /usr/bin/ldd 2>&1 \
+	          | $class.ldd_filter "${compat}")"
 
 	# Check whether a miss is actually contained in the same
 	# package, e.g. libjvm.so in openjdk
 	if $flags.check NO_FILTER -eq 0 && [ -n "$misses" ]; then
-		pfiles="$(echo "$files" \
-		          | /usr/bin/sed -e 's,.*/,|,' -e 's,$,|,')"
-		# Filter pfiles, because it may be too long to use
-		# in an argument
-		miss="$(echo "$misses" \
-		        | /usr/bin/awk '{sub(/^[^|]*/, "")}!a[$0]++')"
-		pfiles="$(echo "$pfiles" | /usr/bin/grep -Fx "$miss")"
-		# Filter misses by the intersection of misses and pfiles
-		misses="$(echo "$misses" | /usr/bin/grep -vF "${pfiles:-||}")"
+		misses="$( (echo "${files}"; echo "${misses}") | /usr/bin/awk '
+			BEGIN { FS = "\|" }
+			# blacklist package files
+			NF == 1 {
+				FILES[$0] # with path for [compat]
+				sub(/.*\//, "")
+				FILES[$0] # without path for [miss]
+			}
+			# print non-blacklisted misses
+			NF > 1 && !($2 in FILES)
+		')"
 	fi
 
-	# Verify misses
+	# Tag direct dependencies
 	messages=
 	for miss in $misses; {
-		file="${miss%%|*}"
-		lib="${miss#*|}";lib="${lib%%|*}"
+		if [ -z "${miss%%*|\[miss]}" -o -z "${miss%%*|\[compat]}" ]; then
+			file="${miss%%|*}"
+			lib="${miss#*|}";lib="${lib%%|*}";lib="${lib##*/}"
 
-		# Direct dependency?
-		if /usr/bin/readelf -d "$file" \
-		   | /usr/bin/grep -qF "Shared library: [$lib]"; then
-		   	miss="$miss[direct]"
-		else
-		   	miss="$miss[indirect]"
+			if /usr/bin/readelf -d "$file" \
+			   | /usr/bin/grep -qF "Shared library: [$lib]"; then
+				miss="$miss[direct]"
+			fi
 		fi
 
 		messages="${messages:+$messages$IFS}$miss"

@@ -23,8 +23,9 @@ script uses
 .Xr ldd 1
 and
 .Xr readelf 1
-to check whether a package is linked against missing libraries or libraries
-residing in %%PREFIX%%/lib/compat and its subfolders.
+to check whether a package is linked against missing libraries or
+using compatibility libraries
+.Pq matching Pa */lib*/compat/* .
 .Sh OPTIONS
 The following options are available:
 .Bl -tag -width indent
@@ -58,8 +59,7 @@ In this mode all the checks to detect false positives are turned off.
 .Pp
 It also causes indirect dependencies to be listed as missing dependencies.
 .It Fl n -no-compat
-This deactivates detecting compat libraries in %%PREFIX%%/lib/compat
-as missing libraries.
+This deactivates detecting compatibility libraries.
 .It Fl O -by-origin
 See
 .Xr pkg-info 8 .
