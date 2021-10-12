@@ -813,9 +813,9 @@ loaderupdate:Session.help() {
 	$1.usage usage "\t%2.2s, %-12s  %s\n"
 	echo "usage: loaderupdate [-d destdir] [-L efilabel] [-b bootloader] [-e efiloader]
                     [-p pmbr] [-Dn] device ...
-       loaderupdate [-D destdir] [-L efilabel] [-b bootloader] [-e efiloader]
+       loaderupdate [-d destdir] [-L efilabel] [-b bootloader] [-e efiloader]
                     [-p pmbr] [-Dn] -a
-       loaderupdate [-D destdir] [-L efilabel] [-b bootloader] [-e efiloader]
+       loaderupdate [-d destdir] [-L efilabel] [-b bootloader] [-e efiloader]
                     [-p pmbr] [-n] -P [-a | device ...]
        loaderupdate -h
 $(echo -n "$usage" | /usr/bin/sort -f)"
