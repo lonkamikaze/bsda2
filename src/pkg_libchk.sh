@@ -382,6 +382,21 @@ pkg:libchk:Session.run() {
 #
 pkg:libchk:Session.ldd_filter() {
 	/usr/bin/awk -vCOMPAT="$1" '
+	# prints: binary name, info, tag
+	function printrow(bin, info, tag) {
+		# Output each row only once, at least on FreeBSD
+		# stable/13-n247530-3637d2a1835e ldd(1) prints missing
+		# dependencies many times.
+		# This output filter changed the runtime for
+		# `pkg_libck samba413` after a libicu update from
+		# >120s to ~4s, supposedly because every reported
+		# missing dependency corresponds to a readelf(1) call
+		# and this package produces 23601 lines of output
+		# without the filter.
+		if (!ROW[bin, info, tag]++) {
+			printf("%s|%s|[%s]\n", bin, info, tag)
+		}
+	}
 	# update binary name
 	/^[^\t].*:$/ {
 		sub(/:$/, "")
@@ -392,7 +407,7 @@ pkg:libchk:Session.ldd_filter() {
 	COMPAT && /^\t.* => .*\/lib[^\/]*\/compat\/.* \(0x[0-9a-f]+\)$/ {
 		sub(/^\t.* => /, "")
 		sub(/ \(0x[0-9a-f]+\)$/, "")
-		printf("%s|%s|[compat]\n", BIN, $0)
+		printrow(BIN, $0, "compat")
 		next
 	}
 	# ignore
@@ -406,7 +421,7 @@ pkg:libchk:Session.ldd_filter() {
 	/\(0\)$/ {
 		sub(/^\t/, "")
 		sub(/ => .*/, "")
-		printf("%s|%s|[miss]\n", BIN, $0)
+		printrow(BIN, $0, "miss")
 		next
 	}
 	# verbose error
@@ -415,12 +430,12 @@ pkg:libchk:Session.ldd_filter() {
 		file=$0
 		sub(/: [^:]*$/, "", file)
 		sub(/.*: /, "")
-		printf("%s|%s|[verbose]\n", file, $0)
+		printrow(file, $0, "verbose")
 		next
 	}
 	# unknown/invalid ldd output
 	{
-		printf("|%s|[invalid]\n", $0)
+		printrow("", $0, "invalid")
 	}'
 }
 
