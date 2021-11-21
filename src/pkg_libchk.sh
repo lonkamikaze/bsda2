@@ -16,7 +16,15 @@ bsda:async:createClass bsda:tty:Async bsda:tty:Terminal
 # A simple class to pass job results through the FIFO.
 #
 # The misses attribute is a list in the format:
-#	file "|" library "|" ("[direct]" | "[indirect]")
+#	file "|" library "|" tag
+#
+# Tag is one of:
+# - miss,direct
+# - compat,direct
+# - miss
+# - compat
+# - verbose
+# - invalid
 #
 bsda:obj:createClass pkg:libchk:JobResult \
 	r:pkg    "The package name" \
@@ -246,7 +254,7 @@ pkg:libchk:Session.print() {
 
 	# Discard indirect dependencies
 	if $flags.check VERBOSE -eq 0 && $flags.check NO_FILTER -eq 0; then
-		misses="$(echo "$misses" | /usr/bin/grep '\[direct\]$')"
+		misses="$(echo "$misses" | /usr/bin/grep ',direct$')"
 	fi
 
 	test -z "$misses" && return
@@ -263,17 +271,17 @@ pkg:libchk:Session.print() {
 	for miss in $misses; {
 		file="${miss%%|*}"
 		lib="${miss#*|}";lib="${lib%%|*}"
-		if [ -z "${miss##*|\[miss]\[direct]}" ]; then
+		if [ -z "${miss##*|*|miss,direct}" ]; then
 			output="${output:+$output$IFS}$pkg: $file misses $lib"
-		elif [ -z "${miss##*|\[compat]\[direct]}" ]; then
+		elif [ -z "${miss##*|*|compat,direct}" ]; then
 			output="${output:+$output$IFS}$pkg: $file uses $lib"
-		elif [ -z "${miss##*|\[miss]}" ]; then
+		elif [ -z "${miss##*|*|miss}" ]; then
 			output="${output:+$output$IFS}$pkg: $file indirectly misses $lib"
-		elif [ -z "${miss##*|\[compat]}" ]; then
+		elif [ -z "${miss##*|*|compat}" ]; then
 			output="${output:+$output$IFS}$pkg: $file indirectly uses $lib"
-		elif [ -z "${miss##*|\[verbose]*}" ]; then
+		elif [ -z "${miss##*|*|verbose*}" ]; then
 			output="${output:+$output$IFS}$pkg: $file: $lib"
-		elif [ -z "${miss##*|\[invalid]*}" ]; then
+		elif [ -z "${miss##*|*|invalid*}" ]; then
 			output="${output:+$output$IFS}$pkg: ldd(1): $lib"
 		else
 			# should not be reached
@@ -365,7 +373,7 @@ pkg:libchk:Session.run() {
 # or that a dependency was successfully resolved are dismissed.
 # The remaining lines are converted to the following format:
 #
-#	binary|info|[tag]
+#	binary|info|tag
 #
 # The following tags exist:
 #
@@ -394,7 +402,7 @@ pkg:libchk:Session.ldd_filter() {
 		# and this package produces 23601 lines of output
 		# without the filter.
 		if (!ROW[bin, info, tag]++) {
-			printf("%s|%s|[%s]\n", bin, info, tag)
+			printf("%s|%s|%s\n", bin, info, tag)
 		}
 	}
 	# update binary name
@@ -468,9 +476,9 @@ pkg:libchk:Session.job() {
 			BEGIN { FS = "\|" }
 			# blacklist package files
 			NF == 1 {
-				FILES[$0] # with path for [compat]
+				FILES[$0] # with path for compat
 				sub(/.*\//, "")
-				FILES[$0] # without path for [miss]
+				FILES[$0] # without path for miss
 			}
 			# print non-blacklisted misses
 			NF > 1 && !($2 in FILES)
@@ -480,13 +488,13 @@ pkg:libchk:Session.job() {
 	# Tag direct dependencies
 	messages=
 	for miss in $misses; {
-		if [ -z "${miss%%*|\[miss]}" -o -z "${miss%%*|\[compat]}" ]; then
+		if [ -z "${miss%%*|miss}" -o -z "${miss%%*|compat}" ]; then
 			file="${miss%%|*}"
 			lib="${miss#*|}";lib="${lib%%|*}";lib="${lib##*/}"
 
 			if /usr/bin/readelf -d "$file" \
 			   | /usr/bin/grep -qF "Shared library: [$lib]"; then
-				miss="$miss[direct]"
+				miss="$miss,direct"
 			fi
 		fi
 
