@@ -242,7 +242,7 @@ pkg:libchk:Session.packages() {
 #	The serialised JobResult
 #
 pkg:libchk:Session.print() {
-	local res misses pkg IFS miss file lib output flags
+	local res misses pkg IFS miss file lib tags output flags
 	bsda:obj:deserialise res "$2"
 	$caller.setvar "$1" "$($res.getSline)"
 
@@ -270,23 +270,24 @@ pkg:libchk:Session.print() {
 	output=
 	for miss in $misses; {
 		file="${miss%%|*}"
-		lib="${miss#*|}";lib="${lib%%|*}"
-		if [ -z "${miss##*|*|miss,direct}" ]; then
-			output="${output:+$output$IFS}$pkg: $file misses $lib"
-		elif [ -z "${miss##*|*|compat,direct}" ]; then
-			output="${output:+$output$IFS}$pkg: $file uses $lib"
-		elif [ -z "${miss##*|*|miss}" ]; then
-			output="${output:+$output$IFS}$pkg: $file indirectly misses $lib"
-		elif [ -z "${miss##*|*|compat}" ]; then
-			output="${output:+$output$IFS}$pkg: $file indirectly uses $lib"
-		elif [ -z "${miss##*|*|verbose*}" ]; then
-			output="${output:+$output$IFS}$pkg: $file: $lib"
-		elif [ -z "${miss##*|*|invalid*}" ]; then
-			output="${output:+$output$IFS}$pkg: ldd(1): $lib"
-		else
-			# should not be reached
-			output="${output:+$output$IFS}$pkg: $file ??? $lib"
-		fi
+		lib="${miss#*|}";lib="${lib%|*}"
+		tags="${miss##*|*|}"
+		case "${tags}" in
+		miss,direct)
+			output="${output}$pkg: $file misses $lib${IFS}";;
+		compat,direct)
+			output="${output}$pkg: $file uses $lib${IFS}";;
+		miss)
+			output="${output}$pkg: $file indirectly misses $lib${IFS}";;
+		compat)
+			output="${output}$pkg: $file indirectly uses $lib${IFS}";;
+		verbose*)
+			output="${output}$pkg: $file: $lib${IFS}";;
+		invalid*)
+			output="${output}$pkg: ldd(1): $lib${IFS}";;
+		*)      # should not be reached
+			output="${output}$pkg: $file ??? $lib${IFS}";;
+		esac
 	}
 	$($this.Term).stdout "$output"
 }
