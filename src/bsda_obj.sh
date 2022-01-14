@@ -2,6 +2,8 @@ test -n "$_bsda_obj_" && return 0
 readonly _bsda_obj_=1
 set -f
 
+. ${bsda_dir:-.}/lst.sh
+
 #
 # This file contains helper functions for creating object oriented
 # shell scripts.
@@ -43,7 +45,7 @@ readonly bsda_obj_frameworkPrefix=BSDA_OBJ_
 #
 # A list of available file descriptors for bsda:obj:getDesc().
 #
-bsda_obj_desc=3,4,5,6,7,8,9,
+csv bsda_obj_desc= 3 4 5 6 7 8 9
 
 #
 # Creates a new class, i.e. a constructor, destructor, getters, setters
@@ -171,10 +173,10 @@ bsda:obj:createClass() {
 	IFS=$'\n'
 
 	# There are some default methods.
-	methods="delete${IFS}dump${IFS}"
-	attributes=
-	getters=
-	setters=
+	log methods= delete dump
+	log attributes=
+	log getters=
+	log setters=
 	init=
 	clean=
 	has_copy=1
@@ -184,26 +186,26 @@ bsda:obj:createClass() {
 	for arg in "$@"; do
 		case "$arg" in
 			x:*)
-				methods="$methods${arg#x:}$IFS"
+				log methods.push_back "${arg#x:}"
 			;;
 			-:*)
-				attributes="$attributes${arg#-:}$IFS"
+				log attributes.push_back "${arg#-:}"
 			;;
 			r:*)
-				attributes="$attributes${arg##*:}$IFS"
-				getters="$getters${arg#r:}$IFS"
+				log attributes.push_back "${arg##*:}"
+				log getters.push_back "${arg#r:}"
 			;;
 			w:*)
-				attributes="$attributes${arg##*:}$IFS"
-				getters="$getters${arg#w:}$IFS"
-				setters="$setters${arg#w:}$IFS"
+				log attributes.push_back "${arg##*:}"
+				log getters.push_back "${arg#w:}"
+				log setters.push_back "${arg#w:}"
 			;;
 			i:*)
 				if [ -n "$init" ]; then
 					echo "bsda:obj:createClass: ERROR: $class: More than one init method was supplied!" 1>&2
 					return 1
 				fi
-				methods="$methods${arg#i:}$IFS"
+				log methods.push_back "${arg#i:}"
 				init="$class.${arg##*:}"
 			;;
 			c:*)
@@ -211,11 +213,11 @@ bsda:obj:createClass() {
 					echo "bsda:obj:createClass: ERROR: $class: More than one cleanup method was supplied!" 1>&2
 					return 2
 				fi
-				methods="$methods${arg#c:}$IFS"
+				log methods.push_back "${arg#c:}"
 				clean="$class.${arg##*:}"
 			;;
 			a:*)
-				aggregations="$aggregations${arg#a:}$IFS"
+				log aggregations.push_back "${arg#a:}"
 			;;
 			*)
 				# Assume everything else is a comment.
@@ -225,7 +227,7 @@ bsda:obj:createClass() {
 
 	# Create aggregations.
 	aggregation="$aggregations"
-	aggregations=
+	log aggregations=
 	for aggregation in $aggregation; do
 		# Get class
 		case "$aggregation" in
@@ -249,9 +251,9 @@ bsda:obj:createClass() {
 		;;
 		esac
 
-		aggregations="$aggregations$aggregation$IFS"
-		attributes="$attributes$aggregation$IFS"
-		methods="$methods$scope:$aggregation$IFS"
+		log aggregations.push_back "$aggregation"
+		log attributes.push_back "$aggregation"
+		log methods.push_back "$scope:$aggregation"
 
 		eval "$class.$aggregation() {
 			if [ -n \"\$1\" ]; then
@@ -278,9 +280,9 @@ bsda:obj:createClass() {
 
 	# Remove duplicated attributes.
 	attribute="$attributes"
-	attributes=
+	log attributes=
 	for attribute in $(echo "$attribute" | /usr/bin/awk '!a[$0]++'); do
-		attributes="$attributes$attribute$IFS"
+		log attributes.push_back "$attribute"
 		# Verify attribute names.
 		if ! echo "$attribute" | /usr/bin/grep -qx '[a-zA-Z0-9_]*'; then
 			echo "bsda:obj:createClass: ERROR: $class: Attributes must only contain the characters [a-zA-Z0-9_]: $attribute" 1>&2
@@ -290,11 +292,8 @@ bsda:obj:createClass() {
 
 	# Only classes without a custom destructor get copy() and
 	# serialise() members.
-	if [ -z "$clean" ] && [ -n "$has_copy" ]; then
-		methods="${methods}copy${IFS}"
-	fi
-	if [ -z "$clean" ] && [ -n "$has_serialise" ]; then
-		methods="${methods}serialise${IFS}"
+	if [ -z "$clean" ]; then
+		log methods.push_back ${has_copy:+copy} ${has_serialise:+serialise}
 	fi
 
 	# Create reference prefix. The Process id is added to the prefix when
@@ -325,7 +324,7 @@ bsda:obj:createClass() {
 			getter="${method%:*}:$getter"
 		fi
 		# Add the getter to the list of methods.
-		methods="$methods$getter$IFS"
+		log methods.push_back "$getter"
 	done
 
 	# Create setters.
@@ -344,22 +343,22 @@ bsda:obj:createClass() {
 			setter="${method%:*}:$setter"
 		fi
 		# Add the setter to the list of methods.
-		methods="$methods$setter$IFS"
+		log methods.push_back "$setter"
 	done
 
 	# Add implicit public scope to methods.
 	method="$methods"
-	methods=
+	log methods=
 	for method in $method; do
 		# Check the scope.
 		case "${method%:*}" in
 			$method)
 				# There is no scope operator, add public.
-				methods="${methods}public:$method$IFS"
+				log methods.push_back "public:$method"
 			;;
 			public | private)
 				# The accepted scope operators.
-				methods="$methods$method$IFS"
+				log methods.push_back "$method"
 			;;
 			*)
 				# Everything else is not accepted.
@@ -374,7 +373,7 @@ bsda:obj:createClass() {
 	# Go through the methods sorted by method name.
 	previousMethod=
 	method="$methods"
-	methods=
+	log methods=
 	scope=
 	for method in $(echo "$method" | /usr/bin/sort -t: -k2); do
 		# Check whether the previous and the current method were the
@@ -382,7 +381,7 @@ bsda:obj:createClass() {
 		if [ "$previousMethod" != "${method##*:}" ]; then
 			# If all scopes of this method have been found,
 			# store it in the final list.
-			methods="$methods${previousMethod:+$scope:$previousMethod$IFS}"
+			log methods.push_back ${previousMethod:+"$scope:$previousMethod"}
 			scope="${method%:*}"
 		else
 			# Widen the scope if needed.
@@ -396,7 +395,7 @@ bsda:obj:createClass() {
 		previousMethod="${method##*:}"
 	done
 	# Add the last method (this never happens in the loop).
-	methods="$methods${previousMethod:+$scope:$previousMethod$IFS}"
+	log methods.push_back ${previousMethod:+"$scope:$previousMethod"}
 
 	#
 	# Store access scope checks for each scope in the class context.
@@ -433,7 +432,7 @@ bsda:obj:createClass() {
 		# Create method instances.
 		$bsda_obj_namespace:createMethods $class $classPrefix \"\$this\" '$methods'
 
-		${clean:+bsda_obj_freeOnExit=\"\$bsda_obj_freeOnExit\$this$IFS\"}
+		${clean:+log bsda_obj_freeOnExit.push_back \"\$this\"}
 
 		# If this object construction is part of a copy() call,
 		# this constructor is done.
@@ -479,9 +478,7 @@ bsda:obj:createClass() {
 		${clean:+
 		$clean \"\$@\" || return \$?
 		# Unregister cleanup function from EXIT trap
-		local nl
-		nl='$IFS'
-		bsda_obj_freeOnExit=\"\${bsda_obj_freeOnExit%%\$this*\}\${bsda_obj_freeOnExit#*\$this\$nl\}\"
+		log bsda_obj_freeOnExit.rm_first \"\$this\" || :
 		}
 
 		${aggregations:+eval \"$(
@@ -565,9 +562,8 @@ bsda:obj:createClass() {
 		# Create method instances.
 		$bsda_obj_namespace:createMethods $class $classPrefix \"\$1\" '$methods'
 		${clean:+
-		if [ -z \"\$bsda_obj_freeOnExit\" ] || \
-		   [ -n \"\${bsda_obj_freeOnExit%%*\$1*\}\" ]; then
-			bsda_obj_freeOnExit=\"\$bsda_obj_freeOnExit\$1$IFS\"
+		if ! log bsda_obj_freeOnExit.contains \"\$1\"; then
+			log bsda_obj_freeOnExit.push_back \"\$1\"
 		fi
 		}
 	}"
@@ -982,8 +978,7 @@ bsda:obj:detach() {
 #	The list of objects to call
 #
 bsda:obj:exit() {
-	local nl obj caller
-	nl=$'\n'
+	local obj caller
 	# Stack unwinding, just remove temp objects
 	while [ $((bsda_obj_callStackCount)) -gt 0 ]; do
 		caller="bsda_obj_callStack_$((bsda_obj_callStackCount - 1))_"
@@ -993,11 +988,9 @@ bsda:obj:exit() {
 	done
 
 	# Garbage collection
-	while [ -n "$bsda_obj_freeOnExit" ]; do
-		obj="${bsda_obj_freeOnExit%%$nl*}"
+	while log bsda_obj_freeOnExit.pop_front obj; do
 		if ! "$obj".delete; then
 			echo "bsda:obj:exit: WARNING: Delete of $obj failed!" 1>&2
-			bsda_obj_freeOnExit="${bsda_obj_freeOnExit#$obj$nl}"
 		fi
 	done
 	# Wait if any children stick around.
@@ -1025,9 +1018,7 @@ bsda:obj:getDesc() {
 		return 1
 	fi
 	# Return first available file descriptor
-	setvar $1 ${bsda_obj_desc%%,*}
-	# Remove descriptor from the store of available pipes
-	bsda_obj_desc=${bsda_obj_desc#*,}
+	csv bsda_obj_desc.pop_front $1
 }
 
 #
@@ -1042,7 +1033,7 @@ bsda:obj:getDesc() {
 #
 bsda:obj:releaseDesc() {
 	test -z "$1" && return
-	bsda_obj_desc="$bsda_obj_desc$1,"
+	csv bsda_obj_desc.push_back "$1"
 }
 
 #
