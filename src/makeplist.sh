@@ -178,7 +178,7 @@ makeplist:Options.init() {
 	local line group members hasMulti
 	hasMulti=
 	for line in $groups; do
-		bsda:util:map "$line" \| group members
+		IFS=\| bsda:util:map "$line" group members
 		bsda:util:split members ,
 		# Create group
 		$groupMap.[ "$group" ]= "$members"
@@ -194,7 +194,7 @@ makeplist:Options.init() {
 	local line group name implies prevents option last
 	last=
 	for line in $options; do
-		bsda:util:map "$line" \| group name implies prevents
+		IFS=\| bsda:util:map "$line" group name implies prevents
 		bsda:util:split implies ,
 		bsda:util:split prevents ,
 		# Create option

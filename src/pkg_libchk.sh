@@ -4,6 +4,7 @@ readonly _pkg_libchk_=1
 . ${bsda_dir:-.}/bsda_async.sh
 . ${bsda_dir:-.}/bsda_tty.sh
 . ${bsda_dir:-.}/bsda_fifo.sh
+. ${bsda_dir:-.}/bsda_util.sh
 . ${bsda_dir:-.}/pkg_options.sh
 . ${bsda_dir:-.}/pkg_info.sh
 
@@ -16,15 +17,25 @@ bsda:async:createClass bsda:tty:Async bsda:tty:Terminal
 # A simple class to pass job results through the FIFO.
 #
 # The misses attribute is a list in the format:
-#	file "|" library "|" tag
+#	binary FS info FS tag
 #
-# Tag is one of:
+# `FS` is the ASCII Field Separator character `\034`.
+#
+# The binary is the path of the inspected executable or library,
+# the info field carries the relevant information depending on the
+# tag, one of:
+#
 # - miss,direct
 # - compat,direct
 # - miss
 # - compat
 # - verbose
 # - invalid
+#
+# The `ldd_filter()` method documents which info is carried for which
+# tag. An additional `direct` tag means the dependency is directly
+# required for the given binary instead of being pulled in via another
+# library.
 #
 bsda:obj:createClass pkg:libchk:JobResult \
 	r:pkg    "The package name" \
@@ -99,7 +110,7 @@ pkg:libchk:Session.init() {
 #	The command line arguments
 #
 pkg:libchk:Session.params() {
-	local options flags nl option
+	local options flags option
 
 	bsda:opts:Options options
 	$caller.delete $options
@@ -113,8 +124,6 @@ pkg:libchk:Session.params() {
 	VERBOSE   -v  --verbose   'Verbose output'
 
 	$this.Flags flags
-
-	nl=$'\n'
 
 	while [ $# -gt 0 ]; do
 		$options.getopt option "$1"
@@ -234,6 +243,11 @@ pkg:libchk:Session.packages() {
 }
 
 #
+# Splits the given arguments to the fields `file`, `lib` and `tags`.
+#
+IFS=$'\034' bsda:util:mapfun pkg:libchk:Session:mapmiss file lib tags
+
+#
 # Print a serialised JobResult instances.
 #
 # @param &1
@@ -269,9 +283,7 @@ pkg:libchk:Session.print() {
 	IFS=$'\n'
 	output=
 	for miss in $misses; {
-		file="${miss%%|*}"
-		lib="${miss#*|}";lib="${lib%|*}"
-		tags="${miss##*|*|}"
+		$class:mapmiss "$miss"
 		case "${tags}" in
 		miss,direct)
 			output="${output}$pkg: $file misses $lib${IFS}";;
@@ -372,9 +384,15 @@ pkg:libchk:Session.run() {
 #
 # Input lines that indicate the given file is not a binary executable/library
 # or that a dependency was successfully resolved are dismissed.
-# The remaining lines are converted to the following format:
+# The remaining lines are converted to the following fields separated
+# by the ASCII Field Separator (FS) character:
 #
-#	binary|info|tag
+# - binary:
+#   The executable or library that was checked
+# - info:
+#   Usually a library name/path, see the table below
+# - tag:
+#   The type of information carried, see the table below
 #
 # The following tags exist:
 #
@@ -403,7 +421,7 @@ pkg:libchk:Session.ldd_filter() {
 		# and this package produces 23601 lines of output
 		# without the filter.
 		if (!ROW[bin, info, tag]++) {
-			printf("%s|%s|%s\n", bin, info, tag)
+			printf("%s" SUBSEP "%s" SUBSEP "%s\n", bin, info, tag)
 		}
 	}
 	# update binary name
@@ -457,7 +475,7 @@ pkg:libchk:Session.ldd_filter() {
 #	The status line this job is listed on
 #
 pkg:libchk:Session.job() {
-	local IFS file files lib misses miss res flags compat
+	local IFS file files lib tags misses miss res flags compat
 	IFS=$'\n'
 	$this.Flags flags
 	$flags.check NO_COMPAT -eq 0 && compat=1 || compat=0
@@ -474,7 +492,7 @@ pkg:libchk:Session.job() {
 	# package, e.g. libjvm.so in openjdk
 	if $flags.check NO_FILTER -eq 0 && [ -n "$misses" ]; then
 		misses="$( (echo "${files}"; echo "${misses}") | /usr/bin/awk '
-			BEGIN { FS = "\|" }
+			BEGIN { FS = SUBSEP }
 			# blacklist package files
 			NF == 1 {
 				FILES[$0] # with path for compat
@@ -489,16 +507,16 @@ pkg:libchk:Session.job() {
 	# Tag direct dependencies
 	messages=
 	for miss in $misses; {
-		if [ -z "${miss%%*|miss}" -o -z "${miss%%*|compat}" ]; then
-			file="${miss%%|*}"
-			lib="${miss#*|}";lib="${lib%%|*}";lib="${lib##*/}"
+		$class:mapmiss "$miss"
+		case "$tags" in miss | compat)
+			lib="${lib##*/}"
 
 			if /usr/bin/readelf -d "$file" \
 			   | /usr/bin/grep -qF "Shared library: [$lib]"; then
 				miss="$miss,direct"
 			fi
-		fi
-
+			;;
+		esac
 		messages="${messages:+$messages$IFS}$miss"
 	}
 	# Create a JobResult, serialise it and send it back to the dispatcher

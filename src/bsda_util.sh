@@ -8,18 +8,53 @@ readonly _bsda_util_=1
 #
 # Splits a string and maps the fields to a list of variables.
 #
+# The string is split by applying sh(1) Field Splitting using the
+# Input Field Separator. The values of unassigned fields are discarded.
+#
 # @param 1
 #	The string to map
-# @param 2
-#	The separator
 # @param &@
 #	The variables to map fields of the string onto
+# @param IFS
+#	The separator
 #
 bsda:util:map() {
-	eval "shift 2
-IFS='$2' read \"\$@\" << ba52378a-04a3-11e7-b355-0090f5f2f347
-$1
-ba52378a-04a3-11e7-b355-0090f5f2f347"
+	eval "bsda:util:_map() {
+		$(i=0; shift && for arg in "$@"; do
+			echo "${arg}=\"\${$((i += 1))}\""
+		done)
+	}"
+	bsda:util:_map $1
+	unset -f bsda:util:_map
+}
+
+#
+# Generates a field splitting function.
+#
+# The function assigns fields to the given set of variables. All
+# arguments to the function are subjected to field splitting.
+#
+# The string is split by applying sh(1) Field Splitting using the
+# Input Field Separator. The values of unassigned fields are discarded.
+#
+# This requires the vis(1) command to safely store the IFS value.
+#
+# @param 1
+#	Name of the generated function
+# @param &@
+#	The variables to map fields of the string onto
+# @param IFS
+#	The separator
+#
+bsda:util:mapfun() {
+	eval "$1() {
+		local IFS
+		IFS=\$'$(echo -n "${IFS}" | /usr/bin/vis -owe\')'
+		set -- \$@
+		$(i=0; shift && for arg in "$@"; do
+			echo "		${arg}=\"\${$((i += 1))}\""
+		done)
+	}"
 }
 
 #
