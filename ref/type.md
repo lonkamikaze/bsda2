@@ -46,9 +46,9 @@ Conformity to a type can be checked using the match functions:
 The `type:match()` function allows checking whether a value matches
 one of a set of types:
 
-```
+```sh
 if ! type:match empty,bool "$1"; then
-	…
+    …
 fi
 ```
 
@@ -58,18 +58,18 @@ Type Detection
 The `type:which()` function provides provides the name of the first
 matched type from a list of given types.
 
-```
+```sh
 if ! type:which type empty,bool,uint,int,varname "$1"; then
-	echo "invalid value: $1" >&2
-	return 1
+    echo "invalid value: $1" >&2
+    return 1
 fi
 case "$type" in
 empty)
-	echo "empty value" >&2
-	return 1
+    echo "empty value" >&2
+    return 1
 ;;
 bool)
-	…
+    …
 ;;
 …
 esac
@@ -81,7 +81,7 @@ Type Casting
 The `type:cast[int]()` function assigns matching inputs as decimal
 integer values:
 
-```
+```sh
 type:cast[int] x empty,bool
 echo "$x" # 0
 type:cast[int] x empty,bool YES
@@ -108,16 +108,16 @@ outcome of the type conversion.
 The return value of type:cast[int] functions is the same as that
 of type:match functions, so the same uses for control flow are possible:
 
-```
+```sh
 if ! type:cast[int] verbose bool,int "$VERBOSITY"; then
-	echo "Invalid VERBOSITY level, assume 0!" >&2
-	verbose=0
+    echo "Invalid VERBOSITY level, assume 0!" >&2
+    verbose=0
 fi
 ```
 
 Individual cast functions can be called directly:
 
-```
+```sh
 x=1
 type:cast[int]:empty x || type:cast[int]:bool x
 echo "$x" # 0
@@ -131,7 +131,7 @@ echo "$x" # 1
 
 If no type matches, the destination variable remains unchanged:
 
-```
+```sh
 x=nope
 type:cast[int] x bool,int NaN
 echo "$x" # nope
