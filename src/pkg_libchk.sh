@@ -230,16 +230,14 @@ pkg:libchk:Session.packages() {
 		if $flags.check PKG_ALL -ne 0; then
 			$($this.Term).stderr "Checking all packages ..."
 		else
-			local IFS
-			IFS=$'\n'
-			$($this.Term).stderr "Checking packages:" \
-			                     "------------------" \
-			                     "$pkgs" \
-			                     "------------------"
+			IFS=$'\n' $($this.Term).stderr "Checking packages:" \
+			                               "------------------" \
+			                               "$pkgs" \
+			                               "------------------"
 		fi
 	fi
 
-	setvar ${this}packages "$pkgs"
+	log ${this}packages= "$pkgs"
 }
 
 #
@@ -281,24 +279,24 @@ pkg:libchk:Session.print() {
 
 	# Give a detailed account of every file missing a library
 	IFS=$'\n'
-	output=
+	log output=
 	for miss in $misses; {
 		$class:mapmiss "$miss"
 		case "${tags}" in
 		miss,direct)
-			output="${output}$pkg: $file misses $lib${IFS}";;
+			log output.push_back "$pkg: $file misses $lib";;
 		compat,direct)
-			output="${output}$pkg: $file uses $lib${IFS}";;
+			log output.push_back "$pkg: $file uses $lib";;
 		miss)
-			output="${output}$pkg: $file indirectly misses $lib${IFS}";;
+			log output.push_back "$pkg: $file indirectly misses $lib";;
 		compat)
-			output="${output}$pkg: $file indirectly uses $lib${IFS}";;
+			log output.push_back "$pkg: $file indirectly uses $lib";;
 		verbose*)
-			output="${output}$pkg: $file: $lib${IFS}";;
+			log output.push_back "$pkg: $file: $lib";;
 		invalid*)
-			output="${output}$pkg: ldd(1): $lib${IFS}";;
+			log output.push_back "$pkg: ldd(1): $lib";;
 		*)      # should not be reached
-			output="${output}$pkg: $file ??? $lib${IFS}";;
+			log output.push_back "$pkg: $file ??? $lib";;
 		esac
 	}
 	$($this.Term).stdout "$output"
@@ -328,7 +326,7 @@ pkg:libchk:Session.run() {
 	#
 	fmt="Jobs done: %${#num}d of $num"
 	$term.line 0 "$(printf "$fmt" $count)"
-	while [ -n "$pkgs" ]; do
+	while log pkgs.pop_front pkg; do
 		# Wait for jobs to complete
 		if [ $jobs -ge $maxjobs ]; then
 			# Blocking read
@@ -337,8 +335,6 @@ pkg:libchk:Session.run() {
 			$this.print sline "$result"
 			count=$((count + 1))
 		fi
-		# Select next package to process
-		pkg="${pkgs%%$IFS*}"
 		# Dispatch job
 		(
 			bsda:obj:fork
@@ -346,8 +342,6 @@ pkg:libchk:Session.run() {
 			$term.line $sline "$pkg"
 			$this.job "$pkg" $sline
 		) &
-		pkgs="${pkgs#$pkg}"
-		pkgs="${pkgs#$IFS}"
 		jobs=$((jobs + 1))
 		sline=$((sline + 1))
 	done
@@ -505,7 +499,7 @@ pkg:libchk:Session.job() {
 	fi
 
 	# Tag direct dependencies
-	messages=
+	log messages=
 	for miss in $misses; {
 		$class:mapmiss "$miss"
 		case "$tags" in miss | compat)
@@ -517,7 +511,7 @@ pkg:libchk:Session.job() {
 			fi
 			;;
 		esac
-		messages="${messages:+$messages$IFS}$miss"
+		log messages.push_back "$miss"
 	}
 	# Create a JobResult, serialise it and send it back to the dispatcher
 	pkg:libchk:JobResult res "$1" "$messages" "$2"
