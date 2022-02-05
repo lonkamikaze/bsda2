@@ -22,6 +22,7 @@ bsda:obj:createClass pkg:validate:Session \
 	a:private:Fifo=bsda:fifo:Fifo \
 	r:private:packages "The list of packages to process" \
 	r:private:jobs     "The number of parallel jobs" \
+	r:private:batch    "The number of files to check in one batch" \
 	r:private:jobpids  "The active job pids" \
 	i:private:init     "The constructor" \
 	c:private:clean    "The destructor" \
@@ -43,6 +44,7 @@ pkg:validate:Session.init() {
 
 	# Set defaults
 	setvar ${this}jobs $(/sbin/sysctl -n hw.ncpu 2>&- || echo 1)
+	setvar ${this}batch 1024
 
 	# Read command line arguments
 	$this.params "$@"
@@ -98,6 +100,7 @@ pkg:validate:Session.params() {
 	$caller.delete $options
 	pkg:options:append $options
 	$options.append \
+	BATCH     -b* --batch     'The number of files to check in one batch' \
 	CLEAN     -c  --clean     'Turn off progress output' \
 	DEVELOPER -D  --developer 'Produce messages for ports/pkg developers' \
 	HELP      -h  --help      'Display the list of command arguments' \
@@ -115,6 +118,26 @@ pkg:validate:Session.params() {
 		;;
 		HELP)
 			$this.help "$options"
+		;;
+		BATCH)
+			local batch
+			batch="${1#-b}"
+			batch="${batch#--batch}"
+			if [ -z "${batch}" ]; then
+				batch="$2"
+				shift
+			fi
+			if ! type:match uint "${batch}"; then
+				$($this.Term).stderr \
+					"The -b option must be followed by a positive integer."
+				exit 5
+			elif ! [ ${batch} -gt 0 -a ${batch} -le 65536 ]; then
+				$($this.Term).stderr \
+					"The -b option must be in the range [1; 65536]."
+				exit 5
+			else
+				setvar ${this}batch "${batch}"
+			fi
 		;;
 		JOBS)
 			local jobs
@@ -178,7 +201,7 @@ pkg:validate:Session.params() {
 pkg:validate:Session.help() {
 	local usage
 	$1.usage usage "\t%.2s, %-18s  %s\n"
-	$($this.Term).stdout "usage: pkg_validate [-aCcDdghiOoqrvx] [-j jobs] [pkg-name]
+	$($this.Term).stdout "usage: pkg_validate [-aCcDdghiOoqrvx] [-b batchsize] [-j jobs] [pkg-name]
 $(echo -n "$usage" | /usr/bin/sort -f)"
 	exit 0
 }
@@ -400,16 +423,12 @@ pkg:validate:Session:batch() {
 #
 pkg:validate:Session:read() {
 	local line i
-	line=
-	i=0
-	while read -r line; do
-		if [ "${line}" = exit ]; then
+	i=$(($1))
+	while [ $((i -= 1)) -ge 0 ] && read -r line; do
+		if [ "${line}" = "exit" ]; then
 			return 1
 		fi
 		echo "$line"
-		if [ $((i += 1)) -ge $(($1)) ]; then
-			return 0
-		fi
 	done
 }
 
@@ -422,15 +441,15 @@ pkg:validate:Session:read() {
 # - '%s\034%s\034%s' pkg chksum path
 # - 'exit'
 #
-pkg:validate:Session.job() {
-	local flags term fifo IFS lines
+pkg:validate:Session.job() (
+	bsda:obj:fork
 	$this.Flags flags
 	$this.Term term
 	$this.Fifo fifo
+	$this.getBatch batch
 	IFS=$'\n'
-	while lines="$($fifo.source $class:read 64)"; do
+	while lines="$($fifo.source $class:read ${batch})"; do
 		$class:batch $lines
 	done
 	$class:batch $lines
-	return 0
-}
+)

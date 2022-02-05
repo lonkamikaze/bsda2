@@ -1,4 +1,4 @@
-.Dd 23 February, 2021
+.Dd 5 February, 2022
 .Dt PKG_VALIDATE 1
 .Os
 .Sh NAME
@@ -7,10 +7,12 @@
 .Sh SYNOPSIS
 .Nm
 .Op Fl cDmoqv
+.Op Fl b Ar batchsize
 .Op Fl j Ar jobs
 .Op Fl a
 .Nm
 .Op Fl CcdDgimOoqrvx
+.Op Fl b Ar batchsize
 .Op Fl j Ar jobs
 .Ar pkg-name ...
 .Nm
@@ -30,6 +32,9 @@ The following options are available:
 Check all packages. This is the default action in case no
 .Ar pkg-name
 has been specified.
+.It Fl b Ar batchsize Fl -batch Ar batchsize
+The number of files to verify in a single chunk. This controls the
+granularity of parallel job execution, the default is 1024.
 .It Fl C -case-sensitive
 See
 .Xr pkg-info 8 .
