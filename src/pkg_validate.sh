@@ -217,16 +217,14 @@ pkg:validate:Session.packages() {
 		if $flags.check PKG_ALL -ne 0; then
 			$($this.Term).stderr "Checking all packages ..."
 		else
-			local IFS
-			IFS=$'\n'
-			$($this.Term).stderr "Checking packages:" \
-			                     "------------------" \
-			                     "$pkgs" \
-			                     "------------------"
+			IFS=$'\n' $($this.Term).stderr "Checking packages:" \
+			                               "------------------" \
+			                               "$pkgs" \
+			                               "------------------"
 		fi
 	fi
 
-	setvar ${this}packages "$pkgs"
+	log ${this}packages= "$pkgs"
 }
 
 #
@@ -249,34 +247,27 @@ pkg:validate:Session.run() {
 	# Dispatch jobs
 	#
 	jobs=0  # Number of running jobs
-	jobpids=
+	log ${this}jobpids=
 	while [ $((jobs += 1)) -le $((maxjobs)) ]; do
 		# Dispatch job
-		(
-			bsda:obj:fork
-			$this.job
-		) &
-		jobpids="${jobpids}$!${IFS}"
-		setvar ${this}jobpids "$jobpids"
+		$this.job &
+		log ${this}jobpids.push_back $!
 	done
+	log jobpids=cat ${this}jobpids
 
 	if $flags.check CLEAN -ne 0; then
 		$flags.check PKG_ORIGIN -eq 0 && fmt="%n-%v" || fmt="%o"
-		$fifo.sink "pkg:query:select '${fmt}|%Fs|%Fp' \$pkgs"
+		$fifo.sink $'pkg:query:select "${fmt}\034%Fs\034%Fp" ${pkgs}'
 	else
-		num=$(($(echo "$pkgs" | /usr/bin/wc -l)))
-		        # Total number of packages/jobs
+		# Total number of packages/jobs
+		log pkgs.count num
 		count=0 # Completed packages
 		fmt="Checking package %${#num}d of $num: %s"
-		while kill -0 $jobpids 2>&- && [ -n "$pkgs" ]; do
-			# Select next package to process
-			count=$((count + 1))
-			pkg="${pkgs%%$IFS*}"
+		while kill -0 $jobpids 2>&- && log pkgs.pop_front pkg; do
 			# Perform parallel job dispatch and terminal output
+			: $((count+=1))
 			$term.line 0 "$(printf "$fmt" $count "$pkg")" | \
-			$fifo.sink "pkg:query:select '$pkg|%Fs|%Fp' $pkg"
-			pkgs="${pkgs#$pkg}"
-			pkgs="${pkgs#$IFS}"
+			$fifo.sink $'pkg:query:select "${pkg}\034%Fs\034%Fp" ${pkg}'
 		done
 	fi
 	if ! kill -0 $jobpids 2>&-; then
@@ -336,7 +327,7 @@ pkg:validate:Session:validate() {
 		fi
 	elif [ ! -r "$3" ]; then
 		# file cannot be read, follow the path until something
-		# check true for existence and recheck
+		# checks true for existence and recheck
 		local path file
 		path="$3"
 		while [ -n "$path" -a ! -e "$path" ]; do
@@ -370,7 +361,7 @@ pkg:validate:Session:validate() {
 # individual treatment.
 #
 # @param *
-#	A set of tuples: '%s|%s|%s' pkg chksum path
+#	A set of tuples: '%s\034%s\034%s' pkg chksum path
 # @param term
 #	A bsda:tty:Async instance
 # @param flags
@@ -378,14 +369,14 @@ pkg:validate:Session:validate() {
 #
 pkg:validate:Session:batch() {
 	local files hashes hash IFS
-	IFS=$'\n|'
+	IFS=$'\n\034'
 	# batch hash all files
-	files="$(echo "$*" | /usr/bin/sed 's/.*|//')"
+	files="$(echo "$*" | /usr/bin/sed $'s/.*\034//')"
 	hashes="$(/sbin/sha256 -q $files 2>&1)"
 	# compare hashes
 	for hash in $hashes; do
 		# on sha256 match go to the next hash
-		if [ -z "${1##*|1\$${hash}|*}" ]; then
+		if [ -z "${1##*\$"${hash}"$'\034'*}" ]; then
 			shift
 			continue
 		fi
@@ -430,7 +421,7 @@ pkg:validate:Session:read() {
 # Reads jobs from the FIFO and performs them. Accepts the following
 # inputs:
 #
-# - '%s|%s|%s' pkg chksum path
+# - '%s\034%s\034%s' pkg chksum path
 # - 'exit'
 #
 pkg:validate:Session.job() {
