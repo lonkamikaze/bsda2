@@ -368,20 +368,18 @@ pkg:validate:Session:validate() {
 #	A bsda:opts:Flags instance
 #
 pkg:validate:Session:batch() {
-	local files hashes hash IFS
+	local IFS files hash
 	IFS=$'\n\034'
 	# batch hash all files
 	files="$(echo "$*" | /usr/bin/sed $'s/.*\034//')"
-	hashes="$(/sbin/sha256 -q $files 2>&1)"
 	# compare hashes
-	for hash in $hashes; do
-		# on sha256 match go to the next hash
-		if [ -z "${1##*\$"${hash}"$'\034'*}" ]; then
-			shift
-			continue
+	for file in ${files}; do # redirect symlinks
+		test -L "${file}" && echo "/dev/null" || echo "${file}"
+	done | /usr/bin/xargs /sbin/sha256 -q 2>&1 | while read -r hash; do
+		# on sha256 mismatch validate the file
+		if [ -n "${1##*\$"${hash}"$'\034'*}" ]; then
+			$class:validate $1
 		fi
-		# on mismatch, check individual file
-		$class:validate $1
 		shift
 	done
 }
