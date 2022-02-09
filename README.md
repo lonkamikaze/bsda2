@@ -31,7 +31,10 @@ TOC
    6. [makeplist](#makeplist)
    7. [loaderupdate](#loaderupdate)
    8. [bprintf](#bprintf)
-2. [bsda:obj](#bsdaobj)
+2. [Libraries](#libraries)
+   1. [bsda:obj](#bsdaobj)
+   2. [TYPE.SH](#typesh)
+   3. [LST.SH](#lstsh)
 3. [Install](#install)
 3. [LICENSE](#license)
 
@@ -205,10 +208,14 @@ fields instead of argument order.
 |         g |      9.810 m/s^2     |
 ```
 
-[bsda:obj](ref/bsda_obj.md)
----------------------------
+Libraries
+---------
 
-The bsda:obj framework dates back to the hacker conference GPN8 
+Bsda2 comes bundled with a couple of general purpose standalone libraries.
+
+### [bsda:obj](ref/bsda_obj.md)
+
+The bsda:obj framework dates back to the hacker conference GPN8
 (Karlsruhe, 2009). It provides OO fu for shell scripts, like classes with
 introspection, return by reference, serialisation or lazy garbage collection.
 
@@ -216,6 +223,43 @@ Along with it comes a bunch of libraries targeted at common tasks like
 rich status line display, formatting and inter process communication.
 
 It was presented at EuroBSDCon 2010.
+
+### [TYPE.SH](ref/type.md)
+
+The TYPE.SH standalone library provides useful functions to handle
+user inputs:
+
+- Supports: *uint*, *int*, *bool*, *empty*, *argname*, *varname*,
+  *funcname*
+- `type:match` checks whether at least one of a given set of types
+  matches a given value
+- `type:which` picks the first match from a given set of types
+- `type:cast[int]` can convert *uint*, *int*, *bool* and *empty*
+  inputs to a plain decimal integer
+- Depending on shell builtins only
+
+### [LST.SH](ref/lst.md)
+
+LST.SH is another standalone library that allows using shell strings
+as lists or arrays:
+
+- Configurable Record Separator
+- Batch operations (multiple push, pop etc. in one command)
+- Stack/Queue style operations:
+  - `push_back` and `push_front`
+  - `pop_back` and `pop_front`
+- Random access support:
+  - Read by index
+  - Assign by index
+  - Delete by index
+  - Supports arithmetic expressions in indices
+- Value matching:
+  - `contains`, `contains_any`, `contains_all`
+  - `rm_first`, `rm_last`
+- Record Separator conversions:
+  - `lst:convert`, `lst:cast`
+- Concatenate: `lst:cat` aka `a=cat`
+- Depending on shell builtins only
 
 Install
 -------
