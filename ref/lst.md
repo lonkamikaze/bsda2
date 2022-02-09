@@ -199,7 +199,6 @@ if the Record Separator is a White Space character.
 | `a.contains`     | Return whether the given value is in the array          | O(1)       |         |
 | `a.contains_all` | Return whether all the given values are in the array    | O(#)       |         |
 | `a.contains_any` | Return whether any of the given values are in the array | O(#)       |         |
-| `a.merge`        | Concatenate all the given arrays                        | O(1)       |         |
 | `a.print`        | Print array `ORS` separated                             | O(1)       | Limited |
 | `a.printf`       | Print array with custom formatting                      | O(1)       | Limited |
 | `a.set_irs`      | Set the Input Record Separator (`IRS`) to `RS`          | O(1)       |         |
