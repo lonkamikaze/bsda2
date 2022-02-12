@@ -282,6 +282,7 @@ bsda:obj:createClass bsda:err:Context \
 #
 bsda:err:Context.init() {
 	setvar ${this}previous "$bsda_err_context"
+	rec ${this}issues=
 }
 
 #
@@ -300,30 +301,28 @@ bsda:err:Context.init() {
 #	Restore to previous context if this context is still active
 #
 bsda:err:Context.clean() {
-	local issues previous prevIssues
-	$this.getIssues issues
-	$this.getPrevious previous
+	local previous
 	if [ "$bsda_err_context" = $this ]; then
-		echo "bsda:err: HINT: Use bsda:err:get to handle issues" >&2
-		echo "bsda:err: HINT: Use bsda:err:panic to terminate on an issue" >&2
-		echo "bsda:err: HINT: Use bsda:err:forward to defer handling an issue" >&2
-		bsda_err_context="$previous"
-	fi
-	if [ -n "$issues" ]; then
-		if [ -n "$previous" ] && $previous.getIssues prevIssues 2>&-; then
-			setvar ${previous}issues "${prevIssues}${issues}"
-			echo "bsda:err: WARNING: Unhandled issue(s) deferred to parent context!" >&2
+		echo "bsda:err: HINT: Use bsda:err:get to handle issues"
+		echo "bsda:err: HINT: Use bsda:err:panic to terminate on an issue"
+		echo "bsda:err: HINT: Use bsda:err:forward to defer handling an issue"
+		$this.getPrevious bsda_err_context
+	fi >&2
+	if rec ${this}issues.is_not_empty; then
+		$this.getPrevious previous
+		if [ -n "$previous" ]; then
+			rec ${previous}issues.append ${this}issues
+			echo "bsda:err: WARNING: Unhandled issue(s) deferred to parent context!"
 			return 0
 		fi
-		local IFS issue e msg
-		IFS=$'\n'
-		for issue in $issues; do
+		local issue e msg
+		while rec ${this}issues.pop_front issue; do
 			$issue.get e msg
 			$issue.delete
 			echo "$msg" >&2
 		done
-		echo "bsda:err: WARNING: Unhandled issue(s) dropped!" >&2
-	fi
+		echo "bsda:err: WARNING: Unhandled issue(s) dropped!"
+	fi >&2
 	return 0
 }
 
@@ -336,10 +335,9 @@ bsda:err:Context.clean() {
 #	An error/warning message
 #
 bsda:err:Context.raise() {
-	local issues issue
-	$this.getIssues issues
+	local issue
 	bsda:err:Issue issue "$@"
-	setvar ${this}issues "${issues}${issue}"$'\n'
+	rec ${this}issues.push_back "${issue}"
 }
 
 #
@@ -357,17 +355,14 @@ bsda:err:Context.raise() {
 #	No issues are available from the context
 #
 bsda:err:Context.get() {
-	local IFS issues issue e msg
-	IFS=$'\n'
-	$this.getIssues issues
-	for issue in $issues; do
+	local issue e msg
+	if rec ${this}issues.pop_front issue; then
 		$issue.get e msg
 		$caller.setvar "$1" "$e"
 		$caller.setvar "$2" "$msg"
 		$issue.delete 1
-		setvar ${this}issues "${issues#*${IFS}}"
 		return 0
-	done
+	fi
 	$this.getPrevious bsda_err_context
 	return 1
 }

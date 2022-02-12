@@ -501,6 +501,64 @@ lst.contains_any() {
 }
 
 #
+# Check whether the array is defined.
+#
+# @param[in] &1
+#	Name of the array
+# @retval 0
+#	The array is defined (it may still be empty, though)
+# @retval 1
+#	The array is not defined
+#
+lst.is_defined() {
+	eval "test -n \"\${$1+1}\""
+}
+
+#
+# Check whether the array is undefined.
+#
+# @param[in] &1
+#	Name of the array
+# @retval 0
+#	The array is not defined
+# @retval 1
+#	The array is defined (it may still be empty, though)
+#
+lst.is_undefined() {
+	eval "test -z \"\${$1+1}\""
+}
+
+#
+# Check whether the array is empty.
+#
+# @param[in] &1
+#	Name of the array
+# @retval 0
+#	The array is empty (it may still be defined, though)
+# @retval 1
+#	The array has at least one entry (that entry may be the empty
+#	string, though)
+#
+lst.is_empty() {
+	eval "test -z \"\${$1}\""
+}
+
+#
+# Check whether the array is not empty.
+#
+# @param[in] &1
+#	Name of the array
+# @retval 0
+#	The array has at least one entry (that entry may be the empty
+#	string, though)
+# @retval 1
+#	The array is empty (it may still be defined, though)
+#
+lst.is_not_empty() {
+	eval "test -n \"\${$1}\""
+}
+
+#
 # Print the array.
 #
 # @warning
@@ -537,6 +595,23 @@ lst.printf() (
 	IFS="${RS}"
 	eval "printf \"\${2}\" \${$1}"
 )
+
+#
+# Append the given arrays.
+#
+# All appended arrays must use the same RS character. Otherwise the
+# array is corrupted.
+#
+# @param[in] &1
+#	Name of the array
+# @param[in] &@
+#	Names of the arrays to append
+# @param[in] RS
+#	The character separating array items
+#
+lst.append() {
+	lst:cat "$1" "$@"
+}
 
 #
 # Copy the record separator to the IRS variable.

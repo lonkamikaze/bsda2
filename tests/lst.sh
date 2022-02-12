@@ -511,6 +511,61 @@ log a= 'foo bar' '' baz bam keks dose
   log a.contains_any 'foo bar' koks
 
 #
+# a.is_defined
+# a.is_undefined
+# a.is_empty
+# a.is_not_empty
+#
+
+unset a
+! rec a.is_defined
+  rec a.is_undefined
+  rec a.is_empty
+! rec a.is_not_empty
+
+rec a=
+  rec a.is_defined
+! rec a.is_undefined
+  rec a.is_empty
+! rec a.is_not_empty
+
+rec a.push_back ''
+  rec a.is_defined
+! rec a.is_undefined
+! rec a.is_empty
+  rec a.is_not_empty
+
+rec a.push_back keks dose
+  rec a.is_defined
+! rec a.is_undefined
+! rec a.is_empty
+  rec a.is_not_empty
+
+unset a
+! log a.is_defined
+  log a.is_undefined
+  log a.is_empty
+! log a.is_not_empty
+
+log a=
+  log a.is_defined
+! log a.is_undefined
+  log a.is_empty
+! log a.is_not_empty
+
+log a.push_back ''
+  log a.is_defined
+! log a.is_undefined
+! log a.is_empty
+  log a.is_not_empty
+
+log a.push_back keks dose
+  log a.is_defined
+! log a.is_undefined
+! log a.is_empty
+  log a.is_not_empty
+
+#
 # a aka a.print
 #
 
@@ -551,6 +606,17 @@ test "$(rec a.printf '[%s]\n')" = $'[foo]\n[bar]\n[]\n[baz]'
 log a= foo bar '' baz
 test "$a" = $'foo\nbar\n\nbaz\n'
 test "$(log a.printf '[%s]\n')" = $'[foo]\n[bar]\n[baz]'
+
+#
+# a.append
+#
+
+log a= 'foo bar' '' baz bam keks dose
+log b= '' '' ''
+log c=
+log d= 'this is the' end
+log a.append b c d
+test "$a" = $'foo bar\n\nbaz\nbam\nkeks\ndose\n\n\n\nthis is the\nend\n'
 
 #
 # a.set_irs

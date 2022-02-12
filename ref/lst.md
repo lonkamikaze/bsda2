@@ -199,8 +199,13 @@ if the Record Separator is a White Space character.
 | `a.contains`     | Return whether the given value is in the array          | O(1)       |         |
 | `a.contains_all` | Return whether all the given values are in the array    | O(#)       |         |
 | `a.contains_any` | Return whether any of the given values are in the array | O(#)       |         |
+| `a.is_defined`   | Check whether the array is defined                      | O(1)       |         |
+| `a.is_undefined` | Check whether the array is undefined                    | O(1)       |         |
+| `a.is_empty`     | Check whether the array is empty                        | O(1)       |         |
+| `a.is_not_empty` | Check whether the array is not empty                    | O(1)       |         |
 | `a.print`        | Print array `ORS` separated                             | O(1)       | Limited |
 | `a.printf`       | Print array with custom formatting                      | O(1)       | Limited |
+| `a.append`       | Append the given array(s)                               | O(1)       |         |
 | `a.set_irs`      | Set the Input Record Separator (`IRS`) to `RS`          | O(1)       |         |
 | `a.set_ors`      | Set the Output Record Separator (`ORS`) to `RS`         | O(1)       |         |
 | `a.set_ifs`      | Set the shell Input Field Separator (`IFS`) to `RS`     | O(1)       |         |
