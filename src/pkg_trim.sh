@@ -42,13 +42,11 @@ bsda:obj:createClass pkg:trim:State \
 #	The name of the state attribute to accumulate
 #
 pkg:trim:State.all() {
-	local IFS state result val
-	IFS=$'\n'
-	result=
+	local state result
+	log result=
 	state=$this
 	while [ -n "$state" ]; do
-		eval "val=\"\$${state}$2\""
-		result="$val${val:+${result:+$IFS}}$result"
+		eval log result.push_front "\"\${${state}${2}}\""
 		$state.getPrev state
 	done
 	$caller.setvar "$1" "$result"
@@ -126,7 +124,7 @@ bsda:obj:createClass pkg:trim:StateManager \
 #
 # The actual package cache is in the pkgcache attribute and contains
 # tuples with the package, comment and autoremove flag separated
-# by the pipe '|' character. Each tuple is on its own line.
+# by the pipe $'\034' character. Each tuple is on its own line.
 #
 # The pkgcached attribute is a newline separated list of the cached
 # packages.
@@ -146,8 +144,7 @@ pkg:trim:StateManager.cache() {
 	fi
 
 	# Determine which packages are not cached
-	local IFS cached uncached
-	IFS=$'\n'
+	local cached uncached
 	$this.getPkgcached cached
 	uncached="$(echo "$show" | /usr/bin/grep -vFx "$cached")"
 	if [ -z "$uncached" ]; then
@@ -156,12 +153,11 @@ pkg:trim:StateManager.cache() {
 	fi
 
 	# Query packages and append to the cache
-	local fmt pkgs cache
+	local fmt pkgs
 	$this.getFmt fmt
-	$this.getPkgcache cache
-	pkgs="$(pkg:query:select "$fmt|%c|%a" $uncached)"
-	setvar ${this}pkgcache "$cache${cache:+${pkgs:+$IFS}}$pkgs"
-	setvar ${this}pkgcached "$cached${cached:+${uncached:+$IFS}}$uncached"
+	pkgs="$(IFS=$'\n'; pkg:query:select "$fmt"$'\034%c\034%a' $uncached)"
+	log ${this}pkgcache.push_back "$pkgs"
+	log ${this}pkgcached.push_back "$uncached"
 }
 
 #
@@ -194,12 +190,11 @@ pkg:trim:StateManager.init() {
 # @retval 1
 #	Package selection is not complete
 #
-pkg:trim:StateManager.isComplete() {
-	local state show
+pkg:trim:StateManager.isComplete() (
 	$this.getState state
 	$state.getShow show
 	test -z "$show"
-}
+)
 
 #
 # Determines if this is the first state.
@@ -211,27 +206,25 @@ pkg:trim:StateManager.isComplete() {
 # @retval 1
 #	The current state is not the first in the list
 #
-pkg:trim:StateManager.isFirst() {
-	local first state
+pkg:trim:StateManager.isFirst() (
 	$this.States first
 	$this.getState state
 	test $first = $state
-}
+)
 
 #
 # A static function used to repack IFS delimited arguments.
 #
-# This function packs all arguments into a pipe '|' delimited string,
+# This function packs all arguments into an FS $'\034' delimited string,
 # output on stdout.
 #
 # @param @
 #	The arguments to pack
 #
-pkg:trim:StateManager._join() {
-	local IFS
-	IFS='|'
+pkg:trim:StateManager._join() (
+	IFS=$'\034'
 	echo "$*"
-}
+)
 
 #
 # A static filter converting cached packages to checklist format.
@@ -244,10 +237,13 @@ pkg:trim:StateManager._join() {
 #	All the packages that should show a different state from
 #	the cached state
 #
-pkg:trim:StateManager.checklist_filter() {
-	/usr/bin/awk -F\| -vSHOW="$($class._join $1)" \
-	                  -vFLIP="$($class._join $2)" '
+pkg:trim:StateManager.checklist_filter() (
+	IFS=$'\n'
+	/usr/bin/sort -t$'\034' -k1 | \
+	/usr/bin/awk -vSHOW="$($class._join $1)" \
+	             -vFLIP="$($class._join $2)" '
 	BEGIN {
+		FS = SUBSEP
 		cnt = split(SHOW, a)
 		for (i = 1; i <= cnt; ++i) {
 			ASHOW[a[i]]
@@ -259,7 +255,7 @@ pkg:trim:StateManager.checklist_filter() {
 	}
 	$1 in AFLIP {$3 = !$3}
 	$1 in ASHOW {print($1 "\n" $2 "\n" ($3 ? "on" : "off"))}'
-}
+)
 
 #
 # Produce dialog(1) --checklist style tuples with packages.
@@ -280,8 +276,7 @@ pkg:trim:StateManager.checklist() {
 	$state.getShow show
 	$state.getFlipped flipped
 	$this.getPkgcache cache
-	tuples="$(echo "$cache" | /usr/bin/sort -t\| -k1 \
-	          | $class.checklist_filter "$show" "$flipped")"
+	tuples="$(echo "$cache" | $class.checklist_filter "$show" "$flipped")"
 	$caller.setvar "$1" "$tuples"
 }
 
@@ -295,10 +290,13 @@ pkg:trim:StateManager.checklist() {
 # @param 2
 #	All packages changed to unchecked
 #
-pkg:trim:StateManager.review_filter() {
-	/usr/bin/awk -F\| -vCHECK="$($class._join $1)" \
-	                  -vUNCHECK="$($class._join $2)" '
+pkg:trim:StateManager.review_filter() (
+	IFS=$'\n'
+	/usr/bin/sort -t$'\034' -k1 | \
+	/usr/bin/awk -vCHECK="$($class._join $1)" \
+	             -vUNCHECK="$($class._join $2)" '
 	BEGIN {
+		FS = SUBSEP
 		cnt = split(CHECK, a)
 		for (i = 1; i <= cnt; ++i) {
 			ACHECK[a[i]]
@@ -310,7 +308,7 @@ pkg:trim:StateManager.review_filter() {
 	}
 	$1 in ACHECK {print(" [*] " $1 "\n" $2)}
 	$1 in AUNCHECK {print(" [ ] " $1 "\n" $2)}'
-}
+)
 
 #
 # Produce dialog(1) --menu style tuples with packages for selection
@@ -328,8 +326,7 @@ pkg:trim:StateManager.review() {
 	$this.checked checked
 	$this.unchecked unchecked
 	$this.getPkgcache cache
-	tuples="$(echo "$cache" | /usr/bin/sort -t\| -k1 \
-	          | $class.review_filter "$checked" "$unchecked")"
+	tuples="$(echo "$cache" | $class.review_filter "$checked" "$unchecked")"
 	$caller.setvar "$1" "$tuples"
 }
 
@@ -344,10 +341,12 @@ pkg:trim:StateManager.review() {
 # @param 2
 #	The list of packages that was checked
 #
-pkg:trim:StateManager.commit_filter() {
-	/usr/bin/awk -F\| -vSHOW="$($class._join $1)" \
-	                  -vCHECK="$($class._join $2)" '
+pkg:trim:StateManager.commit_filter() (
+	IFS=$'\n'
+	/usr/bin/awk -vSHOW="$($class._join $1)" \
+	             -vCHECK="$($class._join $2)" '
 	BEGIN {
+		FS = SUBSEP
 		cnt = split(SHOW, a)
 		for (i = 1; i <= cnt; ++i) {
 			ASHOW[a[i]]
@@ -358,7 +357,7 @@ pkg:trim:StateManager.commit_filter() {
 		}
 	}
 	($1 in ASHOW) && (!$3 == ($1 in ACHECK)) {print $1}'
-}
+)
 
 #
 # Commits the checked packages to the current state.

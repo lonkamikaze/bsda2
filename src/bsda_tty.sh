@@ -165,8 +165,7 @@ bsda:tty:Terminal.use() {
 	$this.getStLines lines
 	# delete no longer needed status lines
 	while [ $((lines)) -gt $(($1)) ]; do
-		lines=$((lines - 1))
-		unset ${this}line${lines}
+		unset ${this}line$((lines -= 1))
 	done
 	setvar ${this}stLines $(($1))
 	$this.winch
@@ -186,7 +185,7 @@ bsda:tty:Terminal:repeat() {
 	if [ $1 -le 0 ]; then
 		return
 	fi
-	echo "$2"
+	echo -n "$2"
 	bsda:tty:Terminal:repeat $(($1 - 1)) "$2"
 }
 
@@ -212,8 +211,8 @@ bsda:tty:Terminal.line() {
 	(
 		# tput       vi.......
 		printf '%b' '\033[?25l\r' $($class:repeat $lineno '\n')
-		# tput        RA......  ce...   SA.....
-		eval "printf '\033[?7l%s\033[K\r\033[?7h' \"\$*\""
+		# tput  RA......  ce....  SA......
+		printf '\033[?7l%s\033[K\r\033[?7h' "$*"
 		# tput                               up...    ve...............
 		printf '%b' $($class:repeat $lineno '\033M') '\033[34h\033[?25h'
 	) > /dev/tty
@@ -312,20 +311,19 @@ bsda:tty:Terminal.filter() {
 #
 # Draw all the status lines.
 #
-bsda:tty:Terminal.refresh() {
+bsda:tty:Terminal.refresh() (
 	if [ $((${this}drLines)) -le 0 ]; then
 		return 0
 	fi
-	(
-		i=$((${this}drLines - 1))
-		# tput       vi.......                              RA......
-		printf '%b' '\033[?25l\r' $($class:repeat $i '\n') '\033[?7l'
-		while [ $i -gt 0 ]; do
-			# tput          ce....  up...
-			eval "printf '%s\033[K\r\033M' \"\$${this}line$i\""
-			i=$((i - 1))
-		done
-		# tput          ce....  SA......ve...............
-		eval "printf '%s\033[K\r\033[?7h\033[34h\033[?25h' \"\$${this}line0\""
-	) > /dev/tty
-}
+	exec > /dev/tty
+	i=$((${this}drLines - 1))
+	# tput       vi.......                              RA......
+	printf '%b' '\033[?25l\r' $($class:repeat $i '\n') '\033[?7l'
+	while [ $i -gt 0 ]; do
+		# tput          ce....  up...
+		eval "printf '%s\033[K\r\033M' \"\$${this}line$i\""
+		i=$((i - 1))
+	done
+	# tput          ce....  SA......ve...............
+	eval "printf '%s\033[K\r\033[?7h\033[34h\033[?25h' \"\$${this}line0\""
+)

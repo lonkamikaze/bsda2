@@ -74,7 +74,7 @@ loaderupdate:Device.init() {
 	local gpart scheme bootparts efiparts index type start size label attr
 	setvar ${this}dev "${1}"
 	if ! gpart="$(/sbin/gpart backup "${1}" 2>&-)"; then
-		bsda:err:raise E_LOADERUPDATE_NODEVICE "ERROR: Cannot access device: $1"
+		bsda:err:raise E_LOADERUPDATE_NODEVICE "${0##*/}: ERROR: Cannot access device: $1"
 		return 1
 	fi
 	scheme=
@@ -98,14 +98,14 @@ loaderupdate:Device.init() {
 
 	if [ -z "${scheme}" ]; then
 		bsda:err:raise E_LOADERUPDATE_SCHEME \
-		               "ERROR: Unsupported partitioning scheme on device: ${1}"
+		               "${0##*/}: ERROR: Unsupported partitioning scheme on device: ${1}"
 		return 1
 	fi
 	setvar ${this}scheme "${scheme}"
 
 	if [ -z "${bootparts}${efiparts}" ]; then
 		bsda:err:raise E_LOADERUPDATE_NOPARTS \
-		               "ERROR: No freebsd-boot or efi partitions on device: ${1}"
+		               "${0##*/}: ERROR: No freebsd-boot or efi partitions on device: ${1}"
 		return 1
 	fi
 	setvar ${this}bootparts "${bootparts}"
@@ -205,7 +205,7 @@ loaderupdate:Mount.init() {
 
 	if ! /bin/mkdir -p "${mountpoint}"; then
 		bsda:err:raise E_LOADERUPDATE_MOUNT \
-		               "ERROR: Failed to create mountpoint: ${mountpoint}"
+		               "${0##*/}: ERROR: Failed to create mountpoint: ${mountpoint}"
 		return 1
 	fi
 	setvar ${this}mountpoint "${mountpoint}"
@@ -217,7 +217,7 @@ loaderupdate:Mount.init() {
 	fi
 	if ! /sbin/mount "$@" "${device}" "${mountpoint}"; then
 		bsda:err:raise E_LOADERUPDATE_MOUNT \
-		               "ERROR: Failed to mount device: ${device}"
+		               "${0##*/}: ERROR: Failed to mount device: ${device}"
 		return 1
 	fi
 	setvar ${this}device "${device}"
@@ -303,8 +303,7 @@ loaderupdate:Session.all() {
 	        | /usr/bin/grep -Fx "${devs}")"
 	$devices.add ${devs}
 	while bsda:err:get e msg; do
-		msg="${msg#ERROR:}"
-		bsda:err:forward E_WARN "NOTE: ${msg# }"
+		bsda:err:forward E_WARN "${0##*/}: WARNING: ${msg#*ERROR: }"
 	done
 }
 
@@ -398,7 +397,7 @@ loaderupdate:Session.params() {
 			exit 0
 		;;
 		OPT_UNKNOWN)
-			bsda:err:raise E_LOADERUPDATE_PARAM "ERROR: Unknown parameter: \"${1}\""
+			bsda:err:raise E_LOADERUPDATE_PARAM "${0##*/}: ERROR: Unknown parameter: \"${1}\""
 			return 1
 		;;
 		OPT_SPLIT)
@@ -413,27 +412,27 @@ loaderupdate:Session.params() {
 	done
 
 	if $flags.check DRYRUN -ne 0 && $flags.check DUMP -ne 0; then
-		bsda:err:raise E_LOADERUPDATE_PARAM "ERROR: The -D and -P flags are mutually exclusive"
+		bsda:err:raise E_LOADERUPDATE_PARAM "${0##*/}: ERROR: The -D and -P flags are mutually exclusive"
 		return 1
 	fi
 
 	$devices.devices devs
 	if $flags.check DUMP -eq 0 && [ -z "${devs}" ]; then
 		$this.help "$options"
-		bsda:err:raise E_LOADERUPDATE_NODEVICE "ERROR: No device selected"
+		bsda:err:raise E_LOADERUPDATE_NODEVICE "${0##*/}: ERROR: No device selected"
 		return 1
 	fi
 
 	destdir="${destdir%/}"
 	if [ -n "${destdir}" ] && ! [ -d "${destdir}" ]; then
-		bsda:err:raise E_LOADERUPDATE_DESTDIR "ERROR: DESTDIR is not a directory: ${destdir}"
+		bsda:err:raise E_LOADERUPDATE_DESTDIR "${0##*/}: ERROR: DESTDIR is not a directory: ${destdir}"
 		return 1
 	fi
 	setvar ${this}destdir "${destdir}"
 
 	kernelpath="${destdir}/boot/kernel/kernel"
 	if ! [ -r "${kernelpath}" ]; then
-		bsda:err:raise E_LOADERUPDATE_NOKERNEL "ERROR: Cannot access kernel: ${kernelpath}"
+		bsda:err:raise E_LOADERUPDATE_NOKERNEL "${0##*/}: ERROR: Cannot access kernel: ${kernelpath}"
 		return 1
 	fi
 	bsda:err:collect
@@ -443,7 +442,7 @@ loaderupdate:Session.params() {
 		case "${e}" in
 		E_BSDA_ELF_NOENT)
 			bsda:err:forward E_LOADERUPDATE_NOKERNEL \
-			                 "ERROR: Failed to load kernel: ${kernelpath}";;
+			                 "${0##*/}: ERROR: Failed to load kernel: ${kernelpath}";;
 		*)
 			bsda:err:forward "${e}" "${msg}";;
 		esac
@@ -452,19 +451,19 @@ loaderupdate:Session.params() {
 	$kernel.fetch version version
 	if [ -z "${version}" ]; then
 		bsda:err:raise E_LOADERUPDATE_NOKERNEL \
-		               "ERROR: Failed to read kernel version: ${kernelpath}"
+		               "${0##*/}: ERROR: Failed to read kernel version: ${kernelpath}"
 		return 1
 	fi
 	$kernel.fetch machine machine
 	if [ -z "${machine}" ]; then
 		bsda:err:raise E_LOADERUPDATE_NOKERNEL \
-		               "ERROR: Failed to read kernel machine architecture: ${kernelpath}"
+		               "${0##*/}: ERROR: Failed to read kernel machine architecture: ${kernelpath}"
 		return 1
 	fi
 	$kernel.fetch ostype ostype
 	if [ -z "${ostype}" ]; then
 		bsda:err:raise E_LOADERUPDATE_NOKERNEL \
-		               "ERROR: Failed to read kernel ostype: ${kernelpath}"
+		               "${0##*/}: ERROR: Failed to read kernel ostype: ${kernelpath}"
 		return 1
 	fi
 	if [ -n "${version##${ostype}*}" ]; then
@@ -572,7 +571,7 @@ loaderupdate:Session.runcmd() {
 		e=$?
 		if [ ${e} -ne 0 ]; then
 			bsda:err:raise E_LOADERUPDATE_CMD \
-			               "ERROR: Command failed with error ${e}: ${*}"
+			               "${0##*/}: ERROR: Command failed with error ${e}: ${*}"
 		fi
 		return ${e}
 	fi
@@ -693,24 +692,24 @@ loaderupdate:Session.run() {
 		if [ -n "${efiparts}" ]; then
 			if [ -z "${efivars}" ] && $flags.check NOEFI -eq 0; then
 				bsda:err:raise E_LOADERUPDATE_EFIBOOTMGR \
-				               "ERROR: Failed to query efibootmgr, are you a super user?"
+				               "${0##*/}: ERROR: Failed to query efibootmgr, are you a super user?"
 				return 1
 			fi
 			if ! [ -r "${efiload}" ]; then
 				bsda:err:raise E_LOADERUPDATE_LOADER \
-				               "ERROR: Cannot read EFI loader: ${efiload}"
+				               "${0##*/}: ERROR: Cannot read EFI loader: ${efiload}"
 				return 1
 			fi
 		fi
 		if [ -n "${bootparts}" ]; then
 			if ! [ -r "${pmbr}" ]; then
 				bsda:err:raise E_LOADERUPDATE_LOADER \
-				               "ERROR: Cannot read protective MBR: ${pmbr}"
+				               "${0##*/}: ERROR: Cannot read protective MBR: ${pmbr}"
 				return 1
 			fi
 			if ! [ -r "${bootload}" ]; then
 				bsda:err:raise E_LOADERUPDATE_LOADER \
-				               "ERROR: Cannot read freebsd-boot loader: ${bootload}"
+				               "${0##*/}: ERROR: Cannot read freebsd-boot loader: ${bootload}"
 				return 1
 			fi
 		fi

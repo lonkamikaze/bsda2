@@ -277,23 +277,24 @@ distviper:Session.run() {
 	local verify files file obsoleteFiles mismatchFiles chksum fcount i fmt
 	verify=
 	$flags.check NOCHKSUM -eq 0 && verify=1
-	obsoleteFiles=
-	mismatchFiles=
+	log obsoleteFiles=
+	log mismatchFiles=
 	files="$($class.run_find_present)"
 	fcount=$(($(echo "$files" | /usr/bin/wc -w)))
 	fmt="Checking file %${#fcount}d of $fcount: %s"
+	i=0
 	for file in $files; do
 		i=$((i + 1))
 		$term.line 0 "$(printf "$fmt" $i "$file")"
 		if ! echo "$keepFiles" | /usr/bin/grep -qFx "$file"; then
-			obsoleteFiles="${obsoleteFiles:+$obsoleteFiles$IFS}$file"
+			log obsoleteFiles.push_back "$file"
 			continue
 		fi
 		test -z "$verify" && continue
 
 		chksum="$(/sbin/sha256 < "$distdir/$file")"
 		if ! echo "$keepSums" | /usr/bin/grep -qFx "$file|$chksum"; then
-			mismatchFiles="${mismatchFiles:+$mismatchFiles$IFS}$file"
+			log mismatchFiles.push_back "$file"
 			continue
 		fi
 	done
@@ -302,18 +303,18 @@ distviper:Session.run() {
 	# Perform deletions
 	local rmcmd rmflags
 	rmcmd=/bin/rm
-	rmflags="-f"
+	log rmflags= -f
 	if $flags.check INTERACTIVE -eq 0; then
 		# !interactive && !quiet => -v
-		$flags.check QUIET -eq 0 && rmflags="$rmflags$IFS-v"
+		$flags.check QUIET -eq 0 && log rmflags.push_back -v
 	else
 		# interactive => -i
-		rmflags="$rmflags$IFS-i"
+		log rmflags.push_back -i
 	fi
 
 	if $flags.check DEMO -ne 0; then
 		rmcmd=echo
-		rmflags=
+		log rmflags=
 	fi
 
 	$this.status "Remove obsolete files:"

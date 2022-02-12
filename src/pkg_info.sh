@@ -71,24 +71,24 @@ pkg:info:Env.match() {
 	fi
 
 	# Select command line arguments
-	args="-E"
+	log args= -E
 	if $flags.check PKG_ALL -ne 0; then
-		args="$args$IFS-aq"
+		log args.push_back -aq
 	fi
 	if $flags.check PKG_CASE_SENSITIVE -ne 0; then
-		args="$args$IFS-C"
+		log args.push_back -C
 	fi
 	if $flags.check PKG_GLOB -ne 0; then
-		args="$args$IFS-g"
+		log args.push_back -g
 	fi
 	if $flags.check PKG_CASE_INSENSITIVE -ne 0; then
-		args="$args$IFS-i"
+		log args.push_back -i
 	fi
 	if $flags.check PKG_REGEX -ne 0; then
-		args="$args$IFS-x"
+		log args.push_back -x
 	fi
 	if $flags.check PKG_BY_ORIGIN -ne 0; then
-		args="$args$IFS-O"
+		log args.push_back -O
 	fi
 
 	# Get requested packages

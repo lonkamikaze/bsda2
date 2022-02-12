@@ -60,7 +60,7 @@ readonly bsda_opts_split='eval "$(bsda:opts:split "$@")"'
 # ASH applies substitutions applied to `$@` to the first argument
 # only which enables this:
 #
-#	set -- "${1#${1#-?}}" "-${@#-?}"
+#	set -- "${1%"${1#-?}"}" "-${@#-?}"
 #
 # BASH applies the substitution to all expanded arguments, which is
 # more intuitive but makes achieving this objective more complicated.
@@ -71,11 +71,10 @@ readonly bsda_opts_split='eval "$(bsda:opts:split "$@")"'
 #	The remaining arguments are reproduced unchanged
 #
 bsda:opts:split() {
-	local i arg
-	echo -n 'set -- "${1%${1#-?}}" "-${1#-?}"'
-	shift
+	local i
+	echo -n 'set -- "${1%"${1#-?}"}" "-${1#-?}"'
 	i=1
-	for arg in "$@"; do
+	while [ $i -lt $# ]; do
 		echo -n " \"\${$((i += 1))}\""
 	done
 }
