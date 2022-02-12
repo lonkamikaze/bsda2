@@ -219,7 +219,7 @@ bsda:test:isNone "$bob".delete
 # Aggregation with undefined class should fail
 error="$(bsda:obj:createClass X a:y=Y 2>&1; test $? -eq 4)"
 bsda:test:gmatch "bsda:obj:createClass: ERROR: *" "$error"
-bsda:obj:createClass X a:y=Y 2>&- || test $? -eq 4
+bsda:obj:createClass X a:y=Y 2> /dev/null || test $? -eq 4
 
 # Test aggregation
 bsda:obj:createClass A

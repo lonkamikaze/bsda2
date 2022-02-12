@@ -313,12 +313,12 @@ unwind
 # bsda:err:collect
 
 # Do not print on stdout
-test -z "$(exec 2>&-
+test -z "$(exec 2> /dev/null
 	bsda:obj:fork
 	bsda:err:collect
 	unwind
 )" #
-test -z "$(exec 2>&-
+test -z "$(exec 2> /dev/null
 	bsda:obj:fork
 	bsda:err:collect
 	bsda:err:raise E_WARN warn
@@ -326,18 +326,18 @@ test -z "$(exec 2>&-
 )" #
 
 # Do not affect exit
-(exec 2>&-
+(exec 2> /dev/null
 	bsda:obj:fork
 	bsda:err:collect
 	unwind
 )
-(exec 2>&-
+(exec 2> /dev/null
 	bsda:obj:fork
 	bsda:err:collect
 	bsda:err:raise E_WARN warn
 	unwind
 )
-(exec 2>&-
+(exec 2> /dev/null
 	bsda:obj:fork
 	bsda:err:collect
 	bsda:err:collect
