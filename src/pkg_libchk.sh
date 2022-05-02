@@ -431,18 +431,18 @@ pkg:libchk:Session.ldd_filter() {
 		printrow(BIN, $0, "compat")
 		next
 	}
+	# missing library
+	/\(0\)$/ || /^\t.* => not found \(0x[0-9a-f]+\)$/ {
+		sub(/^\t/, "")
+		sub(/ => .*/, "")
+		printrow(BIN, $0, "miss")
+		next
+	}
 	# ignore
 	/^\t.* \(0x[0-9a-f]+\)$/                  || # library was found
 	/^ldd: .*: not a dynamic ELF executable$/ || # non-executable
 	/^ldd: .*: Invalid argument$/             || # non-executable
 	/^.*: exit status 1$/                     {  # redundant message
-		next
-	}
-	# missing library
-	/\(0\)$/ {
-		sub(/^\t/, "")
-		sub(/ => .*/, "")
-		printrow(BIN, $0, "miss")
 		next
 	}
 	# verbose error
