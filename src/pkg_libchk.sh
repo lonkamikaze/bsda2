@@ -442,6 +442,7 @@ pkg:libchk:Session.ldd_filter() {
 	/^\t.* \(0x[0-9a-f]+\)$/                  || # library was found
 	/^ldd: .*: not a dynamic ELF executable$/ || # non-executable
 	/^ldd: .*: Invalid argument$/             || # non-executable
+	/^\[preloaded\]$/                         || # start of preloaded section
 	/^.*: exit status 1$/                     {  # redundant message
 		next
 	}
