@@ -5,6 +5,7 @@ readonly _distviper_=1
 . ${bsda_dir:-.}/bsda_opts.sh
 . ${bsda_dir:-.}/pkg_info.sh
 . ${bsda_dir:-.}/bsda_bsdmake.sh
+. ${bsda_dir:-.}/bsda_fmt.sh
 
 #
 # The session class for distviper.
@@ -275,6 +276,9 @@ distviper:Session.run() {
 
 	$this.status "Creating a list of distfiles to delete"
 	local verify files file obsoleteFiles mismatchFiles chksum fcount i fmt
+	local fsize osize msize ocount mcount
+	osize=0
+	msize=0
 	verify=
 	$flags.check NOCHKSUM -eq 0 && verify=1
 	log obsoleteFiles=
@@ -288,6 +292,8 @@ distviper:Session.run() {
 		$term.line 0 "$(printf "$fmt" $i "$file")"
 		if ! echo "$keepFiles" | /usr/bin/grep -qFx "$file"; then
 			log obsoleteFiles.push_back "$file"
+			fsize=$(/usr/bin/stat -f %z "$distdir/$file")
+			osize=$((osize + fsize))
 			continue
 		fi
 		test -z "$verify" && continue
@@ -295,6 +301,8 @@ distviper:Session.run() {
 		chksum="$(/sbin/sha256 < "$distdir/$file")"
 		if ! echo "$keepSums" | /usr/bin/grep -qFx "$file|$chksum"; then
 			log mismatchFiles.push_back "$file"
+			fsize=$(/usr/bin/stat -f %z "$distdir/$file")
+			msize=$((msize + fsize))
 			continue
 		fi
 	done
@@ -317,14 +325,26 @@ distviper:Session.run() {
 		log rmflags=
 	fi
 
-	$this.status "Remove obsolete files:"
+	local s p
+	bsda:fmt:iec s p "$osize"
+	: ${p:=B}
+	$this.status "Remove obsolete files ($s${p%i}):"
 	for file in $obsoleteFiles; do
 		$rmcmd $rmflags "$distdir/$file"
 	done
-	$this.status "Remove files with checksum mismatches:"
+	bsda:fmt:iec s p "$msize"
+	: ${p:=B}
+	$this.status "Remove files with checksum mismatches ($s${p%i}):"
 	for file in $mismatchFiles; do
 		$rmcmd $rmflags "$distdir/$file"
 	done
+	if $flags.check QUIET -eq 0; then
+		bsda:fmt:iec s p $((osize + msize))
+		: ${p:=B}
+		log obsoleteFiles.count ocount
+		log mismatchFiles.count mcount
+		$term.stdout "Removed $((ocount + mcount)) file(s) ($s${p%i})."
+	fi
 
 	return 0
 }
