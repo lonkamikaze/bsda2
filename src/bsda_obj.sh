@@ -3,6 +3,7 @@ readonly _bsda_obj_=1
 set -f
 
 . ${bsda_dir:-.}/lst.sh
+. ${bsda_dir:-.}/compat.sh
 
 #
 # This file contains helper functions for creating object oriented
@@ -1081,36 +1082,3 @@ bsda:obj:fork
 .serialise() {
 	setvar "$1"
 }
-
-#
-# Compatibility hacks.
-#
-
-# Emulate setvar for shells that don't have it, i.e. bash.
-if ! setvar 2>&-; then
-	setvar() {
-		eval "$1=\"\$2\""
-	}
-fi
-
-# Setup getvar for symmetry with setvar
-if ! getvar 2>&-; then
-	#
-	# Returns a variable from a given reference.
-	#
-	# The variable is either written to a named variable, or in
-	# absence of one, output to stdout.
-	#
-	# @param &1
-	#	The name of the variable to write to
-	# @param 2
-	#	The reference to the variable to return
-	#
-	getvar() {
-		if [ -n "$1" ]; then
-			eval "$1=\"\$$2\""
-		else
-			eval "echo \"\$$2\""
-		fi
-	}
-fi

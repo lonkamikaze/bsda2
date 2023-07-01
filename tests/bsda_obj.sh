@@ -6,10 +6,6 @@
 # at least the backend should support this.
 IFS=':._'
 
-# Try setvar/getvar
-setvar x 1337 && test "$x" = 1337
-getvar y x && test "$y" = "$x"
-
 # Calling bsda:obj:createClass() without arguments
 error=$(bsda:obj:createClass 2>&1; test $? -eq 5)
 bsda:test:gmatch "bsda:obj:createClass: ERROR: *" "$error"

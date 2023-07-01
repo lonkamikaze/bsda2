@@ -23,6 +23,7 @@ src/buildflags.mk,0644,%%DATADIR%%/buildflags.mk
 man/buildflags.awk.1,0644,%%MAN%%/man1/buildflags.awk.1.gz
 man/buildflags.conf.1,0644,%%MAN%%/man1/buildflags.conf.1.gz
 man/buildflags.mk.1,0644,%%MAN%%/man1/buildflags.mk.1.gz
+src/compat.sh,0644,%%DATADIR%%/compat.sh
 src/distviper,0755,%%PREFIX%%/sbin/distviper
 man/distviper.8,0644,%%MAN%%/man8/distviper.8.gz
 src/distviper.sh,0644,%%DATADIR%%/distviper.sh

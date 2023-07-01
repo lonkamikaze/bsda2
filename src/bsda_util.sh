@@ -1,6 +1,8 @@
 test -n "$_bsda_util_" && return 0
 readonly _bsda_util_=1
 
+. ${bsda_dir:-.}/compat.sh
+
 #
 # A collection of utility functions.
 #
