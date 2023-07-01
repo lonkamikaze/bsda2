@@ -1,5 +1,9 @@
+test -n "$_bsda_fmt_" && return 0
+readonly _bsda_fmt_=1
+
 . ${bsda_dir:-.}/bsda_err.sh
 . ${bsda_dir:-.}/type.sh
+. ${bsda_dir:-.}/compat.sh
 
 #
 # Provides string formatting with named arguments.
@@ -634,4 +638,187 @@ bsda:fmt:expr:operator() {
                             "       Expecting: binary operator or ')'"
 	     return 1;;
 	esac
+}
+
+#
+# Format the given value to the significant IEC 80000-13 unit prefix.
+#
+# The scaling target is to have 1 to 3 digits in front of the decimal
+# point.
+#
+# The following unit prefixes may be returned:
+#
+# | Unit prefix | Factor | Name |
+# |-------------|--------|------|
+# |             | 1024^0 |      |
+# | Ki          | 1024^1 | kibi |
+# | Mi          | 1024^2 | mibi |
+# | Gi          | 1024^3 | gibi |
+# | Ti          | 1024^4 | tebi |
+# | Pi          | 1024^5 | pebi |
+#
+# It is recommended to append a unit like B for byte or b for bit
+# to the unit prefix.
+#
+# If the given value has no more than 3 decimal digits, it is output
+# without change.
+#
+# If the character limit is 3 or 4 it may happen that less than the
+# character limit is output, because trailing radix points are removed.
+#
+# @param &1
+#	The output value
+# @param &2
+#	The output unit prefix
+# @param 3
+#	The integral size value to format
+# @param 4
+#	The maximum number of value characters to produce (default: 3, min: 3)
+#
+bsda:fmt:iec() {
+	IFS=, bsda:fmt:scale 1024 Ki,Mi,Gi,Ti,Pi "$@"
+}
+
+#
+# Format the given value to the significant metric unit prefix.
+#
+# The following unit prefixes may be returned:
+#
+# | Unit prefix | Factor | Name |
+# |-------------|--------|------|
+# |             | 1000^0 |      |
+# | k           | 1000^1 | kilo |
+# | M           | 1000^2 | mega |
+# | G           | 1000^3 | giga |
+# | T           | 1000^4 | tera |
+# | P           | 1000^5 | peta |
+#
+# It is recommended to append a unit like B for byte or b for bit
+# to the unit prefix.
+#
+# If the given value has no more than 3 decimal digits, it is output
+# without change.
+#
+# If the character limit is 3 or 4 it may happen that less than the
+# character limit is output, because trailing radix points are removed.
+#
+# @param &1
+#	The output value
+# @param &2
+#	The output unit prefix
+# @param 3
+#	The integral size value to format
+# @param 4
+#	The maximum number of value characters to produce (default: 3, min: 3)
+#
+bsda:fmt:si() {
+	IFS=, bsda:fmt:scale 1000 k,M,G,T,P "$@"
+}
+
+#
+# Implementation for fmtiec() and fmtsi().
+#
+# @param 1
+#	The radix base, should be one of 1000 or 1024
+# @param 2
+#	A list of unit prefixes, e.g. k,M,G,...
+# @param IFS
+#	Set to the separator character of the unit prefix list
+# @param @
+#	The function arguments, see fmtiec() and fmtsi()
+#
+bsda:fmt:scale() {
+	set -- "$3" "$4" $(
+		base="$1"
+		units="$2"
+		val="$5"
+		chars="${6:-3}"
+		chars=$((chars >= 3 ? chars : 3))
+
+		if [ "$val" -lt 1000 ]; then
+			echo -n "$val"
+			return
+		fi
+
+		for error in 0 1; do
+			radix=1
+			for unit in $units; do
+				radix=$((radix * base))
+				int=$((val / radix + error))
+				test "${#int}" -le 3 && break
+			done
+
+			intlen="${#int}"
+			digits=$((chars - intlen - (chars > 3 || intlen < 3)))
+			mag=1
+			while [ ${#mag} -le $digits ]; do : $((mag *= 10)); done
+			: $((x   = (val * mag + radix / 2) / radix))
+			: $((int = x / mag)) $((frac = x % mag))
+			test ${#int} -eq $intlen && break
+		done
+
+		printf "%.${digits}f${IFS%"${IFS#?}"}%s" "$int.$frac" "$unit"
+	)
+	setvar "$1" "$3"
+	setvar "$2" "$4"
+}
+
+#
+# Scale an integer to a given unit.
+#
+# The scaling depends on the SI or IEC unit prefix of the given unit.
+#
+# | Unit prefix | Factor | Name | Alias |
+# |-------------|--------|------|-------|
+# |             | 1      |      | -     |
+# | k           | 1000^1 | kilo |       |
+# | M           | 1000^2 | mega |       |
+# | G           | 1000^3 | giga |       |
+# | T           | 1000^4 | tera |       |
+# | P           | 1000^5 | peta |       |
+# | Ki          | 1024^1 | kibi |       |
+# | Mi          | 1024^2 | mibi |       |
+# | Gi          | 1024^3 | gibi |       |
+# | Ti          | 1024^4 | tebi |       |
+# | Pi          | 1024^5 | pebi |       |
+#
+# @param &1
+#	The output value
+# @param 2
+#	The output unit (e.g. Mb or KiB)
+# @param 3
+#	The integral size value to format
+# @param 4
+#	The number of digits behind the radix point to output (default: 0)
+#
+bsda:fmt:unit() {
+	setvar "$1" "$(
+		unit="$2"
+		val="$3"
+		precision="${4:-0}"
+
+		pval=1
+		while [ ${#pval} -le "$precision" ]; do
+			pval=$((pval * 10))
+		done
+		case "$unit" in
+		Ki*)  rval=$((1 << 10));;
+		Mi*)  rval=$((1 << 20));;
+		Gi*)  rval=$((1 << 30));;
+		Ti*)  rval=$((1 << 40));;
+		Pi*)  rval=$((1 << 50));;
+		k*)   rval=1000;;
+		M*)   rval=1000000;;
+		G*)   rval=1000000000;;
+		T*)   rval=1000000000000;;
+		P*)   rval=1000000000000000;;
+		*)    rval=1;;
+		esac
+
+		val=$(((val * pval + rval / 2) / rval))
+		int=$((val / pval))
+		frac=$((val % pval))
+		frac="$(printf "%0${precision}d" "$frac")"
+		printf "%.${precision}f" "$int.$frac"
+	)"
 }
