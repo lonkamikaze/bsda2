@@ -1,4 +1,4 @@
-set -f
+set -ef
 
 files="
 src/bprintf,0755,%%PREFIX%%/bin/bprintf
