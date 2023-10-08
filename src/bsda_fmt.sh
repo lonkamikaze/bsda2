@@ -259,7 +259,7 @@ bsda:fmt:isarg() {
 		return 1
 	;;
 	[a-zA-Z]*=*)
-		if ! bsda:fmt:isarg:tail "${1#?}"; then
+		if ! bsda:fmt:isarg:tail "${1%%=*}"; then
 			bsda:err:raise E_BSDA_FMT_ARG \
 			               "ERROR: Forbidden character in argument name: ${1%%=*}"
 			return 1
@@ -272,7 +272,7 @@ bsda:fmt:isarg() {
 	;;
 	*)
 		bsda:err:raise E_BSDA_FMT_ARG \
-		               "ERROR: Not an argument assignment: ${1%%=*}"
+		               "ERROR: Not an argument assignment: ${1}"
 		return 1
 	;;
 	esac
@@ -292,7 +292,7 @@ bsda:fmt:isarg:tail() {
 	case "${1}" in
 	[a-zA-Z0-9_]*)
 	    bsda:fmt:isarg:tail "${1#?}";;
-	=*) return 0;;
+	'') return 0;;
 	*)  return 1;;
 	esac
 }
@@ -410,7 +410,7 @@ bsda:fmt:sub() {
 bsda:fmt:sub:id() {
 	case "${1}" in
 	[a-zA-Z0-9_]*)
-	     a="${a}${1%%"${1#?}"}"; bsda:fmt:sub:id "${1#?}";;
+	     a="${a}${1%%"${1#?}"}";     bsda:fmt:sub:id "${1#?}";;
 	:*)  a="${a}"$'\n'; f="${f}%";   bsda:fmt:sub:format "${1#?}";;
 	\}*) a="${a}"$'\n'; f="${f}%s";  bsda:fmt:root "${1#?}";;
 	*)   bsda:err:raise E_BSDA_FMT_SUB_ID \
