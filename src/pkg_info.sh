@@ -88,7 +88,7 @@ pkg:info:Env.match() {
 		log args.push_back -x
 	fi
 	if $flags.check PKG_BY_ORIGIN -ne 0; then
-		log args.push_back -O
+		log args.push_back -Oq
 	fi
 
 	# Get requested packages
