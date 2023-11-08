@@ -81,7 +81,7 @@ bsda:tty:Filter.init() {
 	setvar ${this}desc $(($1))
 	eval "exec $(($1))>> ${fifo}"
 	# Clean up the named pipe
-	/bin/rm "$fifo"
+	/bin/rm -f "$fifo"
 	unset ${this}fifo
 }
 
@@ -93,7 +93,7 @@ bsda:tty:Filter.free() {
 	# Cleanup fifo in case of incomplete initialisation
 	$this.getFifo fifo
 	if [ -n "$fifo" ]; then
-		/bin/rm "$fifo" 2>&-
+		/bin/rm -f "$fifo"
 	fi
 	# Kill filter process
 	$this.getDesc desc

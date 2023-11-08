@@ -88,11 +88,7 @@ bsda:fifo:Fifo.init() {
 		echo >&5
 		# Acquire the wait lock to die
 		read -r tmp < "${loc}/wait.lock"
-		/bin/rm "${loc}/fifo.pipe" \
-		        "${loc}/recv.lock" \
-		        "${loc}/send.lock" \
-		        "${loc}/wait.lock"
-		/bin/rmdir "$loc"
+		/bin/rm -rf "$loc"
 	) &
 
 	$this.send
@@ -206,4 +202,5 @@ bsda:fifo:Fifo.clean() {
 	$this.getLoc loc
 	# Release the wait lock
 	echo >> "${loc}/wait.lock"
+	/bin/rm -rf "$loc"
 }
