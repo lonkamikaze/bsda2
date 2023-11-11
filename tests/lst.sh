@@ -1,52 +1,126 @@
 . ../src/lst.sh
 
 #
-# Verify record separator ${RS} is set by log/rec/csv but not lst.
+# Verify record separator ${RS} is set by log, rec etc. but not lst.
 #
 
 lst.check_log() { test "${RS}" = $'\n'; }
+lst.check_uni() { test "${RS}" = $'\037'; }
 lst.check_rec() { test "${RS}" = $'\036'; }
+lst.check_grp() { test "${RS}" = $'\035'; }
+lst.check_fil() { test "${RS}" = $'\034'; }
 lst.check_csv() { test "${RS}" = ,; }
 lst.check_col() { test "${RS}" = :; }
 
 ! RS=        lst x.check_log
   RS=$'\n'   lst x.check_log
 ! RS=$'\036' lst x.check_log
+! RS=$'\035' lst x.check_log
+! RS=$'\034' lst x.check_log
 ! RS=,       lst x.check_log
 ! RS=:       lst x.check_log
 
+! RS=        lst x.check_uni
+! RS=$'\n'   lst x.check_uni
+  RS=$'\037' lst x.check_uni
+! RS=$'\036' lst x.check_uni
+! RS=$'\035' lst x.check_uni
+! RS=$'\034' lst x.check_uni
+! RS=,       lst x.check_uni
+! RS=:       lst x.check_uni
+
 ! RS=        lst x.check_rec
 ! RS=$'\n'   lst x.check_rec
+! RS=$'\037' lst x.check_rec
   RS=$'\036' lst x.check_rec
+! RS=$'\035' lst x.check_rec
+! RS=$'\034' lst x.check_rec
 ! RS=,       lst x.check_rec
 ! RS=:       lst x.check_rec
 
+! RS=        lst x.check_grp
+! RS=$'\n'   lst x.check_grp
+! RS=$'\037' lst x.check_grp
+! RS=$'\036' lst x.check_grp
+  RS=$'\035' lst x.check_grp
+! RS=$'\034' lst x.check_grp
+! RS=,       lst x.check_grp
+! RS=:       lst x.check_grp
+
+! RS=        lst x.check_fil
+! RS=$'\n'   lst x.check_fil
+! RS=$'\037' lst x.check_fil
+! RS=$'\036' lst x.check_fil
+! RS=$'\035' lst x.check_fil
+  RS=$'\034' lst x.check_fil
+! RS=,       lst x.check_fil
+! RS=:       lst x.check_fil
+
 ! RS=        lst x.check_csv
 ! RS=$'\n'   lst x.check_csv
+! RS=$'\037' lst x.check_csv
 ! RS=$'\036' lst x.check_csv
+! RS=$'\035' lst x.check_csv
+! RS=$'\034' lst x.check_csv
   RS=,       lst x.check_csv
 ! RS=:       lst x.check_csv
 
 ! RS=        lst x.check_col
 ! RS=$'\n'   lst x.check_col
+! RS=$'\037' lst x.check_col
 ! RS=$'\036' lst x.check_col
+! RS=$'\035' lst x.check_col
+! RS=$'\034' lst x.check_col
 ! RS=,       lst x.check_col
   RS=:       lst x.check_col
 
   log x.check_log
+! uni x.check_log
 ! rec x.check_log
+! grp x.check_log
+! fil x.check_log
 ! csv x.check_log
 
+! log x.check_uni
+  uni x.check_uni
+! rec x.check_uni
+! grp x.check_uni
+! fil x.check_uni
+! csv x.check_uni
+
 ! log x.check_rec
+! uni x.check_rec
   rec x.check_rec
+! grp x.check_rec
+! fil x.check_rec
 ! csv x.check_rec
 
+! log x.check_grp
+! uni x.check_grp
+! rec x.check_grp
+  grp x.check_grp
+! fil x.check_grp
+! csv x.check_grp
+
+! log x.check_fil
+! uni x.check_fil
+! rec x.check_fil
+! grp x.check_fil
+  fil x.check_fil
+! csv x.check_fil
+
 ! log x.check_csv
+! uni x.check_csv
 ! rec x.check_csv
+! grp x.check_csv
+! fil x.check_csv
   csv x.check_csv
 
 ! log x.check_col
+! uni x.check_col
 ! rec x.check_col
+! grp x.check_col
+! fil x.check_col
 ! csv x.check_col
 
 #

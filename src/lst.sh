@@ -21,12 +21,36 @@ readonly _lst_sh_=1
 log() { RS=$'\n'   lst "$@"; }
 
 #
+# Run lst() with RS set to the ASCII Unit Separator character.
+#
+# @param[in,out] @
+#	Forwarded to lst()
+#
+uni() { RS=$'\037' lst "$@"; }
+
+#
 # Run lst() with RS set to the ASCII Record Separator character.
 #
 # @param[in,out] @
 #	Forwarded to lst()
 #
 rec() { RS=$'\036' lst "$@"; }
+
+#
+# Run lst() with RS set to the ASCII Group Separator character.
+#
+# @param[in,out] @
+#	Forwarded to lst()
+#
+grp() { RS=$'\035' lst "$@"; }
+
+#
+# Run lst() with RS set to the ASCII File Separator character.
+#
+# @param[in,out] @
+#	Forwarded to lst()
+#
+fil() { RS=$'\034' lst "$@"; }
 
 #
 # Run lst() with RS set to the ASCII comma `,` character.

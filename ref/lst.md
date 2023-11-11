@@ -94,11 +94,17 @@ Three `lst()` wrappers are provided:
 - `log()`
   Uses the Line Feed character as an entry separator, this is subject
   to limitations, detailed in the next section.
-- `rec()`
-  Uses the ASCII Record Separator character (RS) as a Record Separator
+- `uni()`
+  Uses the ASCII Unit Separator character (US) as a Record Separator
   (see `ascii(7)`). Other good candidates from this character group
-  would be the Field Separator (FS), the Group Separator (GS)
-  and the Unit Separator (US).
+  are the Record Separator (RS), Group Separator (GS) and
+  the File Separator (FS).
+- `rec()`
+  Uses the ASCII Record Separator character (RS) as a Record Separator.
+- `grp()`
+  Uses the ASCII Group Separator character (GS) as a Record Separator.
+- `fil()`
+  Uses the ASCII File Separator character (FS) as a Record Separator.
 - `csv()`
   Uses the comma character `,` to separate array entries. This is
   akin to using other characters like slashes, colons, semicolons
