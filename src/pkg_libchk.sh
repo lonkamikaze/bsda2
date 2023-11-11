@@ -225,8 +225,8 @@ pkg:libchk:Session.packages() {
 		$($this.Term).stderr "$warn"
 	fi
 
-	# Verbose output
-	if $flags.check VERBOSE -ne 0; then
+	# Extra verbose output
+	if $flags.check VERBOSE -gt 1; then
 		if $flags.check PKG_ALL -ne 0; then
 			$($this.Term).stderr "Checking all packages ..."
 		else
