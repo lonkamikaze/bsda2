@@ -529,6 +529,96 @@ log a.rm_last a c
 test "$a" = $'a\nb\nc\na\nb\nc\nb\n'
 
 #
+# a.map_front
+#
+log a= ab cd ef
+log a.map_front b c d
+test "$b" = ab
+test "$c" = cd
+test "$d" = ef
+unset a b c d
+rec a= fox news hunter gather
+rec a.map_front x1 x2 x3
+test "$x1" = fox
+test "$x2" = news
+test "$x3" = hunter
+x4=foo
+x5=bar
+rec a.map_front x1 x2 x3 x4 x5
+test "$x1" = fox
+test "$x2" = news
+test "$x3" = hunter
+test "$x4" = gather
+test -z "$x5"
+test -n "${x5+defined}"
+unset x1 x2 x3 x4 x5
+rec a= fox '' hunter gather
+rec a.map_front x1 x2 x3 x4 x5
+test "$x1" = fox
+test -z "$x2"
+test -n "${x2+defined}"
+test "$x3" = hunter
+test "$x4" = gather
+test -z "$x5"
+test -n "${x5+defined}"
+unset x1 x2 x3 x4 x5
+log a= fox '' hunter gather
+log a.map_front x1 x2 x3 x4 x5
+test "$x1" = fox
+test "$x2" = hunter
+test "$x3" = gather
+test -z "$x4"
+test -n "${x4+defined}"
+test -z "$x5"
+test -n "${x5+defined}"
+unset x1 x2 x3 x4 x5
+
+#
+# a.map_back
+#
+log a= ab cd ef
+log a.map_back b c d
+test "$b" = ef
+test "$c" = cd
+test "$d" = ab
+unset a b c d
+rec a= fox news hunter gather
+rec a.map_back x1 x2 x3
+test "$x1" = gather
+test "$x2" = hunter
+test "$x3" = news
+x4=foo
+x5=bar
+rec a.map_back x1 x2 x3 x4 x5
+test "$x1" = gather
+test "$x2" = hunter
+test "$x3" = news
+test "$x4" = fox
+test -z "$x5"
+test -n "${x5+defined}"
+unset x1 x2 x3 x4 x5
+rec a= fox '' hunter gather
+rec a.map_back x1 x2 x3 x4 x5
+test "$x1" = gather
+test "$x2" = hunter
+test -z "$x3"
+test -n "${x3+defined}"
+test "$x4" = fox
+test -z "$x5"
+test -n "${x5+defined}"
+unset x1 x2 x3 x4 x5
+log a= fox '' hunter gather
+log a.map_back x1 x2 x3 x4 x5
+test "$x1" = gather
+test "$x2" = hunter
+test "$x3" = fox
+test -z "$x4"
+test -n "${x4+defined}"
+test -z "$x5"
+test -n "${x5+defined}"
+unset x1 x2 x3 x4 x5
+
+#
 # a.count
 #
 

@@ -201,6 +201,8 @@ if the Record Separator is a White Space character.
 | `a.pop_back`     | Read last value and remove it                           | O(#)       |         |
 | `a.rm_first`     | Remove first match with the given value                 | O(#)       |         |
 | `a.rm_last`      | Remove last match with the given value                  | O(#)       |         |
+| `a.map_front`    | Map array entries to variables from front to back       | O(#)       | Limited |
+| `a.map_back`     | Map array entries to variables from back to front       | O(#)       | Limited |
 | `a.count`        | Provide the number of entries                           | O(1)       | Limited |
 | `a.contains`     | Return whether the given value is in the array          | O(1)       |         |
 | `a.contains_all` | Return whether all the given values are in the array    | O(#)       |         |

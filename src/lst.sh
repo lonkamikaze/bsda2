@@ -443,6 +443,56 @@ lst.rm_last() {
 }
 
 #
+# Map array values to the given variables from front to back.
+#
+# @param[in] &1
+#	Name of the array
+# @param[in] &@
+#	Variables to map entries to
+# @param[in] RS
+#	The character separating array entries
+#
+lst.map_front() {
+	local IFS
+	IFS="${RS}"
+	eval "
+	set -- \${$1}
+	$(
+		i=0
+		shift
+		for arg in "$@"; do
+			echo "${arg}=\"\${$((i += 1))}\""
+		done
+	)"
+}
+
+#
+# Map array values to the given variables from back to front.
+#
+# @param[in] &1
+#	Name of the array
+# @param[in] &@
+#	Variables to map entries to
+# @param[in] RS
+#	The character separating array entries
+#
+lst.map_back() {
+	local IFS
+	IFS="${RS}"
+	eval "
+	set -- \${$1}
+	$(
+		lst.count "$1" cnt
+		end=$((cnt + 1))
+		i=$end
+		shift
+		for arg in "$@"; do
+			echo "${arg}=\"\${$(((i -= 1) > 0 ? i : end))}\""
+		done
+	)"
+}
+
+#
 # Provide the number of array entries.
 #
 # @warning
