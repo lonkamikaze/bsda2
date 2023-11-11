@@ -285,6 +285,8 @@ bsda:tty:Terminal.stderr() {
 #
 # @param 1
 #	The file descriptor to filter, 1 (stdout) or 2 (stderr)
+# @param @
+#	The filter command (see eval)
 # @retval 0
 #	Attaching the filter was successful
 # @retval 1
