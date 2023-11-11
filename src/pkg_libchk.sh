@@ -315,7 +315,7 @@ pkg:libchk:Session.run() {
 	$this.getJobs maxjobs
 	$this.getPackages pkgs
 	$this.Fifo fifo
-	num=$(($(echo "$pkgs" | /usr/bin/wc -l)))
+	log pkgs.count num
 	        # Total number of packages/jobs
 	count=0 # Completed jobs
 	jobs=0  # Number of running jobs
