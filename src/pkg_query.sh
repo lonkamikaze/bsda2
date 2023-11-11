@@ -58,13 +58,13 @@ pkg:query:depends() {
 # @param 1
 #	The format string for input and output
 # @param @
-#	The pacakges to filter by.
+#	The packages to filter by
 #
 pkg:query:required_only_by() {
-	local fmt depends pkg
+	local fmt
 	fmt="$1"
 	shift
-	awk -vFMT="$fmt" '
+	/usr/bin/awk -vFMT="$fmt" '
 	BEGIN {
 		QUERY = "/usr/sbin/pkg query"
 		DFMT = FMT
@@ -88,7 +88,7 @@ pkg:query:required_only_by() {
 		depends = ""
 		cmd = QUERY " \"" DFMT "\" " leaves
 		while (0 < (cmd | getline)) {
-			if (!($0 in adepends)) {
+			if (!($0 in adepends) && !($0 ~ /\(null\)/)) {
 				adepends[$0]
 				depends = depends " " $0
 			}
@@ -116,4 +116,48 @@ pkg:query:required_only_by() {
 			print depend
 		}
 	}' "$@" | /usr/bin/sort -u
+}
+
+#
+# Produce a unique identifier for the given packages.
+#
+# @param 1
+#	The formatting style either '%n-%v' or '%o' for origin@flavor
+#	style identifiers
+# @param @
+#	The packages to produce an ID for, or all packages if left
+#	empty
+#
+pkg:query:id() {
+	case "$1" in
+	%n-%v) shift && /usr/sbin/pkg query %n-%v "$@";;
+	%o)    shift && pkg:query:origin "$@";;
+	*)     return 1;;
+	esac
+}
+
+#
+# List all package origins as `origin` or `origin@flavor`.
+#
+# @param @
+#	The set of packages to provide the origin for
+#
+pkg:query:origin() {
+	{
+		/usr/sbin/pkg query '%n-%v %o' "$@"
+		/usr/sbin/pkg query '%n-%v %o %At %Av' "$@"
+	} | /usr/bin/awk '
+		!a[$1] {
+			a[$1] = NR
+			o[NR] = $2
+		}
+		$3 == "flavor" {
+			o[a[$1]] = $2 "@" $4
+		}
+		END {
+			for (i = 1; o[i]; ++i) {
+				print o[i]
+			}
+		}
+	'
 }

@@ -123,8 +123,13 @@ bsda:obj:createClass pkg:trim:StateManager \
 # Adds new packages to the package cache.
 #
 # The actual package cache is in the pkgcache attribute and contains
-# tuples with the package, comment and autoremove flag separated
-# by the pipe $'\034' character. Each tuple is on its own line.
+# the following tuples separated by the $'\034' character:
+#
+# 1. package identifier
+# 2. comment
+# 3. autoremove flag
+#
+# Each tuple is on its own line.
 #
 # The pkgcached attribute is a newline separated list of the cached
 # packages.
@@ -153,9 +158,23 @@ pkg:trim:StateManager.cache() {
 	fi
 
 	# Query packages and append to the cache
-	local fmt pkgs
-	$this.getFmt fmt
-	pkgs="$(IFS=$'\n'; pkg:query:select "$fmt"$'\034%c\034%a' $uncached)"
+	local pkgs
+	pkgs="$(
+		{
+			IFS=$'\n'
+			$this.getFmt fmt
+			pkg:query:id "${fmt}" $uncached
+			pkg:query:select $'%c\034%a' $uncached
+		} | /usr/bin/awk '
+		BEGIN { OFS = FS = SUBSEP }
+		{ a[NR] = $0 }
+		END {
+			for (i = 1; i <= NR/2; ++i) {
+				print(a[i], a[NR/2 + i])
+			}
+		}
+		'
+	)"
 	log ${this}pkgcache.push_back "$pkgs"
 	log ${this}pkgcached.push_back "$uncached"
 }
@@ -169,14 +188,16 @@ pkg:trim:StateManager.cache() {
 #	The format string for a package identifier, defaults to "%n-%v"
 #
 pkg:trim:StateManager.init() {
-	local fmt state
+	local fmt state leaves
 	fmt="${1:-%n-%v}"
 	setvar ${this}fmt "$fmt"
 	pkg:trim:State state
 	setvar ${this}States $state
 	setvar ${this}state $state
 	# Initialise first state
-	setvar ${state}show "$(pkg:query:leaves "$fmt")"
+	leaves="$(pkg:query:leaves "%n-%v")"
+	leaves="$(IFS=$'\n'; pkg:query:id "${fmt}" ${leaves} )"
+	setvar ${state}show "${leaves}"
 }
 
 #
@@ -421,12 +442,16 @@ pkg:trim:StateManager.next() {
 	setvar ${this}state $next
 
 	# Initialise next state
-	local fmt shown checked
-	$this.getFmt fmt
+	local shown checked fmt show
 	$state.allShow shown
 	$state.allChecked checked
-	setvar ${next}show "$(pkg:query:required_only_by "$fmt" $checked \
-	                      | /usr/bin/grep -vFx "$shown")"
+	$this.getFmt fmt
+	show=
+	if [ -n "$checked" ]; then
+		show="$(IFS=$'\n'; pkg:query:required_only_by "%n-%v" $(pkg:query:id %n-%v $checked) )"
+		show="$(IFS=$'\n'; pkg:query:id "${fmt}" $show | /usr/bin/grep -vFx "$shown")"
+	fi
+	setvar ${next}show "${show}"
 }
 
 #
@@ -606,8 +631,8 @@ pkg:trim:Session.run() {
 	$this.Flags flags
 
 	# Use name-version packages unless PKG_ORIGIN is set
-	fmt="%n-%v"
-	$flags.check PKG_ORIGIN -ne 0 && fmt="%o"
+	fmt=%n-%v
+	$flags.check PKG_ORIGIN -ne 0 && fmt=%o
 
 	# Setup the dialog
 	bsda:dialog:Dialog dialog

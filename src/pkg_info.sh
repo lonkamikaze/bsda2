@@ -2,6 +2,7 @@ test -n "$_pkg_info_" && return 0
 readonly _pkg_info_=1
 
 . ${bsda_dir:-.}/bsda_obj.sh
+. ${bsda_dir:-.}/pkg_query.sh
 
 #
 # This package collects ways to query pkg-info(8).
@@ -125,7 +126,7 @@ pkg:info:Env.match() {
 	# used internally as well, so we do not have to convert for
 	# display.
 	if $flags.check PKG_ORIGIN -ne 0; then
-		pkgs="$(/usr/sbin/pkg info -qo $pkgs 2>&-)"
+		pkgs="$(pkg:query:origin $pkgs 2>&-)"
 	fi
 
 	# Return the collected packages
