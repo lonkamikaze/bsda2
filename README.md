@@ -26,11 +26,12 @@ TOC
    1. [pkg_libchk](#pkg_libchk)
    2. [pkg_trim](#pkg_trim)
    3. [pkg_validate](#pkg_validate)
-   4. [distviper](#distviper)
-   5. [buildflags](#buildflags)
-   6. [makeplist](#makeplist)
-   7. [loaderupdate](#loaderupdate)
-   8. [bprintf](#bprintf)
+   4. [pkg_version](#pkg_version)
+   5. [distviper](#distviper)
+   6. [buildflags](#buildflags)
+   7. [makeplist](#makeplist)
+   8. [loaderupdate](#loaderupdate)
+   9. [bprintf](#bprintf)
 2. [Libraries](#libraries)
    1. [bsda:obj](#bsdaobj)
    2. [TYPE.SH](#typesh)
@@ -40,6 +41,12 @@ TOC
 
 Tools
 -----
+
+The tools provided rely on basic FreeBSD system tools but provide
+additional convenience and/or speed.
+
+One of the advantages common to all pkg_* tools is that they include
+the package flavour when printing package origins.
 
 ### pkg_libchk
 
@@ -68,6 +75,24 @@ packages.
 
 Its advantages over running `pkg check -s` are faster execution time
 and the ability to run it as an unprivileged user.
+
+### pkg_version
+
+The pkg_version tool checks the installed package versions against
+a source of updates, such as a ports INDEX, ports tree or a package
+repository.
+
+Its two advantages over running pkg-version(8) directly are the faster
+execution time when using it with the ports tree and its ability to
+print the names/origins of packages without the comparison operator
+if `-ql` is used. Thus no additional output filtering is required to
+feed the output into another tool:
+
+```
+# pkg_version -ql\<
+bind-tools-9.18.19
+gawk-5.2.2
+```
 
 ### distviper
 
