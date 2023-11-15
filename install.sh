@@ -3,8 +3,8 @@
 . install.inc
 
 for file in $files; {
-	test -z "$file" && continue
 	source="${file%%,*}"
+	test -z "${source}" && continue
 	mode="${file%,*}"
 	mode="${mode#*,}"
 	file="${file##*,}"

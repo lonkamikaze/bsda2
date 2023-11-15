@@ -4,7 +4,8 @@ set -fCe
 . install.inc
 
 for file in $files; {
-	test -z "$file" && continue
+	source="${file%%,*}"
+	test -z "${source}" && continue
 	file="${file##*,}"
 	target="${destdir}${file#${destdir:+/}}"
 	echo "$target"

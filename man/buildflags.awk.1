@@ -1,10 +1,10 @@
-.Dd 23 February, 2021
+.Dd 15 November, 2023
 .Dt BUILDFLAGS.AWK 1
 .Os
 .Sh NAME
 .Nm buildflags.awk
 .Nd convert
-.Xr buildflags.conf 1
+.Xr buildflags.conf 5
 files into make syntax
 .Sh SYNOPSIS
 .Nm
@@ -13,17 +13,17 @@ file
 The
 .Nm
 script converts a
-.Xr buildflags.conf 1
+.Xr buildflags.conf 5
 file into valid make syntax. The script can
 normally be found under '%%DATADIR%%/buildflags.awk'.
 .Pp
 This is not end user documentation, if you just want to use buildflags.conf
 files please refer to the
-.Xr buildflags.conf 1
+.Xr buildflags.conf 5
 manual page.
 .Sh SYNTAX
 While the
-.Xr buildflags.conf 1
+.Xr buildflags.conf 5
 man page describes how to use the buildflags.conf syntax, this page
 describes the resulting make syntax. Syntax examples will always be followed
 by the resulting make code. The term space actually refers to all whitespace 
@@ -173,7 +173,7 @@ RESULT
 WITHOUT_BDB=            yes
 .Ed
 .Sh SEE ALSO
-.Xr buildflags.conf 1 ,
+.Xr buildflags.conf 5 ,
 .Xr buildflags.mk 1
 .Sh HISTORY
 The

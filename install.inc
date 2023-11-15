@@ -21,7 +21,7 @@ src/buildflags.awk,0755,%%DATADIR%%/buildflags.awk
 src/buildflags.conf.sample,0644,%%PREFIX%%/etc/buildflags.conf.sample
 src/buildflags.mk,0644,%%DATADIR%%/buildflags.mk
 man/buildflags.awk.1,0644,%%MAN%%/man1/buildflags.awk.1.gz
-man/buildflags.conf.1,0644,%%MAN%%/man1/buildflags.conf.1.gz
+man/buildflags.conf.5,0644,%%MAN%%/man5/buildflags.conf.5.gz
 man/buildflags.mk.1,0644,%%MAN%%/man1/buildflags.mk.1.gz
 src/compat.sh,0644,%%DATADIR%%/compat.sh
 src/distviper,0755,%%PREFIX%%/sbin/distviper
@@ -41,7 +41,7 @@ src/makeplist.sh,0644,%%DATADIR%%/makeplist.sh
 src/options.mk,0644,%%DATADIR%%/options.mk
 src/pkg_info.sh,0644,%%DATADIR%%/pkg_info.sh
 src/pkg_libchk,0755,%%PREFIX%%/sbin/pkg_libchk
-man/pkg_libchk.1,0644,%%MAN%%/man1/pkg_libchk.1.gz
+man/pkg_libchk.8,0644,%%MAN%%/man8/pkg_libchk.8.gz
 src/pkg_libchk.sh,0644,%%DATADIR%%/pkg_libchk.sh
 src/pkg_options.sh,0644,%%DATADIR%%/pkg_options.sh
 src/pkg_query.sh,0644,%%DATADIR%%/pkg_query.sh
@@ -49,7 +49,7 @@ src/pkg_trim,0755,%%PREFIX%%/sbin/pkg_trim
 man/pkg_trim.8,0644,%%MAN%%/man8/pkg_trim.8.gz
 src/pkg_trim.sh,0644,%%DATADIR%%/pkg_trim.sh
 src/pkg_validate,0755,%%PREFIX%%/sbin/pkg_validate
-man/pkg_validate.1,0644,%%MAN%%/man1/pkg_validate.1.gz
+man/pkg_validate.8,0644,%%MAN%%/man8/pkg_validate.8.gz
 src/pkg_validate.sh,0644,%%DATADIR%%/pkg_validate.sh
 src/pkg_version,0755,%%PREFIX%%/sbin/pkg_version
 man/pkg_version.8,0644,%%MAN%%/man8/pkg_version.8.gz
@@ -58,6 +58,13 @@ src/type.sh,0644,%%DATADIR%%/type.sh
 ref/type.md,0644,%%DOCSDIR%%/ref/type.md
 LICENSE.md,0644,%%DOCSDIR%%/LICENSE.md
 README.md,0644,%%DOCSDIR%%/README.md
+"
+
+# moved/deleted files
+files="${files}
+,,%%MAN%%/man1/pkg_libchk.1.gz
+,,%%MAN%%/man1/pkg_validate.1.gz
+,,%%MAN%%/man1/buildflags.conf.1.gz
 "
 
 IFS=$'\n'

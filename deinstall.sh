@@ -5,11 +5,14 @@
 dirs=
 for file in $files; {
 	test -z "$file" && continue
+	source="${file%%,*}"
 	file="${file##*,}"
 	target="${destdir}${file#${destdir:+/}}"
-	echo "deleting: $target"
-	rm "$target"
-	dirs="${dirs}${target%/*}"$'\n'
+	if [ -n "${source}" -o -f "${target}" ]; then
+		echo "deleting: $target"
+		rm "$target"
+		dirs="${dirs}${target%/*}"$'\n'
+	fi
 }
 dirs="$(echo "${dirs}" | sort -ur)"
 for dir in $dirs; do
