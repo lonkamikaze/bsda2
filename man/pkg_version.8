@@ -1,0 +1,162 @@
+.Dd 14 November, 2023
+.Dt PKG_VERSION 8
+.Os
+.Sh NAME
+.Nm pkg_version
+.Nd summarise installed versions of packages
+.Sh SYNOPSIS
+.Nm
+.Op Fl aCcdghiOoPqrRvx
+.Op Fl I Op Ar index
+.Op Fl j Ar jobs
+.Op Fl l Ar limchar
+.Op Fl L Ar limchar
+.Op Ar pkg-name ...
+.Sh Description
+The
+.Nm
+script is a
+.Xr pkg-version 8
+wrapper capable of greatly improving the performance of using the
+.Xr ports 7
+tree as the version source by querying version numbers in parallel.
+.Pp
+For most of the behaviour
+.Xr pkg-version 8
+can be consulted. Noteworthy differences are:
+.Pp
+.Bl -bullet -compact
+.It
+Multiple package arguments can be provided
+.It
+Origins
+.Po if
+.Fl o
+is used
+.Pc
+contain the flavour of the installed package
+.It
+If
+.Fl l
+.Ar limchar
+and
+.Fl q
+are given, only package identifiers are output
+.It
+The
+.Fl t
+and
+.Fl T
+arguments are not supported
+.El
+.Ss ARGUMENTS
+The following arguments are accepted:
+.Bl -tag -width indent
+.It index
+The index file to compare installed package versions to. Defaults to
+.Pa /usr/ports/INDEX-N
+with N being the major
+.Fx
+version number. See
+.Xr pkg-version 8 .
+.It Ar jobs
+The number of processes to use in parallel to run
+.Xr pkg-version 8
+queries.
+.It Ar limchar
+A single character constraining which packages are output.
+.It Ar pkg-name
+Packages are package names or shell glob patterns matching these. Whatever
+works with
+.Xr pkg-info 8
+is an acceptable package.
+.El
+.Ss OPTIONS
+The following options are available:
+.Bl -tag -width indent
+.It Fl a , -all
+Check all packages. This is the default action in case no
+.Ar pkg-name
+has been specified.
+.It Fl C , -case-sensitive
+See
+.Xr pkg-info 8 .
+.It Fl c , -clean
+Create clean output without status messages.
+.It Fl d , -dependencies
+Also operate on the dependencies of the provided
+.Ar pkg-name .
+.It Fl g , -glob
+See
+.Xr pkg-info 8 .
+.It Fl h , -help
+Displays the available options.
+.It Fl i , -case-insensitive
+See
+.Xr pkg-info 8 .
+.It Fl I Oo Ar index Oc , Fl -index Op Ar index
+Use index file to determine if a package is out of date. See
+.Xr pkg-version 8 .
+.It Fl j Ar jobs , Fl -jobs Ar jobs
+Specify the amount of parallel
+.Ar jobs
+the script will attempt run. The default is number of detected cores.
+.It Fl l Ar limchar , Fl --like Ar limchar
+Display only packages with the given version status, see
+.Xr pkg-version 8 .
+.It Fl L Ar limchar , Fl --not-like Ar limchar
+Display only packages unlike the given version status, see
+.Xr pkg-version 8 .
+.It Fl O , -by-origin
+See
+.Xr pkg-info 8 .
+.It Fl o , -origin
+Instead of the package name and version the package origin and flavour
+is printed.
+.It Fl P , -ports
+Use
+.Xr ports 7
+to determine if a package is out of date. See
+.Xr pkg-version 8 .
+.It Fl q , -quiet
+Produce less output, see
+.Xr pkg-version 8 .
+.It Fl R , -remote
+Use repository catalogue to determine if a package is out of date.
+See
+.Xr pkg-version 8 .
+.It Fl r , -required-by
+Also check packages that depend on the provided packages.
+.It Fl U , -no-repo-update
+Disable automatic update of the repository catalogue. See
+.Xr pkg-version 8 .
+.It Fl v , -verbose
+Be verbose, see
+.Xr pkg-version 8 .
+Use twice to be extra verbose.
+.It Fl x , -regex
+See
+.Xr pkg-info 8 .
+.El
+.Sh EXAMPLES
+Check all packages whether they are out of date:
+.Bd -literal -offset indent
+pkg_version
+.Ed
+.Pp
+List all out of date GPU firmware packages, without any visual clutter:
+.Bd -literal -offset indent
+pkg_version -ql\\< gpu-firmware-\\*
+.Ed
+.Sh SEE ALSO
+.Xr pkg-info 8 ,
+.Xr pkg-version 8 ,
+.Xr ports 7
+.Sh HISTORY
+The
+.Nm
+script first appeared in the
+.Sy bsda2-0.5.0
+collection.
+.Sh AUTHORS
+.An Dominic Fandrey Aq Mt freebsd@k4m1.org
