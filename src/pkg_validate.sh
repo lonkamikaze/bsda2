@@ -176,17 +176,17 @@ pkg:validate:Session.params() {
 		shift
 	done
 
-	if $flags.check CLEAN -ne 0; then
+	if $flags.check CLEAN; then
 		$($this.Term).deactivate
 	fi
 
-	if $flags.check VERBOSE -ne 0 && $flags.check PKG_QUIET -ne 0; then
+	if $flags.check VERBOSE && $flags.check PKG_QUIET; then
 		$($this.Term).stderr \
 			"The parameters -v and -q may not be used at the same time."
 		exit 3
 	fi
 
-	if $flags.check PKG_QUIET -ne 0; then
+	if $flags.check PKG_QUIET; then
 		# Print package name/origin only, skip duplicates
 		$($this.Term).filter 1 "/usr/bin/awk -F: '!a[\$0=\$1]++'"
 	fi
@@ -237,7 +237,7 @@ pkg:validate:Session.packages() {
 
 	# Extra verbose output
 	if $flags.check VERBOSE -gt 1; then
-		if $flags.check PKG_ALL -ne 0; then
+		if $flags.check PKG_ALL; then
 			$($this.Term).stderr "Checking all packages ..."
 		else
 			IFS=$'\n' $($this.Term).stderr "Checking packages:" \
@@ -278,7 +278,7 @@ pkg:validate:Session.run() {
 	done
 	log jobpids=cat ${this}jobpids
 
-	if $flags.check CLEAN -ne 0; then
+	if $flags.check CLEAN; then
 		$flags.check PKG_ORIGIN -eq 0 && fmt="%n-%v" || fmt="%o"
 		$fifo.sink $'pkg:query:select "${fmt}\034%Fs\034%Fp" ${pkgs}'
 	else
@@ -344,7 +344,7 @@ pkg:validate:Session:validate() {
 		if [ "$sum" != "${2#*\$}" ]; then
 			msg="checksum mismatch for $3"
 		elif [ ! -e "$3" ]; then
-			if $flags.check DEVELOPER -ne 0; then
+			if $flags.check DEVELOPER; then
 				msg="cannot follow symlink $3 to ${link}"
 			fi
 		fi
@@ -358,7 +358,7 @@ pkg:validate:Session:validate() {
 		done
 		if [ ! -r "$path" ]; then
 			# file or location not accessible
-			if $flags.check NO_FILTER -ne 0; then
+			if $flags.check NO_FILTER; then
 				file="${3#${path}}"
 				msg="user ${USER} cannot access ${path}${file:+(${file})}"
 			fi

@@ -23,8 +23,11 @@ readonly _bsda_opts_=1
 #
 # This example shows how to check a flag.
 #
-#	if $flags.check VERBOSE -ne 0; then
+#	if $flags.check VERBOSE; then
 #		echo "Starting in verbose mode" 1>&2
+#	fi
+#	if $flags.check VERBOSE -gt 1; then
+#		echo "Be extra verbose" 1>&2
 #	fi
 #
 
@@ -411,8 +414,7 @@ bsda:opts:Flags.add() {
 	local flags value
 	$this.Flags flags
 	$flags.[ "$1" ] value
-	value=$((value + 1))
-	$flags.[ "$1" ]= ${value}
+	$flags.[ "$1" ]= $((value + 1))
 }
 
 #
@@ -421,14 +423,16 @@ bsda:opts:Flags.add() {
 # This method takes a flag, a test-style numerical operator (like
 # -eq) and a numerical value.
 #
+# If the operator is omitted -ne 0 is implied.
+#
 # Uncounted flags compare -eq 0.
 #
 # @param 1
 #	The flag to check the count of
 # @param 2
-#	The numerical comparison operator
+#	The numerical comparison operator (optional)
 # @param 3
-#	The numerical value
+#	The numerical value (optional)
 # @retval 0
 #	The comparison statement is true
 # @retval 1
@@ -438,5 +442,5 @@ bsda:opts:Flags.check() {
 	local flags value
 	$this.Flags flags
 	$flags.[ "$1" ] value
-	test $((value)) "$2" $(($3))
+	test $((value)) "${2--ne}" $((${3-0}))
 }

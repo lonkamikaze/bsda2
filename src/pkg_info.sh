@@ -73,22 +73,22 @@ pkg:info:Env.match() {
 
 	# Select command line arguments
 	log args= -E
-	if $flags.check PKG_ALL -ne 0; then
+	if $flags.check PKG_ALL; then
 		log args.push_back -aq
 	fi
-	if $flags.check PKG_CASE_SENSITIVE -ne 0; then
+	if $flags.check PKG_CASE_SENSITIVE; then
 		log args.push_back -C
 	fi
-	if $flags.check PKG_GLOB -ne 0; then
+	if $flags.check PKG_GLOB; then
 		log args.push_back -g
 	fi
-	if $flags.check PKG_CASE_INSENSITIVE -ne 0; then
+	if $flags.check PKG_CASE_INSENSITIVE; then
 		log args.push_back -i
 	fi
-	if $flags.check PKG_REGEX -ne 0; then
+	if $flags.check PKG_REGEX; then
 		log args.push_back -x
 	fi
-	if $flags.check PKG_BY_ORIGIN -ne 0; then
+	if $flags.check PKG_BY_ORIGIN; then
 		log args.push_back -Oq
 	fi
 
@@ -109,13 +109,13 @@ pkg:info:Env.match() {
 	# Get related packages, unless all packages are selected any way
 	if $flags.check PKG_ALL -eq 0; then
 		# Get dependencies if requested
-		if $flags.check PKG_DEPENDENCIES -ne 0; then
+		if $flags.check PKG_DEPENDENCIES; then
 			dep="$(/usr/sbin/pkg info -qd $pkgs 2>&-)"
 			pkgs="$pkgs${dep:+$IFS}$dep"
 			pkgs="$(echo "$pkgs" | /usr/bin/awk '!a[$0]++')"
 		fi
 		# Get required by packages if requested
-		if $flags.check PKG_REQUIRED_BY -ne 0; then
+		if $flags.check PKG_REQUIRED_BY; then
 			req="$(/usr/sbin/pkg info -qr $pkgs 2>&-)"
 			pkgs="$pkgs${req:+$IFS}$req"
 			pkgs="$(echo "$pkgs" | /usr/bin/awk '!a[$0]++')"
@@ -125,7 +125,7 @@ pkg:info:Env.match() {
 	# Origins are equally valid unique identifiers, so they can be
 	# used internally as well, so we do not have to convert for
 	# display.
-	if $flags.check PKG_ORIGIN -ne 0; then
+	if $flags.check PKG_ORIGIN; then
 		pkgs="$(pkg:query:origin $pkgs 2>&-)"
 	fi
 

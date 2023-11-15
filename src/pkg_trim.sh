@@ -632,7 +632,7 @@ pkg:trim:Session.run() {
 
 	# Use name-version packages unless PKG_ORIGIN is set
 	fmt=%n-%v
-	$flags.check PKG_ORIGIN -ne 0 && fmt=%o
+	$flags.check PKG_ORIGIN && fmt=%o
 
 	# Setup the dialog
 	bsda:dialog:Dialog dialog
@@ -698,7 +698,7 @@ pkg:trim:Session.run() {
 	|| return $?
 	# Perform action
 	yes=
-	$flags.check PKG_YES -ne 0 && yes=-y
+	$flags.check PKG_YES && yes=-y
 	# Always remove autoremove flag from unchecked packages
 	if [ -n "$unchecked" ]; then
 		/usr/sbin/pkg set $yes -A0 $unchecked || return $?

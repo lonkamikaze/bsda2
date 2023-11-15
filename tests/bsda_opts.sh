@@ -108,6 +108,10 @@ $flags.check FOO -ne 0
 $flags.check BAR -ne 0
 $flags.check BAZ -ne 0
 ! $flags.check XXX -ne 0
+$flags.check FOO
+$flags.check BAR
+$flags.check BAZ
+! $flags.check XXX
 ! $flags.check FOO -eq 0
 ! $flags.check BAR -eq 0
 ! $flags.check BAZ -eq 0

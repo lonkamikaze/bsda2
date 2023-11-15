@@ -179,15 +179,15 @@ pkg:version:Session.params() {
 		shift
 	done
 
-	if $flags.check CLEAN -ne 0; then
+	if $flags.check CLEAN; then
 		$($this.Term).deactivate
 	fi
 
-	if $flags.check VERBOSE -ne 0 && $flags.check PKG_QUIET -ne 0; then
+	if $flags.check VERBOSE && $flags.check PKG_QUIET; then
 		bsda:err:raise E_ARGS "The -v and -q parameters are mutually exclusive."
 	fi
 
-	if $flags.check PKG_QUIET -ne 0; then
+	if $flags.check PKG_QUIET; then
 		rec ${this}args.push_back -q
 	fi
 
@@ -199,15 +199,15 @@ pkg:version:Session.params() {
 		bsda:err:raise E_ARGS "The -L parameter may only be used once."
 	fi
 
-	if $flags.check LIKE -ne 0 && $flags.check NOT_LIKE -ne 0; then
+	if $flags.check LIKE && $flags.check NOT_LIKE; then
 		bsda:err:raise E_ARGS "The -l and -L parameters are mutually exclusive."
 	fi
 
 	# Count mutually exclusive -I, -P and -R parameters
 	cnt=0
-	$flags.check INDEX  -ne 0 && : $((cnt += 1))
-	$flags.check PORTS  -ne 0 && : $((cnt += 1))
-	$flags.check REMOTE -ne 0 && : $((cnt += 1))
+	$flags.check INDEX  && : $((cnt += 1))
+	$flags.check PORTS  && : $((cnt += 1))
+	$flags.check REMOTE && : $((cnt += 1))
 	if [ ${cnt} -gt 1 ]; then
 		bsda:err:raise E_ARGS "The -I [index], -P and -R parameters are mutually exclusive."
 	fi
@@ -257,7 +257,7 @@ pkg:version:Session.packages() {
 
 	# Extra verbose output
 	if $flags.check VERBOSE -gt 1; then
-		if $flags.check PKG_ALL -ne 0; then
+		if $flags.check PKG_ALL; then
 			$($this.Term).stderr "Checking all packages ..."
 		else
 			IFS=$'\n' $($this.Term).stderr "Checking packages:" \
@@ -356,7 +356,7 @@ pkg:version:Session.job() {
 				$term.stdout "${out%$'\n'*}"
 			fi
 			# Print the last line (version check result)
-			if $flags.check LIKE -ne 0 && $flags.check PKG_QUIET -ne 0; then
+			if $flags.check LIKE && $flags.check PKG_QUIET; then
 				$term.stdout "${1}"
 			else
 				$term.stdout "$(printf "%-34s %s\n" "$1" "${out##*$'\n'}")"

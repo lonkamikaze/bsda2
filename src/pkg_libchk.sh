@@ -171,11 +171,11 @@ pkg:libchk:Session.params() {
 		shift
 	done
 
-	if $flags.check CLEAN -ne 0; then
+	if $flags.check CLEAN; then
 		$($this.Term).deactivate
 	fi
 
-	if $flags.check VERBOSE -ne 0 && $flags.check PKG_QUIET -ne 0; then
+	if $flags.check VERBOSE && $flags.check PKG_QUIET; then
 		$($this.Term).stderr \
 			"The parameters -v and -q may not be used at the same time."
 		exit 3
@@ -227,7 +227,7 @@ pkg:libchk:Session.packages() {
 
 	# Extra verbose output
 	if $flags.check VERBOSE -gt 1; then
-		if $flags.check PKG_ALL -ne 0; then
+		if $flags.check PKG_ALL; then
 			$($this.Term).stderr "Checking all packages ..."
 		else
 			IFS=$'\n' $($this.Term).stderr "Checking packages:" \
@@ -272,7 +272,7 @@ pkg:libchk:Session.print() {
 	test -z "$misses" && return
 
 	# Honour quiet output flag
-	if $flags.check PKG_QUIET -ne 0; then
+	if $flags.check PKG_QUIET; then
 		$($this.Term).stdout "$pkg"
 		return $?
 	fi

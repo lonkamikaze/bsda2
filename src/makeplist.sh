@@ -788,7 +788,7 @@ makeplist:Make.run() {
 		echo "WITHOUT=$2" >> "$logfilename"
 		/usr/bin/printenv >> "$logfilename"
 		# Execute make in quiet mode
-		if $oflags.check QUIET -ne 0; then
+		if $oflags.check QUIET; then
 			# Cannot be interactive in quiet mode
 			export BATCH=1
 			# Close outputs
@@ -1059,7 +1059,7 @@ makeplist:Session.params() {
 		shift
 	done
 
-	if $flags.check LICENSES -ne 0 && $flags.check QUIET -ne 0; then
+	if $flags.check LICENSES && $flags.check QUIET; then
 		$this.error "The --licenses and --quiet flags are mutually exclusive."
 		return 1
 	fi

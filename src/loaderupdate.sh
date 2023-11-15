@@ -411,7 +411,7 @@ loaderupdate:Session.params() {
 		shift
 	done
 
-	if $flags.check DRYRUN -ne 0 && $flags.check DUMP -ne 0; then
+	if $flags.check DRYRUN && $flags.check DUMP; then
 		bsda:err:raise E_LOADERUPDATE_PARAM "${0##*/}: ERROR: The -D and -P flags are mutually exclusive"
 		return 1
 	fi
@@ -531,7 +531,7 @@ loaderupdate:Session.printcmd() {
 	shift
 	$this.Flags flags
 	if $flags.check QUIET -eq 0; then
-		if $flags.check DRYRUN -ne 0; then
+		if $flags.check DRYRUN; then
 			echo -n "${cmd##*/}"
 		elif [ -t 1 ]; then
 			printf "\033[38;5;112m%s\033[m> %s" "${0##*/}" "${cmd##*/}"
@@ -632,7 +632,7 @@ loaderupdate:Session.run() {
 	efifile="/efi/${ostype}/boot${machine}.efi"
 
 	$this.Flags flags
-	if $flags.check DUMP -ne 0; then
+	if $flags.check DUMP; then
 		echo   "Boot Environment"
 		echo   "----------------"
 		printf "%-22s  %s\n" \
@@ -658,7 +658,7 @@ loaderupdate:Session.run() {
 			for part in ${efiparts}; do
 				printf "    %-18s  %s\n" "install:" "${efiload} > ${dev}p${part}:${efifile}"
 			done
-			$flags.check NOEFI -ne 0 && efiparts=
+			$flags.check NOEFI && efiparts=
 			for part in ${efiparts}; do
 				bsda:fmt label "${efilabel}" \
 				         dev="${dev}" \
@@ -773,7 +773,7 @@ loaderupdate:Session.run() {
 		EFIVARS
 
 		# make EFI boot manager entry
-		$flags.check NOEFI -ne 0 && efiparts=
+		$flags.check NOEFI && efiparts=
 		for part in ${efiparts}; do
 			partdev="${dev}p${part}"
 			mountpoint="/tmp/${0##*/}.$$/${partdev}"

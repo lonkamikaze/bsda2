@@ -97,7 +97,7 @@ distviper:Session.params() {
 		shift
 	done
 
-	if $flags.check VERBOSE -ne 0 && $flags.check QUIET -ne 0; then
+	if $flags.check VERBOSE && $flags.check QUIET; then
 		$this.error "Conflicting options -v and -q supplied."
 		return 1
 	fi
@@ -165,7 +165,7 @@ distviper:Session.error() {
 distviper:Session.status() {
 	local term
 	$this.Term term
-	if $($this.Flags).check VERBOSE -ne 0; then
+	if $($this.Flags).check VERBOSE; then
 		$term.stdout "$1"
 	else
 		$term.line 0 "$1"
@@ -320,7 +320,7 @@ distviper:Session.run() {
 		log rmflags.push_back -i
 	fi
 
-	if $flags.check DEMO -ne 0; then
+	if $flags.check DEMO; then
 		rmcmd=echo
 		log rmflags=
 	fi
