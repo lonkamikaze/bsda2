@@ -139,6 +139,9 @@ pkg:version:Session.params() {
 				like="$2"
 				shift
 			fi
+			if [ ${#like} -ne 1 ]; then
+				bsda:err:raise E_ARGS "The argument to -l must a single character."
+			fi
 			rec ${this}args.push_back "-l${like}"
 		;;
 		NO_REPO_UPDATE)
@@ -151,6 +154,9 @@ pkg:version:Session.params() {
 			if [ -z "$unlike" ]; then
 				unlike="$2"
 				shift
+			fi
+			if [ ${#unlike} -ne 1 ]; then
+				bsda:err:raise E_ARGS "The argument to -L must a single character."
 			fi
 			rec ${this}args.push_back "-L${unlike}"
 		;;
