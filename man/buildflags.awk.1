@@ -1,4 +1,4 @@
-.Dd 15 November, 2023
+.Dd 18 November, 2023
 .Dt BUILDFLAGS.AWK 1
 .Os
 .Sh NAME
@@ -28,7 +28,7 @@ man page describes how to use the buildflags.conf syntax, this page
 describes the resulting make syntax. Syntax examples will always be followed
 by the resulting make code. The term space actually refers to all whitespace 
 characters (including tabs).
-.Ss COMMENTS
+.Ss Comments
 Unless they're enclosed by '"' comments have the highest priority in the
 buildflags.conf syntax.
 Comments that are found behind valid code will end up one line before it.
@@ -45,7 +45,7 @@ RESULT
 IGNORE=                 yes
 \&.endif # %%PORTS%%/audio/arts
 .Ed
-.Ss DIRECTIVES
+.Ss Directives
 Apart from being put behind trailing comments native
 .Xr make 1
 directives remain
@@ -70,7 +70,7 @@ LDCONFIG+=	-32
 \&.endif
 \&.endif # %%PORTS%%/*
 .Ed
-.Ss QUOTES
+.Ss Quotes
 Unless part of a comment quotes always have to follow a variable assignment.
 Whatever lies within them will remain untouched, but there are no escape
 sequences, thus there is no way to enclose a '"' within quotes. Only double
@@ -94,7 +94,7 @@ BUT= "	in an
 # We want optimized binaries!
 CFLAGS="-O2 -pipe"
 .Ed
-.Ss LOCATIONS
+.Ss Locations
 Locations are paths that are used to define where a variable assignment is
 valid, this is achieved by make. This script will simply convert such location
 blocks to a make '.if' statement. If possible symlinked paths will be
@@ -120,7 +120,7 @@ IGNORE=                 yes
 \&.endif # */x11*
 \&.endif # %%PORTS%%/* & !*/work/*
 .Ed
-.Ss VARIABLES
+.Ss Variables
 For
 .Nm
 there are two kinds of variable assignments. Compact variable assignments
@@ -152,7 +152,7 @@ CPUTYPE=i686
 CFLAGS= -O -pipe
 \&.endif # /usr/src
 .Ed
-.Ss FLAGS
+.Ss Flags
 There are two kinds of flags, negated flags and regular flags.
 .Pp
 Regular flags are variable assignments assuming that the mostly used assignment

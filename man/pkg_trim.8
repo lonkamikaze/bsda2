@@ -1,4 +1,4 @@
-.Dd 23 February, 2021
+.Dd 18 November, 2023
 .Dt PKG_TRIM 8
 .Os
 .Sh NAME
@@ -6,21 +6,23 @@
 .Nd select and remove unwanted leaf packages
 .Sh SYNOPSIS
 .Nm
-.Op Fl hoy
+.Op Fl oy
+.Nm
+.Fl h
 .Sh DESCRIPTION
 The
 .Nm
 script performs dialog driven selection of leaf packages. After completing 
 selection, the user is asked to either update the autoremove flags
 of the selected packages or delete them immediately.
-.Sh OPTIONS
+.Ss Options
 The following options are supported:
 .Bl -tag -width indent
-.It Fl h -help
+.It Fl h , -help
 Displays the available options.
-.It Fl o -origin
+.It Fl o , -origin
 List package origins instead of names.
-.It Fl y -yes
+.It Fl y , -yes
 Assume yes when calling
 .Xr pkg-set 8
 or

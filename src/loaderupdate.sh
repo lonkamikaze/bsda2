@@ -678,7 +678,7 @@ loaderupdate:Session.run() {
 	if $flags.check NOEFI -eq 0; then
 		efivars="$(/usr/sbin/efibootmgr -v 2>&1)"
 		# FreeBSD 13 broke the -a, -A and -B parameters by
-		# requiring an additional parameteter
+		# requiring an additional parameter
 		case "$(/usr/sbin/efibootmgr -h 2>&1)" in
 		*'-b bootnum'*) ecompat=b;;
 		esac

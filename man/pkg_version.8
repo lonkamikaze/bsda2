@@ -1,4 +1,4 @@
-.Dd 14 November, 2023
+.Dd 18 November, 2023
 .Dt PKG_VERSION 8
 .Os
 .Sh NAME
@@ -6,12 +6,34 @@
 .Nd summarise installed versions of packages
 .Sh SYNOPSIS
 .Nm
-.Op Fl aCcdghiOoPqrRvx
-.Op Fl I Op Ar index
+.Op Fl coqUv
 .Op Fl j Ar jobs
 .Op Fl l Ar limchar
 .Op Fl L Ar limchar
-.Op Ar pkg-name ...
+.Op Fl a | Oo Fl CdgiOrx Oc Ar pkg-name ...
+.Nm
+.Fl P
+.Op Fl coqv
+.Op Fl j Ar jobs
+.Op Fl l Ar limchar
+.Op Fl L Ar limchar
+.Op Fl a | Oo Fl CdgiOrx Oc Ar pkg-name ...
+.Nm
+.Fl I Op Ar index
+.Op Fl coqv
+.Op Fl j Ar jobs
+.Op Fl l Ar limchar
+.Op Fl L Ar limchar
+.Op Fl a | Oo Fl CdgiOrx Oc Ar pkg-name ...
+.Nm
+.Fl R
+.Op Fl coqUv
+.Op Fl j Ar jobs
+.Op Fl l Ar limchar
+.Op Fl L Ar limchar
+.Op Fl a | Oo Fl CdgiOrx Oc Ar pkg-name ...
+.Nm
+.Fl h
 .Sh Description
 The
 .Nm
@@ -49,10 +71,10 @@ and
 .Fl T
 arguments are not supported
 .El
-.Ss ARGUMENTS
+.Ss Arguments
 The following arguments are accepted:
 .Bl -tag -width indent
-.It index
+.It Ar index
 The index file to compare installed package versions to. Defaults to
 .Pa /usr/ports/INDEX-N
 with N being the major
@@ -71,7 +93,7 @@ works with
 .Xr pkg-info 8
 is an acceptable package.
 .El
-.Ss OPTIONS
+.Ss Options
 The following options are available:
 .Bl -tag -width indent
 .It Fl a , -all
@@ -121,6 +143,11 @@ to determine if a package is out of date. See
 .It Fl q , -quiet
 Produce less output, see
 .Xr pkg-version 8 .
+In combination with
+.Fl l
+it suppresses printing
+.Ar limchar
+behind matched packages.
 .It Fl R , -remote
 Use repository catalogue to determine if a package is out of date.
 See

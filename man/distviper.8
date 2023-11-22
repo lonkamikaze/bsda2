@@ -1,4 +1,4 @@
-.Dd 23 February, 2021
+.Dd 18 November, 2023
 .Dt DISTVIPER 8
 .Os
 .Sh NAME
@@ -6,8 +6,10 @@
 .Nd wipe outdated files from the FreeBSD ports distdir
 .Sh SYNOPSIS
 .Nm
-.Op Fl dhinqv
+.Op Fl dinqv
 .Op Ar keep
+.Nm
+.Fl h
 .Sh DESCRIPTION
 The
 .Nm
@@ -18,7 +20,7 @@ of the
 To achieve this it reads distinfo files from the
 .Li PORTSDIR
 and creates a list of files to keep if they should be encountered.
-.Ss ARGUMENTS
+.Ss Arguments
 The following argument types can be given.
 .Bl -tag -width indent
 .It Ar keep
@@ -40,29 +42,25 @@ flag and the
 argument. It exists for compatibility with the original bsdadminscripts.
 .El
 .El
-.Ss OPTIONS
+.Ss Options
 The following options are supported:
 .Bl -tag -width indent
-.It Fl d -demo
+.It Fl d , -demo
 The program is run in demo mode. The program acts as if it would operate
 normally, but does not remove any files.
-.It Fl h -help
+.It Fl h , -help
 Displays the available options.
-.It Fl i -interactvie
+.It Fl i , -interactive
 This option prompts for confirmation before deleting a file.
 It is ignored in demo mode.
-.It Fl n -no-checksum
+.It Fl n , -no-checksum
 Turn off checksum validation for files to keep. Much faster, but also
 risks leaving invalid files in
 .Li DISTDIR .
-.It Fl q -quiet
+.It Fl q , -quiet
 Supresses all output except for interactive prompts.
-.It Fl v -verbose
+.It Fl v , -verbose
 Makes the script talkative about what is currently going on.
-.It Ar keep
-There are currently two modes available. By default the thorough mode is
-selected, which scans all distinfo files. The fast mode only scans distinfo
-files for installed ports.
 .El
 .Sh ENVIRONMENT
 The following environment variables are supported:

@@ -1,4 +1,4 @@
-.Dd 17 January, 2021
+.Dd 18 November, 2023
 .Dt LOADERUPDATE 8
 .Os
 .Sh NAME
@@ -121,13 +121,13 @@ The hard disk device to update.
 .Ss Options
 The following options are available:
 .Bl -tag -width indent
-.It Fl a -all
+.It Fl a , -all
 Selects all available devices.
-.It Fl b -bootloader Ar bootloader
+.It Fl b Ar bootloader , Fl -bootloader Ar bootloader
 Override the default
 .Nm freebsd-boot
 loader image.
-.It Fl D -dry-run
+.It Fl D , -dry-run
 Instead of updating the boot loaders just show the commands that
 would be run. In combination with
 .Fl q
@@ -135,24 +135,24 @@ this does not print anything apart from errors, which is useful to
 run all checks performed by
 .Nm
 without committing any changes.
-.It Fl d -destdir Ar destdir
+.It Fl d Ar destdir , Fl -destdir Ar destdir
 Override the default boot environment.
-.It Fl e -efiloader Ar efiloader
+.It Fl e Ar efiloader , Fl -efiloader Ar efiloader
 Override the default
 .Nm efi
 loader image.
-.It Fl L -label Ar efilabel
+.It Fl L Ar efilabel , Fl -label Ar efilabel
 Set a custom label for EFI boot manager entries.
-.It Fl n -noefi
+.It Fl n , -noefi
 Do not create EFI boot manager entries via the
 .Xr efibootmgr 8
 command. This is useful when preparing a disk for another system.
-.It Fl P -dump
+.It Fl P , -dump
 Instead of performing boot loader updates print a summary of the boot
 environment and selected devices.
-.It Fl p -pmbr Ar pmbr
+.It Fl p Ar pmbr , Fl -pmbr Ar pmbr
 Override the default protective MBR image.
-.It Fl q -quiet
+.It Fl q , -quiet
 Do not print the commands that are run. This flag does not suppress
 the output from those commands.
 .El

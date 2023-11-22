@@ -9,12 +9,12 @@ file for
 .Xr ports 7
 .Sh SYNOPSIS
 .Nm
-.Fl h
-.Nm
 .Op Fl lOq
 .Op Fl I Ar make-vars
 .Op Fl o Ar plist-file
 .Op Ar port-name
+.Nm
+.Fl h
 .Sh DESCRIPTION
 The
 .Nm
@@ -23,23 +23,12 @@ script is a tool for
 maintainers and committers, to generate a
 .Pa pkg-plist
 file.
-.Ss ARGUMENTS
+.Ss Arguments
 The following arguments are accepted:
 .Bl -tag -width indent
-.It Ar port-name
-The name or origin of the port to generate a pkg-plist for. This may
-also be the directory the port can be found in.
-.Pp
-If omitted the current directory is used.
-.El
-.Ss OPTIONS
-The following options are support:
-.Bl -tag -width indent
-.It Fl h -help
-Displays the available options.
-.It Fl I -ignore-vars Ar make-vars
-Takes a comma separated list of make variables to ignore when postprocessing
-the generated plist. The following variables may be specified:
+.It Ar make-vars
+A comma separated list of make variables. The following variables
+may be specified:
 .Pp
 .Bl -bullet -compact
 .It
@@ -57,7 +46,26 @@ the generated plist. The following variables may be specified:
 .It
 .Li USE_RC_SUBR
 .El
-.It Fl l -licenses
+.It Ar plist-file
+The output file for the generated plist. Defaults to the ports
+.Pa pkg-plist
+with a
+.Pa .makeplist
+suffix appended.
+.It Ar port-name
+The name or origin of the port to generate a pkg-plist for. This may
+also be the directory the port can be found in.
+.Pp
+If omitted the current directory is used.
+.El
+.Ss Options
+The following options are support:
+.Bl -tag -width indent
+.It Fl h , -help
+Displays the available options.
+.It Fl I Ar make-vars , Fl -ignore-vars Ar make-vars
+Set the make variables to ignore when postprocessing the generated plist.
+.It Fl l , -licenses
 Usually
 .Nm
 runs with with the
@@ -66,15 +74,11 @@ license auditing framework disabled. This option turns it on.
 .Pp
 This flag cannot be combined with
 .Fl q .
-.It Fl O -orig
+.It Fl O , -orig
 Includes files with the .orig suffix in the plist.
-.It Fl o -outfile Ar plist-file
-Sets the output file for the generated plist. Defaults to the ports
-.Pa pkg-plist
-with a
-.Pa .makeplist
-suffix appended.
-.It Fl q -quiet
+.It Fl o Ar plist-file , Fl -outfile Ar plist-file
+Sets the output file for the generated plist.
+.It Fl q , -quiet
 Suppress build/stage output.
 .Pp
 This flag cannot be combined with

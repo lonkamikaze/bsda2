@@ -222,7 +222,11 @@ pkg:version:Session.params() {
 pkg:version:Session.help() {
 	local usage
 	$1.usage usage "\t%.2s, %-18s  %s\n"
-	$($this.Term).stdout "usage: pkg_version [-aCcdghiOoPqrRvx] [-I [index]] [-j jobs] [-l limchar] [-L limchar] [pkg-name ...]
+	$($this.Term).stdout "usage: pkg_version            [-coqUv] [-j jobs] [-l limchar] [-L limchar] [-a | [-CdgiOrx] pkg-name ...]
+       pkg_version -P         [-coqv]  [-j jobs] [-l limchar] [-L limchar] [-a | [-CdgiOrx] pkg-name ...]
+       pkg_version -I [index] [-coqv]  [-j jobs] [-l limchar] [-L limchar] [-a | [-CdgiOrx] pkg-name ...]
+       pkg_version -R         [-coqUv] [-j jobs] [-l limchar] [-L limchar] [-a | [-CdgiOrx] pkg-name ...]
+       pkg_version -h
 $(echo -n "$usage" | /usr/bin/sort -f)"
 	exit 0
 }

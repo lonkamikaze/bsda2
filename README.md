@@ -91,7 +91,12 @@ feed the output into another tool:
 ```
 # pkg_version -ql\<
 bind-tools-9.18.19
-gawk-5.2.2
+c-ares-1.21.0
+boost-libs-1.83.0
+cargo-c-0.9.27_2
+cups-2.4.6
+cups-filters-1.28.16_6
+...
 ```
 
 ### distviper
@@ -179,40 +184,40 @@ The first command to run is `loaderupdate --dump`, it publishes
 loaderupdate's understanding of the boot environment and its tasks:
 
 ```sh
-# loaderupdate -P nvd0
+# loaderupdate -P nda0
 Boot Environment
 ----------------
 destdir:                /
 ostype:                 FreeBSD
-kernel version:         FreeBSD 12.2-STABLE 760e643de558(kami/12) SCO15M19
+kernel version:         FreeBSD 14.0-STABLE #0 stable/14-n265732-260e63b3d53c: Tue Nov 14 14:35:08 CET 2023
 kernel arch:            amd64
 file system:            zfs
 protective MBR:         /boot/pmbr
 freebsd-boot loader:    /boot/gptzfsboot
 EFI loader:             /boot/loader.efi
 
-Device nvd0
+Device nda0
 -----------
-    install:            /boot/pmbr > nvd0
-    install:            /boot/gptzfsboot > nvd0p1
-    install:            /boot/loader.efi > nvd0p2:/efi/FreeBSD/bootamd64.efi
-    EFI boot entry:     FreeBSD 12.2-STABLE 760e643de558(kami/12) SCO15M19 amd64 [nvd0p2]
+    install:            /boot/pmbr > nda0
+    install:            /boot/gptzfsboot > nda0p1
+    install:            /boot/loader.efi > nda0p2:/efi/FreeBSD/bootamd64.efi
+    EFI boot entry:     FreeBSD 14.0-STABLE #0 stable/14-n265732-260e63b3d53c: Tue Nov 14 14:35:08 CET 2023 amd64 [nda0p2]
 ```
 
 Before committing to an update `loaderupdate --dry-run` can list all
 of the commands it will run:
 
 ```sh
-# loaderupdate -D nvd0
-gpart bootcode -b/boot/pmbr nvd0
-gpart bootcode -p/boot/gptzfsboot -i1 nvd0
-mkdir -p nvd0p2
-mount -tmsdosfs -osync /dev/nvd0p2 nvd0p2
-mkdir -p nvd0p2/efi/FreeBSD
-cp /boot/loader.efi nvd0p2/efi/FreeBSD/bootamd64.efi
-efibootmgr -B 0001
-efibootmgr -cl nvd0p2:/efi/FreeBSD/bootamd64.efi -L 'FreeBSD 12.2-STABLE 760e643de558(kami/12) SCO15M19 amd64 [nvd0p2]'
-efibootmgr -a 0001
+root# loaderupdate -D nda0
+gpart bootcode -b/boot/pmbr nda0
+gpart bootcode -p/boot/gptzfsboot -i1 nda0
+mkdir -p nda0p2
+mount -tmsdosfs -osync /dev/nda0p2 nda0p2
+mkdir -p nda0p2/efi/FreeBSD
+cp /boot/loader.efi nda0p2/efi/FreeBSD/bootamd64.efi
+efibootmgr -Bb 0001
+efibootmgr -cl nda0p2:/efi/FreeBSD/bootamd64.efi -L 'FreeBSD 14.0-STABLE #0 stable/14-n265732-260e63b3d53c: Tue Nov 14 14:35:08 CET 2023 amd64 [nda0p2]'
+efibootmgr -ab 0001
 ```
 
 This enables users to review every command performed and tweak parameters.

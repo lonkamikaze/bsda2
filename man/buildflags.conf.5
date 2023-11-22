@@ -1,4 +1,4 @@
-.Dd 15 November, 2023
+.Dd 18 November, 2023
 .Dt BUILDFLAGS.CONF 5
 .Os
 .Sh NAME
@@ -34,13 +34,13 @@ syntax only knows four kinds of data:
 .Bd -literal -offset indent
 comments, locations, knobs and variables
 .Ed
-.Ss COMMENTS
+.Ss Comments
 Comments are everything behind a '#'. The only exception is a '#' within
 a '"' block.
 .Bd -literal -offset indent
 # This is a comment.
 .Ed
-.Ss LOCATIONS
+.Ss Locations
 A location is a folder in which a make job runs.
 Locations make it possible to limit assignments only to certain ports or
 other build systems.
@@ -66,7 +66,7 @@ and closed with '}'. Here is an example:
 	*/x11/toolkits-gtk20	{WITHOUT_DEBUG}
 }
 .Ed
-.Ss KNOBS
+.Ss Knobs
 A knob really is a variable with a default assignment:
 .Bd -literal -offset indent
 WITH_DEBUG
@@ -78,7 +78,7 @@ several knobs in a single line:
 .Bd -literal -offset indent
 WITH_DEBUG !CPUTYPE
 .Ed
-.Ss VARIABLES
+.Ss Variables
 Assigning variables is simply done with an '=' other ways of assignment
 known from
 .Xr make 1
@@ -95,7 +95,7 @@ Here are some examples of valid assignments:
 CPUTYPE?="pentium-m" CFLAGS="-O2 -pipe" THREADS=5
 SUPFLAGS=	-E -g -L 2 -z
 .Ed
-.Ss DIRECTIVES
+.Ss Directives
 Native
 .Xr make 1
 directives can be included. Apart from putting trailing comments in front of

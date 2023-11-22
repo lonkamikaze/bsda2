@@ -1,4 +1,4 @@
-.Dd 15 November, 2023
+.Dd 18 November, 2023
 .Dt PKG_LIBCHK 8
 .Os
 .Sh NAME
@@ -26,68 +26,72 @@ and
 to check whether a package is linked against missing libraries or
 using compatibility libraries
 .Pq matching Pa */lib*/compat/* .
-.Sh OPTIONS
-The following options are available:
+.Ss Arguments
+The following arguments are accepted:
 .Bl -tag -width indent
-.It Fl a -all
-Check all packages. This is the default action in case no
-.Ar pkg-name
-has been specified.
-.It Fl C -case-sensitive
-See
-.Xr pkg-info 8 .
-.It Fl c -clean
-Create clean output without status messages.
-.It Fl d -dependencies
-Also operate on the dependencies of the provided
-.Ar pkg-name .
-.It Fl g -glob
-See
-.Xr pkg-info 8 .
-.It Fl h -help
-Displays the available options.
-.It Fl i -case-insensitive
-See
-.Xr pkg-info 8 .
-.It Fl j Ar jobs Fl -jobs Ar jobs
-Specify the amount of parallel
-.Ar jobs
-the script will attempt run. The default is number of detected cores
-plus one.
-.It Fl m -no-filter
-In this mode all the checks to detect false positives are turned off.
-.Pp
-It also causes indirect dependencies to be listed as missing dependencies.
-.It Fl n -no-compat
-This deactivates detecting compatibility libraries.
-.It Fl O -by-origin
-See
-.Xr pkg-info 8 .
-.It Fl o -origin
-Instead of the package name and version the package origin and flavour
-is printed.
-.It Fl q -quiet
-Only print the names of affected packages. Do not print any details. This
-option is meant for machine readability.
-.Pp
-This option cannot be combined with verbose output.
-.It Fl r -required-by
-Also check packages that depend on the provided
-.Ar packages .
-This is a good idea when checking for the effects of a library update.
-.It Fl v -verbose
-Be verbose about missing dependencies. Instead of rejecting indirect
-dependencies print them.
-.Pp
-This option cannot be combined with quiet output.
-.It Fl x -regex
-See
-.Xr pkg-info 8 .
+.It Ar jobs
+The number of parallel process to perform library checks.
+The default is number of detected cores plus one.
 .It Ar pkg-name
 Packages are package names or shell glob patterns matching these. Whatever
 works with
 .Xr pkg-info 8
 is an acceptable package.
+.El
+.Ss Options
+The following options are available:
+.Bl -tag -width indent
+.It Fl a , -all
+Check all packages. This is the default action in case no
+.Ar pkg-name
+has been specified.
+.It Fl C , -case-sensitive
+See
+.Xr pkg-info 8 .
+.It Fl c , -clean
+Create clean output without status messages.
+.It Fl d , -dependencies
+Also operate on the dependencies of the provided
+.Ar pkg-name .
+.It Fl g , -glob
+See
+.Xr pkg-info 8 .
+.It Fl h , -help
+Displays the available options.
+.It Fl i , -case-insensitive
+See
+.Xr pkg-info 8 .
+.It Fl j Ar jobs , Fl -jobs Ar jobs
+Set the number of parallel processes to perform library checks.
+.It Fl m , -no-filter
+In this mode all the checks to detect false positives are turned off.
+.Pp
+It also causes indirect dependencies to be listed as missing dependencies.
+.It Fl n , -no-compat
+This deactivates detecting compatibility libraries.
+.It Fl O , -by-origin
+See
+.Xr pkg-info 8 .
+.It Fl o , -origin
+Instead of the package name and version the package origin and flavour
+is printed.
+.It Fl q , -quiet
+Only print the names of affected packages. Do not print any details. This
+option is meant for machine readability.
+.Pp
+This option cannot be combined with verbose output.
+.It Fl r , -required-by
+Also check packages that depend on the provided
+.Ar packages .
+This is a good idea when checking for the effects of a library update.
+.It Fl v , -verbose
+Be verbose about missing dependencies. Instead of rejecting indirect
+dependencies print them.
+.Pp
+This option cannot be combined with quiet output.
+.It Fl x , -regex
+See
+.Xr pkg-info 8 .
 .El
 .Sh EXAMPLES
 To check all your packages run:
