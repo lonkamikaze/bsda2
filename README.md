@@ -303,7 +303,7 @@ following way:
 
 	-parameter=value
 
-* `-destidr=`
+* `-destdir=`
   This is prepended to prefix and can be used to install into a
   jail/chroot, other mounted systems etc. It does not affect
   where installed scripts assume they are.
