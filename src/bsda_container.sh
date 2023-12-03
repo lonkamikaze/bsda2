@@ -240,20 +240,19 @@ bsda:obj:createClass bsda:container:Map \
 # A helper function to roll out cached activities.
 #
 bsda:container:Map.compress() {
-	local keys count
-	$this.getRmCount count
-	if [ $((count)) -gt 0 ]; then
+	local IFS keys
+	log .set_ifs
+	if [ $((${this}rmCount)) -gt 0 ]; then
 		local rmkeys
 		$this.getRmKeys rmkeys
 		$this.getKeys keys
-		setvar ${this}keys "$(echo "$keys" | /usr/bin/grep -vFx "$rmkeys")"
+		log ${this}keys= "$(echo "$keys" | /usr/bin/grep -vFx "$rmkeys")"
 		setvar ${this}rmKeys
 		setvar ${this}rmCount 0
 	fi
-	$this.getAddCount count
-	if [ $((count)) -gt 0 ]; then
+	if [ $((${this}addCount)) -gt 0 ]; then
 		$this.getKeys keys
-		setvar ${this}keys "$(echo "${keys}" | /usr/bin/sort -u)"
+		log ${this}keys= "$(echo "${keys}" | /usr/bin/awk '!a[$0]++')"
 		setvar ${this}addCount 0
 	fi
 }
@@ -298,17 +297,11 @@ bsda:container:Map.clean() {
 #	The key to add
 #
 bsda:container:Map.addKey() {
-	local keys count NL
-	NL=$'\n'
-	$this.getRmCount count
-	if [ $((count)) -gt 0 ]; then
+	if [ $((${this}rmCount)) -gt 0 ]; then
 		$class.compress
 	fi
-	$this.getKeys keys
-	$this.getAddCount count
-	setvar ${this}keys "${keys}${keys:+${NL}}$1"
-	setvar ${this}addCount $((count + 1))
-	if [ $((count)) -ge 1024 ]; then
+	log ${this}keys.push_back "$1"
+	if [ $((${this}addCount += 1)) -ge 1024 ]; then
 		$class.compress
 	fi
 }
@@ -320,13 +313,8 @@ bsda:container:Map.addKey() {
 #	The key to remove
 #
 bsda:container:Map.rmKey() {
-	local keys count NL
-	NL=$'\n'
-	$this.getRmKeys keys
-	$this.getRmCount count
-	setvar ${this}rmKeys "${keys}${keys:+$NL}$1"
-	setvar ${this}rmCount $((count + 1))
-	if [ $((count)) -ge 1024 ]; then
+	log ${this}rmKeys.push_back "$1"
+	if [ $((${this}rmCount += 1)) -ge 1024 ]; then
 		$class.compress
 	fi
 }
@@ -395,8 +383,8 @@ bsda:container:Map.[() {
 bsda:container:Map.foreach() {
 	$class.compress
 	local IFS key keys
-	IFS=$'\n'
 	$this.getKeys keys
+	log keys.set_ifs
 	for key in $keys; do
 		eval "$1 \"\${${this}_key_$key}\" \"\${${this}_val_$key}\"" \
 		|| return $?
@@ -411,10 +399,8 @@ bsda:container:Map.foreach() {
 #
 bsda:container:Map.getCount() {
 	$class.compress
-	local IFS count keys
-	IFS=$'\n'
-	$this.getKeys keys
-	bsda:util:count count $keys
+	local count
+	log ${this}keys.count count
 	$caller.setvar "$1" "$count"
 }
 
@@ -439,8 +425,8 @@ bsda:container:Map.serialise_clear() {
 bsda:container:Map.serialise() {
 	$class.compress
 	local IFS key keys serialised keyvar valvar
-	IFS=$'\n'
 	$this.getKeys keys
+	log keys.set_ifs
 	bsda:obj:serialiseVar serialised ${this}keys
 	serialised="$class.serialise_clear $this;$serialised;${this}addCount=0;${this}rmKeys=;${this}rmCount=0"
 	for key in $keys; do
