@@ -132,7 +132,7 @@ makeplist:Option.getPair() {
 #
 # Represents all options of the port in the current directory.
 #
-# Every option is stored in a linked list, starting with the First
+# Every option is stored in a linked list, starting with the Next
 # member. The list is simply for storage and for iterating through
 # it to generate build configurations. The OptionMap maps option
 # names to objects in the list.
@@ -148,7 +148,7 @@ makeplist:Option.getPair() {
 # have to be represented in build configurations.
 #
 bsda:obj:createClass makeplist:Options \
-	a:private:First=makeplist:Option \
+	a:private:Next=makeplist:Option \
 	a:public:GroupMap=bsda:container:Map \
 	a:public:OptionMap=bsda:container:Map \
 	r:private:select   "The currently selected option" \
@@ -192,7 +192,7 @@ makeplist:Options.init() {
 
 	# Create options
 	local line group name implies prevents option last
-	last=
+	last=$this
 	for line in $options; do
 		IFS=\| bsda:util:map "$line" group name implies prevents
 		bsda:util:split implies ,
@@ -202,18 +202,14 @@ makeplist:Options.init() {
 		# Map name → option
 		$optionMap.[ "$name" ]= $option
 		# Update list of options
-		if [ -z "$last" ]; then
-			setvar ${this}First $option
-		else
-			setvar ${last}Next $option
-		fi
+		setvar ${last}Next $option
 		last=$option
 	done
 
 	# If there are mandatory groups, skip the build attempt without flags.
 	if [ -n "$hasMulti" ]; then
 		setvar ${this}hasMulti 1
-		$this.First ${this}select
+		$this.Next ${this}select
 	fi
 }
 
@@ -228,11 +224,7 @@ makeplist:Options.init() {
 makeplist:Options.next() {
 	local select multi
 	$this.getSelect select
-	if ! makeplist:Option.isInstance "$select"; then
-		$this.First select
-	else
-		$select.Next select
-	fi
+	${select:-$this}.Next select
 	setvar ${this}select "$select"
 	test -n "$select" && return 0
 
@@ -241,7 +233,7 @@ makeplist:Options.next() {
 	# of trying to build without flags the next time.
 	$this.getHasMulti multi
 	if [ -n "$multi" ]; then
-		$this.First ${this}select
+		$this.Next ${this}select
 	fi
 	return 1
 }
@@ -446,7 +438,7 @@ makeplist:Build.report() {
 # Manage the linked list of builds.
 #
 bsda:obj:createClass makeplist:BuildManager \
-	a:private:First=makeplist:Build \
+	a:private:Next=makeplist:Build \
 	r:private:tail          "The last entry in the list" \
 	r:private:session       "The Session instance (for printing)" \
 	r:private:mtree_file    "The value of MTREE_FILE" \
@@ -580,11 +572,7 @@ makeplist:BuildManager.create() {
 	local build tail
 	$this.getTail tail
 	makeplist:Build build "$@"
-	if makeplist:Build.isInstance "$tail"; then
-		setvar ${tail}Next "$build"
-	else
-		setvar ${this}First "$build"
-	fi
+	setvar ${tail:-$this}Next "$build"
 	setvar ${this}tail "$build"
 
 	# Populate new list entry
@@ -638,7 +626,7 @@ makeplist:BuildManager.plist() {
 	$caller.setvar "$1" "$(
 		$this.getOptionsSorted options
 		$this.plistSubSed subsed
-		$this.First build
+		$this.Next build
 		while [ -n "$build" ]; do
 			$build.getRetval retval
 			# Skip failed builds
