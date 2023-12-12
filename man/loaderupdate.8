@@ -1,4 +1,4 @@
-.Dd 18 November, 2023
+.Dd 18 December, 2023
 .Dt LOADERUPDATE 8
 .Os
 .Sh NAME
@@ -10,24 +10,27 @@
 .Op Fl L Ar efilabel
 .Op Fl b Ar bootloader
 .Op Fl e Ar efiloader
+.Op Fl o Ar efifile
 .Op Fl p Ar pmbr
-.Op Fl Dn
+.Op Fl cDn
 .Ar device ...
 .Nm
 .Op Fl d Ar destdir
 .Op Fl L Ar efilabel
 .Op Fl b Ar bootloader
 .Op Fl e Ar efiloader
+.Op Fl o Ar efifile
 .Op Fl p Ar pmbr
-.Op Fl Dn
+.Op Fl cDn
 .Fl a
 .Nm
 .Op Fl d Ar destdir
 .Op Fl L Ar efilabel
 .Op Fl b Ar bootloader
 .Op Fl e Ar efiloader
+.Op Fl o Ar efifile
 .Op Fl p Ar pmbr
-.Op Fl n
+.Op Fl cn
 .Fl P
 .Op Fl a | Ar device ...
 .Nm
@@ -69,8 +72,30 @@ The following argument types can be given:
 The path of the mountpoint for the boot environment containing the
 kernel and boot loader images. The default boot environment is
 .Pa / .
+.It Ar efifile
+Formatting string for the
+.Nm EFI
+file destination, defaults to:
+.Dl Dq /efi/{ostype}/boot{arch}.efi
+.Pp
+The following substitutions are available:
+.Bl -tag -offset indent -width 12m -compact
+.It Brq Ar arch
+The kernel architecture
+.It Brq Ar efiarch
+The architecture as used by
+.Nm EFI
+default paths (e.g. X64)
+.It Brq Ar ostype
+The OS type (FreeBSD or derived)
+.El
+.Pp
+Supports the formatting style described by
+.Xr bprintf 1 .
 .It Ar efilabel
-Formatting string for EFI boot manager entry labels, defaults to:
+Formatting string for
+.Nm EFI
+boot manager entry labels, defaults to:
 .Dl Dq {version} {arch} [{pdev}]
 .Pp
 The following substitutions are available:
@@ -85,6 +110,12 @@ The index of the efi partition
 The kernel version
 .It Brq Ar arch
 The kernel architecture
+.It Brq Ar efiarch
+The architecture as used by
+.Nm EFI
+default paths (e.g. X64)
+.It Brq Ar ostype
+The OS type (FreeBSD or derived)
 .El
 .Pp
 Supports the formatting style described by
@@ -99,11 +130,11 @@ or
 depending on the file system containing the boot environment.
 .It Ar efiloader
 The boot loader image to use for
-.Nm efi
+.Nm EFI
 partitions, the default is
 .Pa /boot/loader.efi ,
 the
-.Nm efi
+.Nm EFI
 variant of
 .Xr loader 8 .
 .It Ar pmbr
@@ -127,6 +158,29 @@ Selects all available devices.
 Override the default
 .Nm freebsd-boot
 loader image.
+.It Fl c , -compat
+Override the
+.Nm EFI
+loader destination inside the
+.Nm EFI
+partition with the
+.Xr uefi 8
+default location
+.Pa /EFI/BOOT/BOOT{efiarch}.EFI .
+.Pp
+This provides compatibility with systems that ignore or forget boot
+entries made with
+.Xr efibootmgr 8 ,
+such as virtual machines that do not persist the
+.Nm EFI
+boot configuration.
+.Pp
+.Sy Warning ,
+not all
+.Xr uefi 8
+implementations support these default locations, use
+.Fl o
+to supply a proprietary location.
 .It Fl D , -dry-run
 Instead of updating the boot loaders just show the commands that
 would be run. In combination with
@@ -139,14 +193,32 @@ without committing any changes.
 Override the default boot environment.
 .It Fl e Ar efiloader , Fl -efiloader Ar efiloader
 Override the default
-.Nm efi
+.Nm EFI
 loader image.
 .It Fl L Ar efilabel , Fl -label Ar efilabel
-Set a custom label for EFI boot manager entries.
+Set a custom label for
+.Nm EFI
+boot manager entries.
 .It Fl n , -noefi
-Do not create EFI boot manager entries via the
+Do not create
+.Nm EFI
+boot manager entries via the
 .Xr efibootmgr 8
 command. This is useful when preparing a disk for another system.
+.It Fl o Ar efifile , Fl -efifile Ar efifile
+Override the
+.Nm EFI
+loader destination inside the
+.Nm EFI
+partition with
+.Ar efifile .
+.Pp
+This can be used on systems that neither persist the
+.Nm EFI
+boot configuration nor support the
+.Xr uefi 8
+default locations available via
+.Fl c .
 .It Fl P , -dump
 Instead of performing boot loader updates print a summary of the boot
 environment and selected devices.
@@ -186,13 +258,13 @@ see
 .Xr gptboot 8 .
 .It Pa /boot/loader.efi
 The default
-.Nm efi
+.Nm EFI
 variant of
 .Xr loader 8 .
 Capable of booting from
 .Nm UFS
 and
-.Nm Zfs ,
+.Nm ZFS ,
 alternatives include
 .Pa /boot/loader_4th.efi , /boot/loader_lua.efi
 and
@@ -232,7 +304,7 @@ None or unsupported partitioning scheme detected in device.
 Neither a
 .Nm freebsd-boot
 nor an
-.Nm efi
+.Nm EFI
 boot partition was found on a selected device.
 .It Er EEFIBOOTMGR=10
 Failed to run
@@ -241,10 +313,14 @@ Failed to run
 Cannot read a required loader image.
 .It Er EMOUNT=12
 Failed to mount the
-.Nm efi
+.Nm EFI
 boot partition.
 .It Er ECMD=13
 Failed to execute a command during the update procedure.
+.It Er EEFIFILE=13
+Invalid or conflicting
+.Nm EFI
+file destinations.
 .El
 .Sh EXAMPLES
 Run
@@ -266,7 +342,8 @@ Finally update the loaders for the device:
 .Xr gpart 8 ,
 .Xr gptboot 8 ,
 .Xr gptzfsboot 8 ,
-.Xr loader 8
+.Xr loader 8 ,
+.Xr uefi 8
 .Sh HISTORY
 The
 .Nm

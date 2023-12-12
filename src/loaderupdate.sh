@@ -34,6 +34,7 @@ bsda:err:createECs \
 	E_LOADERUPDATE_MOUNT \
 	E_LOADERUPDATE_UMOUNT=E_WARN \
 	E_LOADERUPDATE_CMD \
+	E_LOADERUPDATE_EFIFILE \
 
 . ${bsda_dir:-.}/bsda_opts.sh
 . ${bsda_dir:-.}/bsda_elf.sh
@@ -266,6 +267,8 @@ bsda:obj:createClass loaderupdate:Session \
 	r:private:bootload "The freebsd-boot loader path" \
 	r:private:efiload  "The efi loader path" \
 	r:private:efilabel "The efi boot manager entry label" \
+	r:private:efifile  "The install target on the efi partition" \
+	r:private:efiarch  "EFI default path compatible architecture label" \
 	i:private:init     "Initialise and run session" \
 	x:private:all      "Add all viable devices" \
 	x:private:params   "Parse command line arguments" \
@@ -315,16 +318,19 @@ loaderupdate:Session.all() {
 #
 loaderupdate:Session.params() {
 	local flags options devices option destdir devs kernelpath kernel \
-	      msg e ostype version machine pmbr bootload efiload efilabel
+	      msg e ostype version machine pmbr bootload efiload efilabel \
+	      efifile efiarch
 	bsda:opts:Flags ${this}Flags
 	$this.Flags flags
 
 	bsda:opts:Options options \
 	ALL      -a  --all        'Update loaders of all devices' \
 	BOOTLOAD -b* --bootloader 'The freebsd-boot loader to install, e.g. /boot/gptboot' \
+	COMPAT   -c  --compat     'Equivalent to -o/EFI/BOOT/BOOT{efiarch}.EFI' \
 	EFILOAD  -e* --efiloader  'The EFI loader to install, e.g. /boot/loader.efi' \
 	PMBR     -p* --pmbr       'The protective MBR image, e.g. /boot/pmbr' \
 	EFILABEL -L* --label      'The EFI Boot Manager entry label' \
+	EFIFILE  -o* --efifile    'The EFI install target, e.g. /efi/{ostype}/boot{machine}.efi' \
 	NOEFI    -n  --noefi      'Do not create EFI Boot Manager entries' \
 	DRYRUN   -D  --dry-run    'Print the actions that would be performed' \
 	DESTDIR  -d* --destdir    'The root containing /boot' \
@@ -341,16 +347,16 @@ loaderupdate:Session.params() {
 	efiload=
 	pmbr=
 	efilabel=
+	efifile=
 
 	while [ $# -gt 0 ]; do
 		$options.getopt option "$1"
+		$flags.add "${option}"
 		case "$option" in
 		ALL)
 			$this.all
-			$flags.add "${option}"
 		;;
 		DRYRUN | DUMP | NOEFI | QUIET)
-			$flags.add "${option}"
 		;;
 		DESTDIR)
 			destdir="${1#-d}"
@@ -365,6 +371,14 @@ loaderupdate:Session.params() {
 			bootload="${bootload#--bootload}"
 			if [ -z "${bootload}" ]; then
 				bootload="${2}"
+				shift
+			fi
+		;;
+		EFIFILE)
+			efifile="${1#-o}"
+			efifile="${efifile#--efifile}"
+			if [ -z "${efifile}" ]; then
+				efifile="${2}"
 				shift
 			fi
 		;;
@@ -391,6 +405,9 @@ loaderupdate:Session.params() {
 				efilabel="${2}"
 				shift
 			fi
+		;;
+		COMPAT)
+			efifile='/EFI/BOOT/BOOT{efiarch}.EFI'
 		;;
 		HELP)
 			$this.help "$options"
@@ -474,6 +491,17 @@ loaderupdate:Session.params() {
 	setvar ${this}machine "${machine}"
 	setvar ${this}ostype "${ostype}"
 
+	# according to the table in uefi(8)
+	case "${machine}" in
+	amd64) efiarch=X64;;
+	arm)   efiarch=ARM;;
+	arm64) efiarch=AA64;;
+	i386)  efiarch=IA32;;
+	riscv) efiarch=RISCV64;;
+	*)     efiarch="${machine}";;
+	esac
+	setvar ${this}efiarch "${efiarch}"
+
 	bootfs="$(/sbin/mount -p | /usr/bin/awk -vDESTDIR="${destdir:-/}" '
 		$2 == DESTDIR && $0 = $3
 	')"
@@ -495,15 +523,47 @@ loaderupdate:Session.params() {
 	efilabel="${efilabel:-"{version} {arch} [{pdev}]"}"
 	bsda:err:collect
 	bsda:fmt:printf "${efilabel}" > /dev/null \
-	                dev= pdev= index=0 version= arch=
+	                dev= pdev= index=0 version= arch= efiarch= ostype=
 	while bsda:err:get e msg; do
 		bsda:err:forward E_LOADERUPDATE_EFILABEL \
 		                 "${msg}" \
 		                 '       Note, EFI label may use:' \
-		                 '           {dev}, {pdev}, {index}, {version}, {arch}'
+		                 '           {dev}, {pdev}, {index}, {version}, {arch}, {efiarch}, {ostype}'
 		return 1
 	done
 	setvar ${this}efilabel "${efilabel}"
+
+	if $flags.check EFIFILE && $flags.check COMPAT; then
+		bsda:err:raise E_LOADERUPDATE_EFIFILE \
+		               "${0##*/}: ERROR: The -o and -c options are mutually exclusive"
+		return 1
+	fi
+
+	if [ "${machine}" = "${efiarch}" ] && $flags.check COMPAT -eq 1; then
+		bsda:err:raise E_LOADERUPDATE_EFIFILE \
+		               "${0##*/}: ERROR: The -c option is not supported for the architecture: ${machine}" \
+		               '       Ignore this error by supplying -c twice: -cc'
+		return 1
+	fi
+
+	efifile="${efifile:-"/efi/{ostype}/boot{arch}.efi"}"
+	bsda:err:collect
+	bsda:fmt efifile "${efifile}" \
+	         arch="${machine}" ostype="${ostype}" efiarch="${efiarch}"
+	while bsda:err:get e msg; do
+		bsda:err:forward E_LOADERUPDATE_EFIFILE \
+		                 "${msg}" \
+		                 '       Note, EFI file may use:' \
+		                 '           {arch}, {ostype}, {efiarch}'
+		return 1
+	done
+
+	if [ -n "${efifile##/*}" ]; then
+		bsda:err:raise E_LOADERUPDATE_EFIFILE \
+		               "${0##*/}: ERROR: The EFI file location must begin with a '/': ${efifile}"
+		return 1
+	fi
+	setvar ${this}efifile "${efifile}"
 }
 
 #
@@ -611,7 +671,7 @@ loaderupdate:Session.cmd() {
 loaderupdate:Session.run() {
 	local IFS flags devs destdir ostype version machine bootfs \
 	      pmbr bootload efiload efilabel efifile dev bootparts efiparts \
-	      part i efivars ecompat demo quiet label
+	      part i efivars ecompat demo quiet label efiarch
 	IFS=$'\n'
 
 	$this.Devices devs
@@ -626,10 +686,11 @@ loaderupdate:Session.run() {
 	$this.getBootload bootload
 	$this.getEfiload  efiload
 	$this.getEfilabel efilabel
+	$this.getEfifile  efifile
+	$this.getEfiarch  efiarch
 	pmbr="${destdir}/${pmbr#/}"
 	bootload="${destdir}/${bootload#/}"
 	efiload="${destdir}/${efiload#/}"
-	efifile="/efi/${ostype}/boot${machine}.efi"
 
 	$this.Flags flags
 	if $flags.check DUMP; then
@@ -665,7 +726,9 @@ loaderupdate:Session.run() {
 				         pdev="${dev}p${part}" \
 				         index="${part}" \
 				         version="${version}" \
-				         arch="${machine}" || return $?
+				         arch="${machine}" \
+				         efiarch="${efiarch}" \
+				         ostype="${ostype}" || return $?
 				printf "    %-18s  %s\n" \
 				       "EFI boot entry:" "${label}"
 			done
@@ -782,7 +845,9 @@ loaderupdate:Session.run() {
 			         pdev="${partdev}" \
 			         index="${part}" \
 			         version="${version}" \
-			         arch="${machine}" || return $?
+			         arch="${machine}" \
+			         efiarch="${efiarch}" \
+			         ostype="${ostype}" || return $?
 			$this.cmd /usr/sbin/efibootmgr \
 			          -cl "${partdev}:${efifile}" -L "${label}" \
 			|| return $?
@@ -811,11 +876,11 @@ loaderupdate:Session.help() {
 	local usage
 	$1.usage usage "\t%2.2s, %-12s  %s\n"
 	echo "usage: loaderupdate [-d destdir] [-L efilabel] [-b bootloader] [-e efiloader]
-                    [-p pmbr] [-Dn] device ...
+                    [-o efifile] [-p pmbr] [-cDn] device ...
        loaderupdate [-d destdir] [-L efilabel] [-b bootloader] [-e efiloader]
-                    [-p pmbr] [-Dn] -a
+                    [-o efifile] [-p pmbr] [-cDn] -a
        loaderupdate [-d destdir] [-L efilabel] [-b bootloader] [-e efiloader]
-                    [-p pmbr] [-n] -P [-a | device ...]
+                    [-o efifile] [-p pmbr] [-cn] -P [-a | device ...]
        loaderupdate -h
 $(echo -n "$usage" | /usr/bin/sort -f)"
 }
