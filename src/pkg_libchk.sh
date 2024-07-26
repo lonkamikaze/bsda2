@@ -25,17 +25,18 @@ bsda:async:createClass bsda:tty:Async bsda:tty:Terminal
 # the info field carries the relevant information depending on the
 # tag, one of:
 #
-# - miss,direct
-# - compat,direct
 # - miss
 # - compat
 # - verbose
 # - invalid
 #
+# Secondary tags may occor appended with a comma:
+#
+# - direct
+# - os/abi
+#
 # The `ldd_filter()` method documents which info is carried for which
-# tag. An additional `direct` tag means the dependency is directly
-# required for the given binary instead of being pulled in via another
-# library.
+# tag.
 #
 bsda:obj:createClass pkg:libchk:JobResult \
 	r:pkg    "The package name" \
@@ -254,7 +255,7 @@ IFS=$'\034' bsda:util:mapfun pkg:libchk:Session:mapmiss file lib tags
 #	The serialised JobResult
 #
 pkg:libchk:Session.print() {
-	local res misses pkg IFS miss file lib tags output flags
+	local res misses pkg IFS miss file lib tags output flags indirect osabi
 	bsda:obj:deserialise res "$2"
 	$caller.setvar "$1" "$($res.getSline)"
 
@@ -266,7 +267,9 @@ pkg:libchk:Session.print() {
 
 	# Discard indirect dependencies
 	if $flags.check VERBOSE -eq 0 && $flags.check NO_FILTER -eq 0; then
-		misses="$(echo "$misses" | /usr/bin/grep ',direct$')"
+		misses="$(echo "$misses"                       \
+			  | /usr/bin/grep    ',direct$'        \
+			  | /usr/bin/grep -v ',os/abi,direct$')"
 	fi
 
 	test -z "$misses" && return
@@ -282,15 +285,17 @@ pkg:libchk:Session.print() {
 	log output=
 	for miss in $misses; {
 		$class:mapmiss "$miss"
+		# check for secondary tags
+		osabi=
+		indirect="indirectly "
+		case "${tags}" in *,os/abi*) osabi="Unbranded ELF file ";; esac
+		case "${tags}" in *,direct*) indirect=;; esac
+		# print for primary tags
 		case "${tags}" in
-		miss,direct)
-			log output.push_back "$pkg: $file misses $lib";;
-		compat,direct)
-			log output.push_back "$pkg: $file uses $lib";;
-		miss)
-			log output.push_back "$pkg: $file indirectly misses $lib";;
-		compat)
-			log output.push_back "$pkg: $file indirectly uses $lib";;
+		miss*)
+			log output.push_back "$pkg: ${osabi}$file ${direct}misses $lib";;
+		compat*)
+			log output.push_back "$pkg: ${osabi}$file ${direct}uses $lib";;
 		verbose*)
 			log output.push_back "$pkg: $file: $lib";;
 		invalid*)
@@ -388,7 +393,7 @@ pkg:libchk:Session.run() {
 # - tag:
 #   The type of information carried, see the table below
 #
-# The following tags exist:
+# The following primary tags exist:
 #
 # | Tag     | Binary | Info                | Description                    |
 # |---------|--------|---------------------|--------------------------------|
@@ -397,26 +402,57 @@ pkg:libchk:Session.run() {
 # | verbose | yes    | error message       | Binary specific ldd(1) error   |
 # | invalid | -      | whole input line    | Unknown ldd(1) output          |
 #
+# The following secondary tags can be appended to primary tags with a comma
+# separator:
+#
+# | Tag     | Description                                                     |
+# |---------|-----------------------------------------------------------------|
+# | direct  | The missing dependency is a direct dependency                   |
+# | os/abi  | The given binary is an unbranded ELF binary, i.e. OS/ABi = NONE |
+#
 # @param 1
 #	A boolean value indicating whether the use of compat libraries
 #	should be tagged (1) or discarded (0)
 #
 pkg:libchk:Session.ldd_filter() {
 	/usr/bin/awk -vCOMPAT="$1" '
-	# prints: binary name, info, tag
+	BEGIN { OFS = SUBSEP }
+	# Output each row only once, at least on FreeBSD
+	# stable/13-n247530-3637d2a1835e ldd(1) prints missing
+	# dependencies many times.
+	# This output filter changed the runtime for
+	# `pkg_libck samba413` after a libicu update from
+	# >120s to ~4s, supposedly because every reported
+	# missing dependency corresponds to a readelf(1) call
+	# and this package produces 23601 lines of output
+	# without the filter.
 	function printrow(bin, info, tag) {
-		# Output each row only once, at least on FreeBSD
-		# stable/13-n247530-3637d2a1835e ldd(1) prints missing
-		# dependencies many times.
-		# This output filter changed the runtime for
-		# `pkg_libck samba413` after a libicu update from
-		# >120s to ~4s, supposedly because every reported
-		# missing dependency corresponds to a readelf(1) call
-		# and this package produces 23601 lines of output
-		# without the filter.
 		if (!ROW[bin, info, tag]++) {
-			printf("%s" SUBSEP "%s" SUBSEP "%s\n", bin, info, tag)
+			print(bin, info, tag)
 		}
+	}
+	# add tags like os/abi and direct and print the final
+	# set of tags
+	function tag(bin, lib, tags, _cmd, _bin) {
+		# bail on already tagged tuples
+		if (READELF[bin, lib, tags]++) {
+			return
+		}
+		# just escape every character in the file name, this
+		# should at least cover the easy stuff like whitespace
+		_bin = bin
+		gsub(/./, "\\\\&", _bin)
+		_cmd = "/usr/bin/readelf -hd " _bin
+		while ((_cmd | getline) > 0) {
+			if (index($0, "Shared library: [" lib "]")) {
+				tags = tags ",direct"
+			}
+			if ($0 ~ /^ *OS\/ABI: *NONE$/) {
+				tags = tags ",os/abi"
+			}
+		}
+		close(_cmd)
+		printrow(bin, lib, tags)
 	}
 	# update binary name
 	/^[^\t].*:$/ {
@@ -428,20 +464,22 @@ pkg:libchk:Session.ldd_filter() {
 	COMPAT && /^\t.* => .*\/lib[^\/]*\/compat\/.* \(0x[0-9a-f]+\)$/ {
 		sub(/^\t.* => /, "")
 		sub(/ \(0x[0-9a-f]+\)$/, "")
-		printrow(BIN, $0, "compat")
+		tag(BIN, $0, "compat")
 		next
 	}
 	# missing library
 	/\(0\)$/ || /^\t.* => not found \(0x[0-9a-f]+\)$/ {
 		sub(/^\t/, "")
 		sub(/ => .*/, "")
-		printrow(BIN, $0, "miss")
+		tag(BIN, $0, "miss")
 		next
 	}
 	# ignore
 	/^\t.* \(0x[0-9a-f]+\)$/                  || # library was found
 	/^ldd: .*: not a dynamic ELF executable$/ || # non-executable
+	/^ldd: .*: not a .* ELF shared object$/   || # non-executable
 	/^ldd: .*: Invalid argument$/             || # non-executable
+	/^ldd: .*: unsupported machine$/          || # cross-platform executable
 	/^\[preloaded\]$/                         || # start of preloaded section
 	/^.*: exit status 1$/                     {  # redundant message
 		next
@@ -470,7 +508,7 @@ pkg:libchk:Session.ldd_filter() {
 #	The status line this job is listed on
 #
 pkg:libchk:Session.job() {
-	local IFS file files lib tags misses miss res flags compat
+	local IFS files misses res flags compat
 	IFS=$'\n'
 	$this.Flags flags
 	$flags.check NO_COMPAT -eq 0 && compat=1 || compat=0
@@ -499,22 +537,7 @@ pkg:libchk:Session.job() {
 		')"
 	fi
 
-	# Tag direct dependencies
-	log messages=
-	for miss in $misses; {
-		$class:mapmiss "$miss"
-		case "$tags" in miss | compat)
-			lib="${lib##*/}"
-
-			if /usr/bin/readelf -d "$file" \
-			   | /usr/bin/grep -qF "Shared library: [$lib]"; then
-				miss="$miss,direct"
-			fi
-			;;
-		esac
-		log messages.push_back "$miss"
-	}
 	# Create a JobResult, serialise it and send it back to the dispatcher
-	pkg:libchk:JobResult res "$1" "$messages" "$2"
+	pkg:libchk:JobResult res "$1" "$misses" "$2"
 	$($this.Fifo).sink $res.serialise
 }
