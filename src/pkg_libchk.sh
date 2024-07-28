@@ -427,15 +427,18 @@ pkg:libchk:Session.ldd_filter() {
 	# and this package produces 23601 lines of output
 	# without the filter.
 	function printrow(bin, info, tag) {
-		if (!ROW[bin, info, tag]++) {
+		if (!ROW[bin, info]++) {
 			print(bin, info, tag)
 		}
 	}
-	# add tags like os/abi and direct and print the final
-	# set of tags
-	function tag(bin, lib, tags, _cmd, _bin) {
+	# Call readelf on the given binary and add secondory tags:
+	#
+	# - os/abi for unbranded ELF binaries
+	# - direct where the given library is a direct dependency
+	#   of the binary
+	function readelf_tag(bin, lib, tags, _cmd, _bin) {
 		# bail on already tagged tuples
-		if (READELF[bin, lib, tags]++) {
+		if (READELF[bin, lib]++) {
 			return
 		}
 		# just escape every character in the file name, this
@@ -464,14 +467,14 @@ pkg:libchk:Session.ldd_filter() {
 	COMPAT && /^\t.* => .*\/lib[^\/]*\/compat\/.* \(0x[0-9a-f]+\)$/ {
 		sub(/^\t.* => /, "")
 		sub(/ \(0x[0-9a-f]+\)$/, "")
-		tag(BIN, $0, "compat")
+		readelf_tag(BIN, $0, "compat")
 		next
 	}
 	# missing library
 	/\(0\)$/ || /^\t.* => not found \(0x[0-9a-f]+\)$/ {
 		sub(/^\t/, "")
 		sub(/ => .*/, "")
-		tag(BIN, $0, "miss")
+		readelf_tag(BIN, $0, "miss")
 		next
 	}
 	# ignore
