@@ -33,9 +33,10 @@ bsda:async:createClass bsda:tty:Async bsda:tty:Terminal
 # Secondary tags may occor appended with a comma:
 #
 # - direct
+# - indirect
 # - os/abi
 #
-# The `ldd_filter()` method documents which info is carried for which
+# The ldd_filter.awk script documents which info is carried for which
 # tag.
 #
 bsda:obj:createClass pkg:libchk:JobResult \
@@ -265,13 +266,6 @@ pkg:libchk:Session.print() {
 	$res.getMisses misses
 	$res.delete
 
-	# Discard indirect dependencies
-	if $flags.check VERBOSE -eq 0 && $flags.check NO_FILTER -eq 0; then
-		misses="$(echo "$misses"                       \
-			  | /usr/bin/grep    ',direct$'        \
-			  | /usr/bin/grep -v ',os/abi,direct$')"
-	fi
-
 	test -z "$misses" && return
 
 	# Honour quiet output flag
@@ -287,15 +281,15 @@ pkg:libchk:Session.print() {
 		$class:mapmiss "$miss"
 		# check for secondary tags
 		osabi=
-		indirect="indirectly "
-		case "${tags}" in *,os/abi*) osabi="Unbranded ELF file ";; esac
-		case "${tags}" in *,direct*) indirect=;; esac
+		indirect=
+		case "${tags}" in *,os/abi*)   osabi="Unbranded ELF file ";; esac
+		case "${tags}" in *,indirect*) indirect="indirectly ";;      esac
 		# print for primary tags
 		case "${tags}" in
 		miss*)
-			log output.push_back "$pkg: ${osabi}$file ${direct}misses $lib";;
+			log output.push_back "$pkg: ${osabi}$file ${indirect}misses $lib";;
 		compat*)
-			log output.push_back "$pkg: ${osabi}$file ${direct}uses $lib";;
+			log output.push_back "$pkg: ${osabi}$file ${indirect}uses $lib";;
 		verbose*)
 			log output.push_back "$pkg: $file: $lib";;
 		invalid*)
@@ -369,137 +363,21 @@ pkg:libchk:Session.run() {
 #
 # Static function for ldd(1) output processing.
 #
-# Expects ldd(1) output on stdin and performs the following processing
-# steps:
-#
-# 1. Filter irrelevant lines
-# 2. Format lines
-# 3. Classify (i.e. tag) lines
-#
-# This exists, because `ldd -f` is unreliable
-# [see](https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=259069).
-# This is not the first time that pkg_libchk silently failed to detect
-# missing libraries, because something about ldd changed.
-#
-# Input lines that indicate the given file is not a binary executable/library
-# or that a dependency was successfully resolved are dismissed.
-# The remaining lines are converted to the following fields separated
-# by the ASCII Field Separator (FS) character:
-#
-# - binary:
-#   The executable or library that was checked
-# - info:
-#   Usually a library name/path, see the table below
-# - tag:
-#   The type of information carried, see the table below
-#
-# The following primary tags exist:
-#
-# | Tag     | Binary | Info                | Description                    |
-# |---------|--------|---------------------|--------------------------------|
-# | compat  | yes    | dependency path     | Path matches `*/lib*/compat/*` |
-# | miss    | yes    | dependency filename | Dependency was not found       |
-# | verbose | yes    | error message       | Binary specific ldd(1) error   |
-# | invalid | -      | whole input line    | Unknown ldd(1) output          |
-#
-# The following secondary tags can be appended to primary tags with a comma
-# separator:
-#
-# | Tag     | Description                                                     |
-# |---------|-----------------------------------------------------------------|
-# | direct  | The missing dependency is a direct dependency                   |
-# | os/abi  | The given binary is an unbranded ELF binary, i.e. OS/ABi = NONE |
+# Refer to the ldd_filter.awk script to learn more about this function.
 #
 # @param 1
 #	A boolean value indicating whether the use of compat libraries
 #	should be tagged (1) or discarded (0)
+# @param 2
+#	A boolean value indicating whether output should be verbose (1)
+#	or just output direct dependency errors (0)
+# @param 3
+#	A boolean value indicating that false positives should be filtered
+#	from the output.
 #
 pkg:libchk:Session.ldd_filter() {
-	/usr/bin/awk -vCOMPAT="$1" '
-	BEGIN { OFS = SUBSEP }
-	# Output each row only once, at least on FreeBSD
-	# stable/13-n247530-3637d2a1835e ldd(1) prints missing
-	# dependencies many times.
-	# This output filter changed the runtime for
-	# `pkg_libck samba413` after a libicu update from
-	# >120s to ~4s, supposedly because every reported
-	# missing dependency corresponds to a readelf(1) call
-	# and this package produces 23601 lines of output
-	# without the filter.
-	function printrow(bin, info, tag) {
-		if (!ROW[bin, info]++) {
-			print(bin, info, tag)
-		}
-	}
-	# Call readelf on the given binary and add secondory tags:
-	#
-	# - os/abi for unbranded ELF binaries
-	# - direct where the given library is a direct dependency
-	#   of the binary
-	function readelf_tag(bin, lib, tags, _cmd, _bin) {
-		# bail on already tagged tuples
-		if (READELF[bin, lib]++) {
-			return
-		}
-		# just escape every character in the file name, this
-		# should at least cover the easy stuff like whitespace
-		_bin = bin
-		gsub(/./, "\\\\&", _bin)
-		_cmd = "/usr/bin/readelf -hd " _bin
-		while ((_cmd | getline) > 0) {
-			if (index($0, "Shared library: [" lib "]")) {
-				tags = tags ",direct"
-			}
-			if ($0 ~ /^ *OS\/ABI: *NONE$/) {
-				tags = tags ",os/abi"
-			}
-		}
-		close(_cmd)
-		printrow(bin, lib, tags)
-	}
-	# update binary name
-	/^[^\t].*:$/ {
-		sub(/:$/, "")
-		BIN=$0
-		next
-	}
-	# compat library
-	COMPAT && /^\t.* => .*\/lib[^\/]*\/compat\/.* \(0x[0-9a-f]+\)$/ {
-		sub(/^\t.* => /, "")
-		sub(/ \(0x[0-9a-f]+\)$/, "")
-		readelf_tag(BIN, $0, "compat")
-		next
-	}
-	# missing library
-	/\(0\)$/ || /^\t.* => not found \(0x[0-9a-f]+\)$/ {
-		sub(/^\t/, "")
-		sub(/ => .*/, "")
-		readelf_tag(BIN, $0, "miss")
-		next
-	}
-	# ignore
-	/^\t.* \(0x[0-9a-f]+\)$/                  || # library was found
-	/^ldd: .*: not a dynamic ELF executable$/ || # non-executable
-	/^ldd: .*: not a .* ELF shared object$/   || # non-executable
-	/^ldd: .*: Invalid argument$/             || # non-executable
-	/^ldd: .*: unsupported machine$/          || # cross-platform executable
-	/^\[preloaded\]$/                         || # start of preloaded section
-	/^.*: exit status 1$/                     {  # redundant message
-		next
-	}
-	# verbose error
-	/ldd: .*: .*/ {
-		sub(/ldd: /, "")
-		file=$0
-		sub(/: [^:]*$/, "", file)
-		sub(/.*: /, "")
-		printrow(file, $0, "verbose")
-		next
-	}
-	# unknown/invalid ldd output
-	{
-		printrow("", $0, "invalid")
-	}'
+	/usr/bin/awk -f ${bsda_dir:-.}/ldd_filter.awk \
+	             -vOFS=$'\034' -vCOMPAT="$1" -vVERBOSE="$2" -vFILTER="$3"
 }
 
 #
@@ -511,10 +389,12 @@ pkg:libchk:Session.ldd_filter() {
 #	The status line this job is listed on
 #
 pkg:libchk:Session.job() {
-	local IFS files misses res flags compat
+	local IFS files misses res flags compat verbose filter
 	IFS=$'\n'
 	$this.Flags flags
-	$flags.check NO_COMPAT -eq 0 && compat=1 || compat=0
+	$flags.check NO_COMPAT -eq 0 && compat=1  || compat=0
+	$flags.check VERBOSE   -ne 0 && verbose=1 || verbose=0
+	$flags.check NO_FILTER -eq 0 && filter=1  || filter=0
 
 	# The files of the package
 	files="$(pkg:info:files $1)"
@@ -522,11 +402,11 @@ pkg:libchk:Session.job() {
 	# Get misses
 	misses="$(printf '%s\0' $files \
 	          | /usr/bin/xargs -0 /usr/bin/ldd 2>&1 \
-	          | $class.ldd_filter "${compat}")"
+	          | $class.ldd_filter "${compat}" "${verbose}" "${filter}")"
 
 	# Check whether a miss is actually contained in the same
 	# package, e.g. libjvm.so in openjdk
-	if $flags.check NO_FILTER -eq 0 && [ -n "$misses" ]; then
+	if [ "$filter" -eq 1 ] && [ -n "$misses" ]; then
 		misses="$( (echo "${files}"; echo "${misses}") | /usr/bin/awk '
 			BEGIN { FS = SUBSEP }
 			# blacklist package files

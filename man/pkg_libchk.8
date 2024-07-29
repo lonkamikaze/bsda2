@@ -1,4 +1,4 @@
-.Dd 18 November, 2023
+.Dd 29 July, 2024
 .Dt PKG_LIBCHK 8
 .Os
 .Sh NAME
@@ -64,9 +64,23 @@ See
 .It Fl j Ar jobs , Fl -jobs Ar jobs
 Set the number of parallel processes to perform library checks.
 .It Fl m , -no-filter
-In this mode all the checks to detect false positives are turned off.
+In this mode all the checks to detect false positives produced by
+.Xr ldd 1
+are deactivated.
 .Pp
-It also causes indirect dependencies to be listed as missing dependencies.
+.Bl -bullet -compact
+.It
+Indirect dependencies are no longer recognised as such.
+.It
+Dependencies that are part of a package even though
+.Xr ldd 1
+does not find them are no longer discarded - finding these dependencies
+usually just requires some runtime information ldd is not privy to.
+.It
+Dependencies of unbranded
+.Xr elf 3
+binaries are no longer distinguished from dependencies of native binaries.
+.El
 .It Fl n , -no-compat
 This deactivates detecting compatibility libraries.
 .It Fl O , -by-origin

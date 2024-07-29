@@ -29,6 +29,7 @@ src/distviper,0755,%%PREFIX%%/sbin/distviper
 man/distviper.8,0644,%%MAN%%/man8/distviper.8.gz
 src/distviper.sh,0644,%%DATADIR%%/distviper.sh
 src/interrupt.mk,0644,%%DATADIR%%/interrupt.mk
+src/ldd_filter.awk,0755,%%DATADIR%%/ldd_filter.awk
 src/loaderupdate,0755,%%PREFIX%%/sbin/loaderupdate
 man/loaderupdate.8,0644,%%MAN%%/man8/loaderupdate.8.gz
 src/loaderupdate.sh,0644,%%DATADIR%%/loaderupdate.sh
