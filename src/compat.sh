@@ -26,6 +26,6 @@ if ! getvar 2>&-; then
 	#	The reference to the variable to return
 	#
 	getvar() {
-		eval "${1:-echo \"\$$2\" #}=\"\${$2}\""
+		eval "${1:-${2:+echo \"\$$2\"} #}=\"\${$2}\""
 	}
 fi
