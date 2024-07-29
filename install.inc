@@ -1,5 +1,6 @@
 set -ef
 
+# sort -t/ -k2
 files="
 src/bprintf,0755,%%PREFIX%%/bin/bprintf
 man/bprintf.1,0644,%%MAN%%/man1/bprintf.1.gz
@@ -8,20 +9,20 @@ src/bsda_bsdmake.sh,0644,%%DATADIR%%/bsda_bsdmake.sh
 src/bsda_container.sh,0644,%%DATADIR%%/bsda_container.sh
 src/bsda_dialog.sh,0644,%%DATADIR%%/bsda_dialog.sh
 src/bsda_elf.sh,0644,%%DATADIR%%/bsda_elf.sh
-src/bsda_err.sh,0644,%%DATADIR%%/bsda_err.sh
 ref/bsda_err.md,0644,%%DOCSDIR%%/ref/bsda_err.md
+src/bsda_err.sh,0644,%%DATADIR%%/bsda_err.sh
 src/bsda_fifo.sh,0644,%%DATADIR%%/bsda_fifo.sh
 src/bsda_fmt.sh,0644,%%DATADIR%%/bsda_fmt.sh
-src/bsda_obj.sh,0644,%%DATADIR%%/bsda_obj.sh
 ref/bsda_obj.md,0644,%%DOCSDIR%%/ref/bsda_obj.md
+src/bsda_obj.sh,0644,%%DATADIR%%/bsda_obj.sh
 src/bsda_opts.sh,0644,%%DATADIR%%/bsda_opts.sh
 src/bsda_tty.sh,0644,%%DATADIR%%/bsda_tty.sh
 src/bsda_util.sh,0644,%%DATADIR%%/bsda_util.sh
 src/buildflags.awk,0755,%%DATADIR%%/buildflags.awk
-src/buildflags.conf.sample,0644,%%PREFIX%%/etc/buildflags.conf.sample
-src/buildflags.mk,0644,%%DATADIR%%/buildflags.mk
 man/buildflags.awk.1,0644,%%MAN%%/man1/buildflags.awk.1.gz
 man/buildflags.conf.5,0644,%%MAN%%/man5/buildflags.conf.5.gz
+src/buildflags.conf.sample,0644,%%PREFIX%%/etc/buildflags.conf.sample
+src/buildflags.mk,0644,%%DATADIR%%/buildflags.mk
 man/buildflags.mk.1,0644,%%MAN%%/man1/buildflags.mk.1.gz
 src/compat.sh,0644,%%DATADIR%%/compat.sh
 src/distviper,0755,%%PREFIX%%/sbin/distviper
@@ -29,14 +30,14 @@ man/distviper.8,0644,%%MAN%%/man8/distviper.8.gz
 src/distviper.sh,0644,%%DATADIR%%/distviper.sh
 src/interrupt.mk,0644,%%DATADIR%%/interrupt.mk
 src/loaderupdate,0755,%%PREFIX%%/sbin/loaderupdate
-src/loaderupdate.sh,0644,%%DATADIR%%/loaderupdate.sh
 man/loaderupdate.8,0644,%%MAN%%/man8/loaderupdate.8.gz
-src/lst.sh,0644,%%DATADIR%%/lst.sh
+src/loaderupdate.sh,0644,%%DATADIR%%/loaderupdate.sh
 ref/lst.md,0644,%%DOCSDIR%%/ref/lst.md
-src/makeplist,0755,%%PREFIX%%/sbin/makeplist
-man/makeplist.8,0644,%%MAN%%/man8/makeplist.8.gz
+src/lst.sh,0644,%%DATADIR%%/lst.sh
 src/makeplist_filter.awk,0755,%%DATADIR%%/makeplist_filter.awk
 src/makeplist_keywords.awk,0755,%%DATADIR%%/makeplist_keywords.awk
+src/makeplist,0755,%%PREFIX%%/sbin/makeplist
+man/makeplist.8,0644,%%MAN%%/man8/makeplist.8.gz
 src/makeplist.sh,0644,%%DATADIR%%/makeplist.sh
 src/options.mk,0644,%%DATADIR%%/options.mk
 src/pkg_info.sh,0644,%%DATADIR%%/pkg_info.sh
@@ -54,8 +55,8 @@ src/pkg_validate.sh,0644,%%DATADIR%%/pkg_validate.sh
 src/pkg_version,0755,%%PREFIX%%/sbin/pkg_version
 man/pkg_version.8,0644,%%MAN%%/man8/pkg_version.8.gz
 src/pkg_version.sh,0644,%%DATADIR%%/pkg_version.sh
-src/type.sh,0644,%%DATADIR%%/type.sh
 ref/type.md,0644,%%DOCSDIR%%/ref/type.md
+src/type.sh,0644,%%DATADIR%%/type.sh
 LICENSE.md,0644,%%DOCSDIR%%/LICENSE.md
 README.md,0644,%%DOCSDIR%%/README.md
 "
