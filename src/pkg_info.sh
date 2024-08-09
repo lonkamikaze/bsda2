@@ -122,6 +122,12 @@ pkg:info:Env.match() {
 		fi
 	fi
 
+	# Sort packages by number of files in descending order, so
+	# the longest running jobs are processed first. Number of
+	# files is a better predictor of job execution time than package
+	# size.
+	pkgs="$(pkg:query:sort -rn '%#F' $pkgs)"
+
 	# Origins are equally valid unique identifiers, so they can be
 	# used internally as well, so we do not have to convert for
 	# display.

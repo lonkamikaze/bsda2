@@ -161,3 +161,33 @@ pkg:query:origin() {
 		}
 	'
 }
+
+#
+# Sort the given list of packages.
+#
+# - All leading arguments starting with a `-` are forwarded to sort(1)
+# - The first argument not starting with - is assumed to be a pkg-query
+#   format string denoting the data to sort by, the format has to
+#   produce a single line output, the field separator charcter FS aka
+#   \034 may not be used
+# - The remaining arguments are assumed to be the set of packages
+#   to use
+#
+# @param @
+#	A set of sort(1) arguments, the formatting string and a package
+#	list
+#
+pkg:query:sort() {
+	local IFS pkgs sortargs fmt
+	IFS=$'\034'
+	pkgs="${IFS}${*}"
+	sortargs="${pkgs%%"${IFS}"[^-]*}"
+	pkgs="${pkgs#"${sortargs}"}"
+	sortargs="${sortargs#"${IFS}"}"
+	pkgs="${pkgs#"${IFS}"}"
+	fmt="${pkgs%%"${IFS}"*}${IFS}%n-%v"
+	pkgs="${pkgs#*"${IFS}"}"
+	/usr/sbin/pkg query "${fmt}" ${pkgs} \
+	| /usr/bin/sort ${sortargs}          \
+	| /usr/bin/awk -vFS="${IFS}" '$0=$2'
+}
