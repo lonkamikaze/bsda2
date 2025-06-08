@@ -428,13 +428,10 @@ loaderupdate:Session.params() {
 		shift
 	done
 
-	if $flags.check DRYRUN && $flags.check DUMP; then
-		bsda:err:raise E_LOADERUPDATE_PARAM "${0##*/}: ERROR: The -D and -P flags are mutually exclusive"
-		return 1
-	fi
-
+	# only --dump may be performed without a device, unless it is combined
+	# with --dry-run, which makes a device mandatory
 	$devices.devices devs
-	if $flags.check DUMP -eq 0 && [ -z "${devs}" ]; then
+	if ($flags.check DUMP -eq 0 || $flags.check DRYRUN) && [ -z "${devs}" ]; then
 		$this.help "$options"
 		bsda:err:raise E_LOADERUPDATE_NODEVICE "${0##*/}: ERROR: No device selected"
 		return 1
@@ -705,11 +702,12 @@ loaderupdate:Session.run() {
 		       "protective MBR:"      "${pmbr}" \
 		       "freebsd-boot loader:" "${bootload}" \
 		       "EFI loader:"          "${efiload}"
+		echo
 		for dev in ${devs}; do
 			$dev.getBootparts bootparts
 			$dev.getEfiparts  efiparts
 			$dev.getDev       dev
-			printf "\nDevice %s\n-------%.${#dev}s\n" "${dev}" "----------------"
+			printf "Device %s\n-------%.${#dev}s\n" "${dev}" "----------------"
 			if [ -n "${bootparts}" ]; then
 				printf "    %-18s  %s\n" "install:" "${pmbr} > ${dev}"
 			fi
@@ -732,8 +730,11 @@ loaderupdate:Session.run() {
 				printf "    %-18s  %s\n" \
 				       "EFI boot entry:" "${label}"
 			done
+			echo
 		done
-		return 0
+		# --dump implies nothing is modified,
+		# so bail if this is not a --dry-run
+		$flags.check DRYRUN || return 0
 	fi
 
 	efivars=
@@ -784,6 +785,8 @@ loaderupdate:Session.run() {
 		$dev.getBootparts bootparts
 		$dev.getEfiparts  efiparts
 		$dev.getDev       dev
+
+		$this.printcmd "# Device ${dev}"
 
 		# install freebsd-boot loader
 		if [ -n "${bootparts}" ]; then
@@ -876,11 +879,11 @@ loaderupdate:Session.help() {
 	local usage
 	$1.usage usage "\t%2.2s, %-12s  %s\n"
 	echo "usage: loaderupdate [-d destdir] [-L efilabel] [-b bootloader] [-e efiloader]
-                    [-o efifile] [-p pmbr] [-cDn] device ...
+                    [-o efifile] [-p pmbr] [-cn] [-D | -q] device ...
        loaderupdate [-d destdir] [-L efilabel] [-b bootloader] [-e efiloader]
-                    [-o efifile] [-p pmbr] [-cDn] -a
+                    [-o efifile] [-p pmbr] [-cn] [-D | -q] -a
        loaderupdate [-d destdir] [-L efilabel] [-b bootloader] [-e efiloader]
-                    [-o efifile] [-p pmbr] [-cn] -P [-a | device ...]
+                    [-o efifile] [-p pmbr] [-cDn] -P [-a | device ...]
        loaderupdate -h
 $(echo -n "$usage" | /usr/bin/sort -f)"
 }
