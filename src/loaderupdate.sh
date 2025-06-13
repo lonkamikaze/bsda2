@@ -21,7 +21,7 @@ readonly _loaderupdate_=1
 # | E_LOADERUPDATE_UMOUNT     | warning  | Failed to unmount efi partition   |
 # | E_LOADERUPDATE_CMD        | error    | Failed to execute command         |
 # | E_LOADERUPDATE_EFIFILE    | error    | Invalid EFI loader provided       |
-# | E_LOADERUPDATE_BOOTFS     | warning  | File system type not supported    |
+# | E_LOADERUPDATE_BOOTFS     | warning  | Filesystem type not supported     |
 #
 bsda:err:createECs \
 	E_LOADERUPDATE_PARAM \
@@ -730,7 +730,7 @@ loaderupdate:Session.params() {
 		ufs | zfs) ;;
 		*)
 			bsda:err:raise E_LOADERUPDATE_PARAM \
-			               "${0##*/}: ERROR: Option -B unsupported file system type: ${bootfs}"
+			               "${0##*/}: ERROR: Option -B unsupported filesystem type: ${bootfs}"
 		;;
 		esac
 	else

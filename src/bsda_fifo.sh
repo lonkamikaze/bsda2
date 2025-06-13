@@ -49,7 +49,7 @@ readonly _bsda_fifo_=1
 # pipe set and terminate.
 #
 bsda:obj:createClass bsda:fifo:Fifo \
-	r:private:loc   "The named pipe file system location" \
+	r:private:loc   "The named pipe filesystem location" \
 	i:private:init  "Sets up the named pipe" \
 	c:private:clean "Releases the file descriptor" \
 	x:public:send   "Send a string" \

@@ -52,7 +52,7 @@ be overridden by the
 and
 .Fl p
 parameters. Which boot loaders are used by default also depends on
-the file system of the boot environment.
+the filesystem of the boot environment.
 .Pp
 The default boot environment
 .Pa /
@@ -136,7 +136,7 @@ partitions. The default is either
 .Pa /boot/gptboot
 or
 .Pa /boot/gptzfsboot ,
-depending on the file system containing the boot environment.
+depending on the filesystem containing the boot environment.
 .It Ar efiloader
 The boot loader image to use for
 .Nm EFI
@@ -164,7 +164,7 @@ The following options are available:
 .It Fl a , -all
 Selects all available devices.
 .It Fl B Bro Cm ufs , zfs Brc , Fl -bootfs Bro Cm ufs , zfs Brc
-Override the boot file system detection.
+Override the boot filesystem detection.
 .Pp
 Providing
 .Fl B Cm ufs

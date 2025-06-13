@@ -107,7 +107,7 @@ The distviper tool removes obsolete files from `/usr/ports/distfiles`
 ### buildflags
 
 Buildflags provides a configuration wrapper to set `make` flags  depending
-on the current location in the file system.
+on the current location in the filesystem.
 
 A `buildflags.conf` may look like this:
 
@@ -191,7 +191,7 @@ destdir:                /
 ostype:                 FreeBSD
 kernel version:         FreeBSD 14.3-STABLE stable/14-n271514-a6b05a35ce3c SCO15M19
 kernel arch:            amd64
-file system:            zfs
+filesystem:             zfs
 protective MBR:         /boot/pmbr
 freebsd-boot loader:    /boot/gptzfsboot
 EFI loader:             /boot/loader.efi

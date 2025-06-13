@@ -213,7 +213,7 @@ bsda:test:xmatch_count() {
 # | alias      | The given function is a shell alias               |
 # | builtin    | The given function is a shell builtin             |
 # | function   | The given function is a shell function            |
-# | executable | The given function names a file system executable |
+# | executable | The given function names a filesystem executable  |
 # | none       | The given function cannot be found                |
 # | nil        | The `type` builtin returned an unsupported string |
 #
@@ -292,7 +292,7 @@ bsda:test:isFunction() {
 }
 
 #
-# Check if the given function is a file system executable.
+# Check if the given function is a filesystem executable.
 #
 # @param 1
 #	The name of the function
