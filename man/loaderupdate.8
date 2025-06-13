@@ -1,4 +1,4 @@
-.Dd 10 June, 2025
+.Dd 13 June, 2025
 .Dt LOADERUPDATE 8
 .Os
 .Sh NAME
@@ -8,6 +8,7 @@
 .Nm
 .Op Fl d Ar destdir
 .Op Fl L Ar efilabel
+.Op Fl B Bro Cm ufs , zfs Brc
 .Op Fl b Ar bootloader
 .Op Fl e Ar efiloader
 .Op Fl o Ar efifile
@@ -17,6 +18,7 @@
 .Nm
 .Op Fl d Ar destdir
 .Op Fl L Ar efilabel
+.Op Fl B Bro Cm ufs , zfs Brc
 .Op Fl b Ar bootloader
 .Op Fl e Ar efiloader
 .Op Fl o Ar efifile
@@ -26,6 +28,7 @@
 .Nm
 .Op Fl d Ar destdir
 .Op Fl L Ar efilabel
+.Op Fl B Bro Cm ufs , zfs Brc
 .Op Fl b Ar bootloader
 .Op Fl e Ar efiloader
 .Op Fl o Ar efifile
@@ -160,6 +163,17 @@ The following options are available:
 .Bl -tag -width indent
 .It Fl a , -all
 Selects all available devices.
+.It Fl B Bro Cm ufs , zfs Brc , Fl -bootfs Bro Cm ufs , zfs Brc
+Override the boot file system detection.
+.Pp
+Providing
+.Fl B Cm ufs
+or
+.Fl B Cm zfs
+is equivalent to providing
+.Fl b Cm /boot/gptboot
+or
+.Fl b Cm /boot/gptzfsboot .
 .It Fl b Ar bootloader , Fl -bootloader Ar bootloader
 Override the default
 .Nm freebsd-boot

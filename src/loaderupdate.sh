@@ -20,6 +20,8 @@ readonly _loaderupdate_=1
 # | E_LOADERUPDATE_MOUNT      | error    | Failed to mount efi partition     |
 # | E_LOADERUPDATE_UMOUNT     | warning  | Failed to unmount efi partition   |
 # | E_LOADERUPDATE_CMD        | error    | Failed to execute command         |
+# | E_LOADERUPDATE_EFIFILE    | error    | Invalid EFI loader provided       |
+# | E_LOADERUPDATE_BOOTFS     | warning  | File system type not supported    |
 #
 bsda:err:createECs \
 	E_LOADERUPDATE_PARAM \
@@ -35,6 +37,7 @@ bsda:err:createECs \
 	E_LOADERUPDATE_UMOUNT=E_WARN \
 	E_LOADERUPDATE_CMD \
 	E_LOADERUPDATE_EFIFILE \
+	E_LOADERUPDATE_BOOTFS=E_WARN \
 
 . ${bsda_dir:-.}/bsda_opts.sh
 . ${bsda_dir:-.}/bsda_elf.sh
@@ -393,13 +396,13 @@ loaderupdate:Mount.clean() {
 	   ! /sbin/umount "${mountpoint}" 2>&- && \
 	   ! /sbin/umount -f "${mountpoint}"; then
 		bsda:err:raise E_LOADERUPDATE_UMOUNT \
-		               "WARNING: Failed to unmount: ${mountpoint}"
+		               "${0##*/}: WARNING: Failed to unmount: ${mountpoint}"
 		return 0
 	fi
 	if [ -n "${mountpoint}" ] && \
 	   ! /bin/rmdir "${mountpoint}"; then
 		bsda:err:raise E_LOADERUPDATE_UMOUNT \
-		               "WARNING: Failed to remove: ${mountpoint}"
+		               "${0##*/}: WARNING: Failed to remove: ${mountpoint}"
 		return 0
 	fi
 	# gracefully delete empty parent folders
@@ -417,7 +420,7 @@ bsda:obj:createClass loaderupdate:Session \
 	r:private:ostype   "The kernel ostype" \
 	r:private:version  "The kernel version" \
 	r:private:machine  "The kernel machine architecture" \
-	r:private:bootfs   "The file system of the boot environment" \
+	r:private:bootfs   "The filesystem of the boot environment" \
 	r:private:pmbr     "The protective MBR image path" \
 	r:private:bootload "The freebsd-boot loader path" \
 	r:private:efiload  "The efi loader path" \
@@ -537,6 +540,7 @@ loaderupdate:Session.params() {
 
 	bsda:opts:Options options \
 	ALL      -a  --all        'Update loaders of all devices' \
+	BOOTFS   -B* --bootfs     'Override the filesystem detection, either ufs or zfs' \
 	BOOTLOAD -b* --bootloader 'The freebsd-boot loader to install, e.g. /boot/gptboot' \
 	COMPAT   -c  --compat     'Equivalent to -o/EFI/BOOT/BOOT{efiarch}.EFI' \
 	EFILOAD  -e* --efiloader  'The EFI loader to install, e.g. /boot/loader.efi' \
@@ -556,6 +560,7 @@ loaderupdate:Session.params() {
 	$this.Devices devices
 
 	destdir="$(/usr/bin/printenv DESTDIR)"
+	bootfs=
 	bootload=
 	efiload=
 	pmbr=
@@ -576,6 +581,14 @@ loaderupdate:Session.params() {
 			destdir="${destdir#--destdir}"
 			if [ -z "${destdir}" ]; then
 				destdir="${2}"
+				shift
+			fi
+		;;
+		BOOTFS)
+			bootfs="${1#-B}"
+			bootfs="${bootfs#--bootfs}"
+			if [ -z "${bootfs}" ]; then
+				bootfs="${2}"
 				shift
 			fi
 		;;
@@ -712,15 +725,29 @@ loaderupdate:Session.params() {
 	esac
 	setvar ${this}efiarch "${efiarch}"
 
-	bootfs="$(/sbin/mount -p | /usr/bin/awk -vDESTDIR="${destdir:-/}" '
-		$2 == DESTDIR && $0 = $3
-	')"
-	bootfs="${bootfs##*$'\n'}"
+	if $flags.check BOOTFS; then
+		case "${bootfs}" in
+		ufs | zfs) ;;
+		*)
+			bsda:err:raise E_LOADERUPDATE_PARAM \
+			               "${0##*/}: ERROR: Option -B unsupported file system type: ${bootfs}"
+		;;
+		esac
+	else
+		bootfs="$(/sbin/mount -p | /usr/bin/awk -vDESTDIR="${destdir:-/}" '
+			$2 == DESTDIR && $0 = $3
+		')"
+		bootfs="${bootfs##*$'\n'}"
+	fi
 	setvar ${this}bootfs "${bootfs}"
 
 	case "${bootfs}" in
 	ufs) bootload="${bootload:-/boot/gptboot}";;
 	zfs) bootload="${bootload:-/boot/gptzfsboot}";;
+	'')  bsda:err:raise E_LOADERUPDATE_BOOTFS \
+	                    "${0##*/}: WARNING: Failed to detect boot filesystem type";;
+	*)   bsda:err:raise E_LOADERUPDATE_BOOTFS \
+	                    "${0##*/}: WARNING: Unsupported boot filesystem type: ${bootfs}";;
 	esac
 	setvar ${this}bootload "${bootload}"
 
@@ -914,9 +941,9 @@ loaderupdate:Session.run() {
 	$this.getEfilabel efilabel
 	$this.getEfifile  efifile
 	$this.getEfiarch  efiarch
-	pmbr="${destdir}/${pmbr#/}"
-	bootload="${destdir}/${bootload#/}"
-	efiload="${destdir}/${efiload#/}"
+	pmbr="${pmbr:+${destdir}/${pmbr#/}}"
+	bootload="${bootload:+${destdir}/${bootload#/}}"
+	efiload="${efiload:+${destdir}/${efiload#/}}"
 
 	$this.Flags flags
 
@@ -933,20 +960,43 @@ loaderupdate:Session.run() {
 	skipaction=skip
 	$flags.check FORCE && skipaction=force
 
-	# check whether all required loaders are readable
+	# walk the partitions and determine the actions to be taken
 	for dev in ${devs}; do
 		$dev.bootParts bootparts
 		$dev.efiParts  efiparts
 		$dev.getName   devname
+		# check whether all required loaders are readable
 		if rec efiparts.is_not_empty; then
 			if [ -z "${efivars}" ] && $flags.check NOEFI -eq 0; then
 				bsda:err:raise E_LOADERUPDATE_EFIBOOTMGR \
 				               "${0##*/}: ERROR: Failed to query efibootmgr, are you a super user?"
 				return 1
 			fi
-			if ! [ -r "${efiload}" ]; then
+			if ! [ -f "${efiload}" -a -r "${efiload}" ]; then
 				bsda:err:raise E_LOADERUPDATE_LOADER \
 				               "${0##*/}: ERROR: Cannot read EFI loader: ${efiload}"
+				return 1
+			fi
+		fi
+		if rec bootparts.is_not_empty; then
+			if ! [ -f "${pmbr}" -a -r "${pmbr}" ]; then
+				bsda:err:raise E_LOADERUPDATE_LOADER \
+				               "${0##*/}: ERROR: Cannot read protective MBR: ${pmbr}"
+				return 1
+			fi
+			if $this.matchimg pmbr "${pmbr}" "/dev/${devname}"; then
+				setvar ${dev}pmbrAct ${skipaction}
+			else
+				setvar ${dev}pmbrAct update/install
+			fi
+			if [ -z "${bootload}" ]; then
+				bsda:err:raise E_LOADERUPDATE_LOADER \
+				               "${0##*/}: ERROR: No freebsd-boot loader selected, select via -B or -b"
+				return 1
+			fi
+			if ! [ -f "${bootload}" -a -r "${bootload}" ]; then
+				bsda:err:raise E_LOADERUPDATE_LOADER \
+				               "${0##*/}: ERROR: Cannot read freebsd-boot loader: ${bootload}"
 				return 1
 			fi
 		fi
@@ -1034,23 +1084,6 @@ loaderupdate:Session.run() {
 				$efi.addBootChoice "" "${label}" install
 			fi
 		done
-		if rec bootparts.is_not_empty; then
-			if ! [ -r "${pmbr}" ]; then
-				bsda:err:raise E_LOADERUPDATE_LOADER \
-				               "${0##*/}: ERROR: Cannot read protective MBR: ${pmbr}"
-				return 1
-			fi
-			if $this.matchimg pmbr "${pmbr}" "/dev/${devname}"; then
-				setvar ${dev}pmbrAct ${skipaction}
-			else
-				setvar ${dev}pmbrAct update/install
-			fi
-			if ! [ -r "${bootload}" ]; then
-				bsda:err:raise E_LOADERUPDATE_LOADER \
-				               "${0##*/}: ERROR: Cannot read freebsd-boot loader: ${bootload}"
-				return 1
-			fi
-		fi
 		for boot in ${bootparts}; do
 			$boot.getIndex part
 			if $this.matchimg bootload "${bootload}" "/dev/${devname}p${part}"; then
@@ -1069,7 +1102,7 @@ loaderupdate:Session.run() {
 		       "ostype:"              "${ostype}" \
 		       "kernel version:"      "${version}" \
 		       "kernel arch:"         "${machine}" \
-		       "file system:"         "${bootfs}" \
+		       "filesystem:"          "${bootfs}" \
 		       "protective MBR:"      "${pmbr}" \
 		       "freebsd-boot loader:" "${bootload}" \
 		       "EFI loader:"          "${efiload}"
@@ -1186,12 +1219,12 @@ loaderupdate:Session.run() {
 loaderupdate:Session.help() {
 	local usage
 	$1.usage usage "\t%2.2s, %-12s  %s\n"
-	echo "usage: loaderupdate [-d destdir] [-L efilabel] [-b bootloader] [-e efiloader]
-                    [-o efifile] [-p pmbr] [-cDfnq] device ...
-       loaderupdate [-d destdir] [-L efilabel] [-b bootloader] [-e efiloader]
-                    [-o efifile] [-p pmbr] [-cDfnq] -a
-       loaderupdate [-d destdir] [-L efilabel] [-b bootloader] [-e efiloader]
-                    [-o efifile] [-p pmbr] [-cDfnq] -P [-a | device ...]
+	echo "usage: loaderupdate [[-d destdir] [-L efilabel] [-B {ufs, zfs}] [-b bootloader]
+	            [-e efiloader] [-o efifile] [-p pmbr] [-cDfnq] device ...
+       loaderupdate [-d destdir] [-L efilabel] [-B {ufs, zfs}] [-b bootloader]
+                    [-e efiloader] [-o efifile] [-p pmbr] [-cDfnq] -a
+       loaderupdate [-d destdir] [-L efilabel] [-B {ufs, zfs}] [-b bootloader]
+                    [-e efiloader] [-o efifile] [-p pmbr] [-cDfnq] -P [-a | device ...]
        loaderupdate -h
 $(echo -n "$usage" | /usr/bin/sort -f)"
 }
