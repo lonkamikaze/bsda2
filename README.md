@@ -189,7 +189,7 @@ Boot Environment
 ----------------
 destdir:                /
 ostype:                 FreeBSD
-kernel version:         FreeBSD 14.0-STABLE #0 stable/14-n265732-260e63b3d53c: Tue Nov 14 14:35:08 CET 2023
+kernel version:         FreeBSD 14.3-STABLE stable/14-n271514-a6b05a35ce3c SCO15M19
 kernel arch:            amd64
 file system:            zfs
 protective MBR:         /boot/pmbr
@@ -198,10 +198,11 @@ EFI loader:             /boot/loader.efi
 
 Device nda0
 -----------
-    install:            /boot/pmbr > nda0
-    install:            /boot/gptzfsboot > nda0p1
-    install:            /boot/loader.efi > nda0p2:/efi/FreeBSD/bootamd64.efi
-    EFI boot entry:     FreeBSD 14.0-STABLE #0 stable/14-n265732-260e63b3d53c: Tue Nov 14 14:35:08 CET 2023 amd64 [nda0p2]
+    update/install:     /boot/pmbr > nda0
+    update/install:     /boot/gptzfsboot > nda0p1
+    update:             /boot/loader.efi > nda0p2:/efi/FreeBSD/bootamd64.efi
+    update EFI label:   FreeBSD 14.3-STABLE stable/14-n271375-098e4ecd6549 SCO15M19 amd64 [nda0p2] (Boot0001)
+                        FreeBSD 14.3-STABLE stable/14-n271514-a6b05a35ce3c SCO15M19 amd64 [nda0p2]
 ```
 
 Before committing to an update `loaderupdate --dry-run` can list all
@@ -209,6 +210,7 @@ of the commands it will run:
 
 ```sh
 root# loaderupdate -D nda0
+# Device nda0
 gpart bootcode -b/boot/pmbr nda0
 gpart bootcode -p/boot/gptzfsboot -i1 nda0
 mkdir -p nda0p2
@@ -216,8 +218,7 @@ mount -tmsdosfs -osync /dev/nda0p2 nda0p2
 mkdir -p nda0p2/efi/FreeBSD
 cp /boot/loader.efi nda0p2/efi/FreeBSD/bootamd64.efi
 efibootmgr -Bb 0001
-efibootmgr -cl nda0p2:/efi/FreeBSD/bootamd64.efi -L 'FreeBSD 14.0-STABLE #0 stable/14-n265732-260e63b3d53c: Tue Nov 14 14:35:08 CET 2023 amd64 [nda0p2]'
-efibootmgr -ab 0001
+efibootmgr -acb 0001 -l nda0p2:/efi/FreeBSD/bootamd64.efi -L 'FreeBSD 14.3-STABLE stable/14-n271514-a6b05a35ce3c SCO15M19 amd64 [nda0p2]'
 ```
 
 This enables users to review every command performed and tweak parameters.

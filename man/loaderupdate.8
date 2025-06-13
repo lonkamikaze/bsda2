@@ -1,4 +1,4 @@
-.Dd 18 December, 2023
+.Dd 10 June, 2025
 .Dt LOADERUPDATE 8
 .Os
 .Sh NAME
@@ -12,7 +12,7 @@
 .Op Fl e Ar efiloader
 .Op Fl o Ar efifile
 .Op Fl p Ar pmbr
-.Op Fl cDnq
+.Op Fl cDfnq
 .Ar device ...
 .Nm
 .Op Fl d Ar destdir
@@ -21,7 +21,7 @@
 .Op Fl e Ar efiloader
 .Op Fl o Ar efifile
 .Op Fl p Ar pmbr
-.Op Fl cDnq
+.Op Fl cDfnq
 .Fl a
 .Nm
 .Op Fl d Ar destdir
@@ -30,7 +30,7 @@
 .Op Fl e Ar efiloader
 .Op Fl o Ar efifile
 .Op Fl p Ar pmbr
-.Op Fl cDnq
+.Op Fl cDfnq
 .Fl P
 .Op Fl a | Ar device ...
 .Nm
@@ -65,6 +65,12 @@ The
 section of
 .Xr gpart 8
 provides a good overview of the boot process.
+.Pp
+By default the loader update is performed if there is a checksum
+mismatch between the respective loader image and the loader on disk.
+The
+.Fl f
+option can be used to force the loader update.
 .Ss Arguments
 The following argument types can be given:
 .Bl -tag -with indent
@@ -195,6 +201,8 @@ Override the default boot environment.
 Override the default
 .Nm EFI
 loader image.
+.It Fl f, Fl -force
+Force update of loaders that are already up to date.
 .It Fl L Ar efilabel , Fl -label Ar efilabel
 Set a custom label for
 .Nm EFI
@@ -271,6 +279,9 @@ and
 .Pa /boot/loader_simp.efi .
 .It Pa /boot/pmbr
 The default protective MBR image.
+.It Pa /usr/include/sys/disk/mbr.h
+Required to locate the protective MBR inside a block device for
+checksum verification.
 .El
 .Sh EXIT STATUS
 The following is a list of all anticipated exit codes:
