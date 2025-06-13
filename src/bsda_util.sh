@@ -120,3 +120,51 @@ bsda:util:in() {
 	done
 	return 1
 }
+
+#
+# Trim whitespace from the left side of the given string.
+#
+# @param &1
+#	The destination variable
+# @param 2
+#	The string to trim
+# @param 3
+#	Called as `${3} "${1}" "${2}` after trimming has completed,
+#	defaults to `setvar`
+#
+bsda:util:ltrim() {
+	while [ -n "${2}" -a -z "${2##[$' \t']*}" ]; do
+		set -- "${1}" "${2#[$' \t']}" "${3}"
+	done
+	${3:-setvar} "${1}" "${2}"
+}
+
+#
+# Trim whitespace from the right side of the given string.
+#
+# @param &1
+#	The destination variable
+# @param 2
+#	The string to trim
+# @param 3
+#	Called as `${3} "${1}" "${2}` after trimming has completed,
+#	defaults to `setvar`
+#
+bsda:util:rtrim() {
+	while [ -n "${2}" -a -z "${2%%*[$' \t']}" ]; do
+		set -- "${1}" "${2%[$' \t']}" "${3}"
+	done
+	${3:-setvar} "${1}" "${2}"
+}
+
+#
+# Trim whitespace from both sides of the given string.
+#
+# @param &1
+#	The destination variable
+# @param 2
+#	The string to trim
+#
+bsda:util:trim() {
+	bsda:util:ltrim "${1}" "${2}" bsda:util:rtrim
+}

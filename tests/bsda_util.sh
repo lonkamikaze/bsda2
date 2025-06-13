@@ -49,3 +49,11 @@ bsda:util:in foo foo a b c bam boom bar
 bsda:util:in foo a b c bam boom bar foo
 bsda:util:in foo foo a b c bam boom bar foo
 ! bsda:util:in fox a b c bam boom foo bar
+
+bsda:util:ltrim bar "	    sasdkfj aijro kljk	20r	   "
+test "${bar}" = "sasdkfj aijro kljk	20r	   "
+bsda:util:rtrim bar "	    sasdkfj aijro kljk	20r	   "
+test "${bar}" = "	    sasdkfj aijro kljk	20r"
+bsda:util:trim bar "	    sasdkfj aijro kljk	20r	   "
+echo "[${bar}]"
+test "${bar}" = "sasdkfj aijro kljk	20r"
