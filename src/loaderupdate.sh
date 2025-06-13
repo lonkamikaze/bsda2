@@ -924,7 +924,7 @@ loaderupdate:Session.run() {
 	local IFS flags devs destdir ostype version machine bootfs \
 	      pmbr bootload efiload efilabel efifile devname bootparts efiparts \
 	      part i efivars ecompat label efiarch action dev mount mountpoint \
-	      var varfile varlabel etc partdev skipaction efi boot choice choices \
+	      var varlabel line partdev skipaction efi boot choice choices \
 
 	$this.Devices devs
 	$devs.devices devs
@@ -951,6 +951,7 @@ loaderupdate:Session.run() {
 	ecompat=
 	if $flags.check NOEFI -eq 0; then
 		efivars="$(/usr/sbin/efibootmgr -v 2>&1)"
+		lst:cast log:efivars rec:efivars
 		# FreeBSD 13 broke the -a, -A and -B parameters by
 		# requiring an additional parameter
 		case "$(/usr/sbin/efibootmgr -h 2>&1)" in
@@ -1047,19 +1048,24 @@ loaderupdate:Session.run() {
 			#   one and mark it for `update`
 			# - if there are no entries create one for install
 			#
-			while IFS=' ' read -r var varlabel; do
-				case "${var}" in
-				*Boot[0-9]*)
-					IFS=' ' read -r varfile etc
-					test "${varfile}" = "${partdev}:${efifile}" || continue
-					var="${var#*Boot}"
+			for line in ${efivars}; do
+				case "${line}" in
+				[+\ ]Boot[0-9][0-9][0-9][0-9]*)
+					var="${line#*Boot}"
+					var="${var%% *}"
 					var="${var%\*}"
-					$efi.addBootChoice "${var}" "${varlabel% HD(*)/File(*)}" delete
-				;;
+					varlabel="${line#*Boot* }"
+					varlabel="${varlabel% *(*)}"
+					bsda:util:rtrim varlabel "${varlabel}"
+					;;
 				esac
-			done <<- EFIVARS
-			${efivars}
-			EFIVARS
+				bsda:util:trim line "${line% *(*)}"
+				case "${line}" in
+				"${partdev}:${efifile}")
+					$efi.addBootChoice "${var}" "${varlabel}" delete
+					;;
+				esac
+			done
 
 			$efi.bootChoices choices
 			$efi.getLabel label
