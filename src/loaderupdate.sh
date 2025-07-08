@@ -357,7 +357,8 @@ bsda:obj:createClass loaderupdate:Mount \
 #	Failed to create mountpoint or failed to mount
 #
 loaderupdate:Mount.init() {
-	local device mountpoint nullfs
+	local IFS device labels mountpoint nullfs
+	IFS=$'\n'
 	device="${1}"
 	mountpoint="${2}"
 	shift 2
@@ -368,12 +369,17 @@ loaderupdate:Mount.init() {
 		return 1
 	fi
 	setvar ${this}mountpoint "${mountpoint}"
-	nullfs="$(/sbin/mount -p | /usr/bin/awk -vDEV="${device}" '$1 == DEV && $0=$2')"
-	if [ -n "${nullfs}" ]; then
-		# fall back to a nullfs mount if the device is already mounted
-		device="${nullfs%%$'\n'*}"
-		set -- -t nullfs
-	fi
+	# check if the FS is already mounted
+	labels="$(/sbin/geom label status -s | /usr/bin/awk -vDEV="${device#/dev/}" '$3 == DEV && $0 = "/dev/" $1')"
+	for device in ${labels} ${device}; do
+		nullfs="$(/sbin/mount -p | /usr/bin/awk -vDEV="${device}" '$1 == DEV && $0 = $2')"
+		if [ -n "${nullfs}" ]; then
+			# fall back to a nullfs mount if the device is already mounted
+			device="${nullfs%%$'\n'*}"
+			set -- -t nullfs
+			break
+		fi
+	done
 	if ! /sbin/mount "$@" "${device}" "${mountpoint}"; then
 		bsda:err:raise E_LOADERUPDATE_MOUNT \
 		               "${0##*/}: ERROR: Failed to mount device: ${device}"
