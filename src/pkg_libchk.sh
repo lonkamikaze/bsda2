@@ -389,7 +389,8 @@ pkg:libchk:Session.ldd_filter() {
 #	The status line this job is listed on
 #
 pkg:libchk:Session.job() {
-	local IFS files misses res flags compat verbose filter
+	local IFS files misses res flags compat verbose filter deps depfiles
+
 	IFS=$'\n'
 	$this.Flags flags
 	$flags.check NO_COMPAT -eq 0 && compat=1  || compat=0
@@ -405,18 +406,33 @@ pkg:libchk:Session.job() {
 	          | $class.ldd_filter "${compat}" "${verbose}" "${filter}")"
 
 	# Check whether a miss is actually contained in the same
-	# package, e.g. libjvm.so in openjdk
+	# packate or a dependency, e.g. libjvm.so in openjdk
 	if [ "$filter" -eq 1 ] && [ -n "$misses" ]; then
+		deps="$(pkg:query:select %dn-%dv "${1}")"
+		depfiles="$(pkg:query:select %Fp ${deps})"
+		files="${files}${files:+${depfiles:+${IFS}}}${depfiles}"
 		misses="$( (echo "${files}"; echo "${misses}") | /usr/bin/awk '
-			BEGIN { FS = SUBSEP }
+			BEGIN { FS = OFS = SUBSEP }
 			# blacklist package files
 			NF == 1 {
-				FILES[$0] # with path for compat
+				file = $0
+				FILES[$0] = file # with path for compat
 				sub(/.*\//, "")
-				FILES[$0] # without path for miss
+				FILES[$0] = file # without path for miss
 			}
 			# print non-blacklisted misses
 			NF > 1 && !($2 in FILES)
+			# print blacklisted misses that do not exist in
+			# the filesystem
+			NF > 1 &&  ($2 in FILES) {
+				file = FILES[$2]
+				cmd = "/bin/test -f " file
+				if (0 != system(cmd)) {
+					$2 = file
+					print
+				}
+				close(cmd)
+			}
 		')"
 	fi
 
