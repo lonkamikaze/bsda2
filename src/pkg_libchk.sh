@@ -409,9 +409,8 @@ pkg:libchk:Session.job() {
 	# packate or a dependency, e.g. libjvm.so in openjdk
 	if [ "$filter" -eq 1 ] && [ -n "$misses" ]; then
 		deps="$(pkg:query:select %dn-%dv "${1}")"
-		depfiles="$(pkg:query:select %Fp ${deps})"
-		files="${files}${files:+${depfiles:+${IFS}}}${depfiles}"
-		misses="$( (echo "${files}"; echo "${misses}") | /usr/bin/awk '
+		depfiles="${deps:+$(pkg:query:select %Fp ${deps})}"
+		misses="$( (echo "${files}"; echo "${depfiles}"; echo "${misses}") | /usr/bin/awk '
 			BEGIN { FS = OFS = SUBSEP }
 			# blacklist package files
 			NF == 1 {
@@ -420,15 +419,22 @@ pkg:libchk:Session.job() {
 				sub(/.*\//, "")
 				FILES[$0] = file # without path for miss
 			}
+			# blacklist dependency files
+			NF == 2 {
+				# do not filter compat dependencies
+				sub(/.*\//, "")
+				FILES[$0] = $0
+			}
 			# print non-blacklisted misses
-			NF > 1 && !($2 in FILES)
+			NF > 2 && !($2 in FILES)
 			# print blacklisted misses that do not exist in
 			# the filesystem
-			NF > 1 &&  ($2 in FILES) {
+			NF > 2 &&  ($2 in FILES) {
 				file = FILES[$2]
+				gsub(/./, "\\\\&", file)
 				cmd = "/bin/test -f " file
 				if (0 != system(cmd)) {
-					$2 = file
+					$2 = FILES[$2]
 					print
 				}
 				close(cmd)
