@@ -29,12 +29,12 @@ bsda:async:createClass bsda:tty:Async bsda:tty:Terminal
 # - compat
 # - verbose
 # - invalid
+# - os/abi
 #
 # Secondary tags may occor appended with a comma:
 #
 # - direct
 # - indirect
-# - os/abi
 #
 # The ldd_filter.awk script documents which info is carried for which
 # tag.
@@ -280,20 +280,20 @@ pkg:libchk:Session.print() {
 	for miss in $misses; {
 		$class:mapmiss "$miss"
 		# check for secondary tags
-		osabi=
 		indirect=
-		case "${tags}" in *,os/abi*)   osabi="Unbranded ELF file ";; esac
 		case "${tags}" in *,indirect*) indirect="indirectly ";;      esac
 		# print for primary tags
 		case "${tags}" in
 		miss*)
-			log output.push_back "$pkg: ${osabi}$file ${indirect}misses $lib";;
+			log output.push_back "$pkg: $file ${indirect}misses $lib";;
 		compat*)
-			log output.push_back "$pkg: ${osabi}$file ${indirect}uses $lib";;
+			log output.push_back "$pkg: $file ${indirect}uses $lib";;
 		verbose*)
 			log output.push_back "$pkg: $file: $lib";;
 		invalid*)
 			log output.push_back "$pkg: ldd(1): $lib";;
+		os/abi*)
+			log output.push_back "$pkg: $file unsupported OS/ABI: $lib";;
 		*)      # should not be reached
 			log output.push_back "$pkg: $file ??? $lib";;
 		esac

@@ -24,6 +24,7 @@
 # | miss    | yes    | dependency filename | Dependency was not found       |
 # | verbose | yes    | error message       | Binary specific ldd(1) error   |
 # | invalid | -      | whole input line    | Unknown ldd(1) output          |
+# | os/abi  | yes    | ELF OS/ABI branding | Binary is not FreeBSD branded  |
 #
 # The following secondary tags can be appended to primary tags with a comma
 # separator:
@@ -32,7 +33,6 @@
 # |----------|-----------------------------------------------------------------|
 # | direct   | The missing dependency is a direct dependency                   |
 # | indirect | The missing dependency is an indirect dependency                |
-# | os/abi   | The given binary is an unbranded ELF binary, i.e. OS/ABi = NONE |
 #
 # The direct and indirect tags are mutually exclusive.
 #
@@ -79,20 +79,31 @@ function printrow(bin, info, tags) {
 }
 
 #
-# Call readelf on the given binary and add secondory tags.
+# Call readelf on the given binary and add secondary tags.
 #
-# - `os/abi` for unbranded ELF binaries
 # - `direct` where the given library is a direct dependency of the
 #   given binary
 # - `indirect` where the given library is an indirect dependency of
 #   the given binary
 #
+# Substitute the primary (miss/compat) tag:
+#
+# - `os/abi` for binaries that are not 'UNIX - FreeBSD' branded, the
+#   actual branding replaces the given library in the output
+#
 # @param bin,lib,tags
-#	A tuble consisting of a binary name, the missed library and
+#	A tuple consisting of a binary name, the missed library and
 #	a tag, either miss or compat
 #
 function readelf_tag(bin, lib, tags, _cmd, _bin, _direct, _osabi) {
-	if (FILTER && !READELF[bin, lib]++) {
+	# Bail if:
+	# - bin+lib has already been processed
+	# - bin was already identified having the wrong OS/ABI branding
+	if (READELF[bin, lib]++ || OSABI[bin]) {
+		return
+	}
+
+	if (FILTER) {
 		# just escape every character in the file name, this
 		# should at least cover the easy stuff like whitespace
 		_bin = bin
@@ -101,7 +112,11 @@ function readelf_tag(bin, lib, tags, _cmd, _bin, _direct, _osabi) {
 		_direct = _osabi = 0
 		while ((_cmd | getline) > 0) {
 			_direct += (0 < index($0, "Shared library: [" lib "]"))
-			_osabi  += (/^ *OS\/ABI: *NONE$/)
+			if(/^ *OS\/ABI: / && !(/^ *OS\/ABI: *UNIX - FreeBSD$/)) {
+				lib = $0
+				sub(/^ *OS\/ABI: */, "", lib)
+				OSABI[bin] = _osabi = 1
+			}
 		}
 		close(_cmd)
 		# bail if nothing should be printed, but we must not
@@ -109,12 +124,11 @@ function readelf_tag(bin, lib, tags, _cmd, _bin, _direct, _osabi) {
 		if (!VERBOSE && (_osabi || !_direct)) { return }
 		#   ^~~~~~~~     ^~~~~~    ^~~~~~~~
 		#   |            |         | bail on indirect dependency
-		#   |            | bail if OS/ABI is not set (binary is not branded)
+		#   |            | bail if OS/ABI is not 'UNIX - FreeBSD'
 		#   | never bail when verbose
 
 		# append tags
-		tags = tags (_osabi  ? ",os/abi" : "") \
-		            (_direct ? ",direct" : ",indirect")
+		tags = _osabi ? "os/abi" : tags (_direct ? ",direct" : ",indirect")
 	}
 	printrow(bin, lib, tags)
 }
