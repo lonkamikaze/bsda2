@@ -1,4 +1,4 @@
-.Dd 18 November, 2023
+.Dd 21 August, 2026
 .Dt PKG_TRIM 8
 .Os
 .Sh NAME
@@ -31,14 +31,16 @@ or
 .Sh DIAGNOSTICS
 During package selection the script may exit with the exit status
 returned by
-.Xr dialog 1 .
+.Xr dialog 1
+or
+.Xr bsddialog 1 .
 During package processing the script may exit with the exit status
 returned by
 .Xr pkg-set 8
 or
 .Xr pkg-delete 8 .
 .Sh SEE ALSO
-.Xr dialog 1 , Xr pkg-query 8 , Xr pkg-set 8 , Xr pkg-delete 8
+.Xr dialog 1 , Xr bsddialog 1 , Xr pkg-query 8 , Xr pkg-set 8 , Xr pkg-delete 8
 .Sh HISTORY
 The
 .Nm

@@ -1,9 +1,9 @@
 test -n "$_pkg_trim_" && return 0
 readonly _pkg_trim_=1
 
-. ${bsda_dir:-.}/bsda_dialog.sh
 . ${bsda_dir:-.}/pkg_query.sh
 . ${bsda_dir:-.}/bsda_opts.sh
+. ${bsda_dir:-.}/bsda_dialog.sh
 
 #
 # A dialog(1) driven script to get rid of unwanted leaf packages.

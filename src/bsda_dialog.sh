@@ -2,15 +2,28 @@ test -n "$_bsda_dialog_" && return 0
 readonly _bsda_dialog_=1
 
 . ${bsda_dir:-.}/bsda_obj.sh
+. ${bsda_dir:-.}/bsda_err.sh
 
 #
-# Provides a slim wrapper around dialog(1).
+# Provides a slim wrapper around dialog(1)/bsddialog(1).
 #
 
 #
-# A slim wrapper around dialog(1).
+# Setup a basic set of error/exit codes.
+#
+bsda:err:createECs E_BSDA_DIALOG_WHICH
+
+#
+# The set of dialog(1)/bsddialog(1) executables to look up.
+# The first match is used.
+#
+readonly bsda_dialog_which='/usr/bin/dialog /usr/bin/bsddialog dialog bsddialog'
+
+#
+# A slim wrapper around dialog(1) with fallback to bsddialog(1).
 #
 bsda:obj:createClass bsda:dialog:Dialog \
+	r:private:dialog   "The dialog(1) binary name" \
 	r:private:desc     "A file descriptor used when calling dialog(1)" \
 	r:private:args     "Additional arguments to dialog(1)" \
 	i:private:init     "The constructor" \
@@ -33,11 +46,22 @@ bsda:obj:createClass bsda:dialog:Dialog \
 #	Additional arguments to dialog, see dialog(1)
 #
 bsda:dialog:Dialog.init() {
-	local desc
+	local IFS desc dialog
 	bsda:obj:getDesc desc || return $?
 	setvar ${this}desc "$desc"
 	eval "exec $desc>&1"
 	$this.setArgs "$@"
+	unset IFS
+	for dialog in ${bsda_dialog_which}; do
+		if /usr/bin/which -s "${dialog}"; then
+			setvar ${this}dialog "$(/usr/bin/which "${dialog}")"
+			break
+		fi
+		dialog=
+	done
+	if [ -z "${dialog}" ]; then
+		bsda:err:raise E_BSDA_DIALOG_WHICH "ERROR: Cannot locate dialog(1)/bsddialog(1) binary"
+	fi
 }
 
 #
@@ -63,13 +87,13 @@ bsda:dialog:Dialog.clean() {
 #	See dialog(1)
 #
 bsda:dialog:Dialog.call() {
-	local ret result
+	local ret result dialog
 	result="$(
 		$this.getArgs args
 		$this.getDesc desc
+		$this.getDialog dialog
 		shift
-		(/usr/bin/dialog $args --backtitle "${0##*/}" "$@" \
-		                 >&$desc ) 2>&1)"
+		($dialog $args --backtitle "${0##*/}" "$@" >&$desc ) 2>&1)"
 	ret=$?
 	$caller.setvar "$1" "$result"
 	return $ret
