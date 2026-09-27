@@ -280,7 +280,7 @@ pkg:validate:Session.run() {
 
 	if $flags.check CLEAN; then
 		$flags.check PKG_ORIGIN -eq 0 && fmt="%n-%v" || fmt="%o"
-		$fifo.sink $'pkg:query:select "${fmt}\034%Fs\034%Fp" ${pkgs}'
+		$fifo.sink $'pkg:query:select "${fmt}\034%Fs\034%Fp" ${pkgs} | /usr/bin/awk -F"\034" -f ${bsda_dir}/pcv2filter.awk'
 	else
 		# Total number of packages/jobs
 		log pkgs.count num
@@ -290,7 +290,7 @@ pkg:validate:Session.run() {
 			# Perform parallel job dispatch and terminal output
 			: $((count+=1))
 			$term.line 0 "$(printf "$fmt" $count "$pkg")" | \
-			$fifo.sink $'pkg:query:select "${pkg}\034%Fs\034%Fp" ${pkg}'
+			$fifo.sink $'pkg:query:select "${pkg}\034%Fs\034%Fp" ${pkg} | /usr/bin/awk -F"\034" -f ${bsda_dir}/pcv2filter.awk'
 		done
 	fi
 	if ! kill -0 $jobpids 2>&-; then
@@ -317,17 +317,22 @@ pkg:validate:Session.run() {
 #	A bsda:opts:Flags instance
 #
 pkg:validate:Session:validate() {
-	local sum hash msg
+	local sum hash hashargs msg
 	sum=
 	hash=
+	hashargs=
 	msg=
 	case "$2" in
 	1\$*)
 		hash=sha256
+		hashargs=-q
+	;;
+	2\$*)
+		hash=b2sum
 	;;
 	esac
-	if [ -z "$hash" -o ! -x "/sbin/$hash" ]; then
-		msg="unsupported $hash checksum for $3"
+	if ! /usr/bin/which -s "${hash}"; then
+		msg="unsupported ${hash} checksum for $3: $2"
 	elif [ -L "$3" ]; then
 		local link fmt
 		# symlink
@@ -340,9 +345,10 @@ pkg:validate:Session:validate() {
 		if [ -z "${link##/*}" ]; then
 			fmt="%s\\0"
 		fi
-		sum="$(printf "$fmt" "${link#/}" | /sbin/$hash -q 2>&1)"
+		sum="$(printf "$fmt" "${link#/}" | ${hash} ${hashargs} 2>&1)"
+		sum="${sum%% *}"
 		if [ "$sum" != "${2#*\$}" ]; then
-			msg="checksum mismatch for $3"
+			msg="${hash} checksum mismatch for $3"$'\n'"expect: ${2#*\$}"$'\n'"found:  ${sum}"
 		elif [ ! -e "$3" ]; then
 			if $flags.check DEVELOPER; then
 				msg="cannot follow symlink $3 to ${link}"
@@ -367,9 +373,10 @@ pkg:validate:Session:validate() {
 		fi
 	else
 		# regular file hash
-		sum="$(/sbin/$hash -q "$3" 2>&1)"
+		sum="$(${hash} ${hashargs} "$3" 2>&1)"
+		sum="${sum%% *}"
 		if [ "$sum" != "${2#*\$}" ]; then
-			msg="checksum mismatch for $3"
+			msg="${hash} checksum mismatch for $3"$'\n'"expect: ${2#*\$}"$'\n'"found:  ${sum}"
 		fi
 	fi
 	if [ -n "${msg}" ]; then
