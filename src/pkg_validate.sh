@@ -317,7 +317,7 @@ pkg:validate:Session.run() {
 #	A bsda:opts:Flags instance
 #
 pkg:validate:Session:validate() {
-	local sum hash hashargs msg
+	local sum hash hashargs msg verbose
 	sum=
 	hash=
 	hashargs=
@@ -331,6 +331,8 @@ pkg:validate:Session:validate() {
 		hash=b2sum
 	;;
 	esac
+	verbose=
+	$flags.check VERBOSE && verbose=1
 	if ! /usr/bin/which -s "${hash}"; then
 		msg="unsupported ${hash} checksum for $3: $2"
 	elif [ -L "$3" ]; then
@@ -348,7 +350,7 @@ pkg:validate:Session:validate() {
 		sum="$(printf "$fmt" "${link#/}" | ${hash} ${hashargs} 2>&1)"
 		sum="${sum%% *}"
 		if [ "$sum" != "${2#*\$}" ]; then
-			msg="${hash} checksum mismatch for $3"$'\n'"expect: ${2#*\$}"$'\n'"found:  ${sum}"
+			msg="${hash} checksum mismatch for $3"${verbose:+$'\n'"expect: ${2#*\$}"$'\n'"found:  ${sum}"}
 		elif [ ! -e "$3" ]; then
 			if $flags.check DEVELOPER; then
 				msg="cannot follow symlink $3 to ${link}"
@@ -376,7 +378,7 @@ pkg:validate:Session:validate() {
 		sum="$(${hash} ${hashargs} "$3" 2>&1)"
 		sum="${sum%% *}"
 		if [ "$sum" != "${2#*\$}" ]; then
-			msg="${hash} checksum mismatch for $3"$'\n'"expect: ${2#*\$}"$'\n'"found:  ${sum}"
+			msg="${hash} checksum mismatch for $3"${verbose:+$'\n'"expect: ${2#*\$}"$'\n'"found:  ${sum}"}
 		fi
 	fi
 	if [ -n "${msg}" ]; then
