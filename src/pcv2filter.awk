@@ -1,13 +1,9 @@
 #!/usr/bin/awk -f
 #
-# Filters pkg(8) style checksums from input an converts them into
-# a usable format. Specifically the pkg(8) implementation version 2
-# of pkg_checksum.c uses a blake2 hash stored as a z-base-32 string.
-#
-# The blake2 hash can be produced from the shell via b2sum(1), however
-# that tool produces binary, raw or hex outputs. So in order to compare
-# the output of b2sum with the hashes stored by pkg(8), this script
-# converts the z-base-32 encoding to hex.
+# Convert pkg_checksum.c version 2 checksums in input column 2 from
+# z-base-32 encoding to hex encoding to allow comparisons with the
+# blake2 hashes produced by b2sum(1).
+# Discard unmatching input lines.
 #
 # Implementation Details
 # ----------------------
@@ -114,6 +110,6 @@ $2 ~ /^2\$/ {
 		$2 = BITSV[substr(bits, i, 4)] BITSV[substr(bits, i + 4, 4)] $2
 	}
 	$2 = "2$" $2
-}
 
-1 # print all lines
+	print
+}

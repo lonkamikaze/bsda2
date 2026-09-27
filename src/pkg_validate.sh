@@ -66,7 +66,7 @@ pkg:validate:Session.clean() {
 	local pids
 	$this.getJobpids pids
 	if [ -n "$pids" ]; then
-		kill $pids 2>&-
+		kill $pids 2> /dev/null
 		wait $pids
 	fi
 	return 0
@@ -280,7 +280,7 @@ pkg:validate:Session.run() {
 
 	if $flags.check CLEAN; then
 		$flags.check PKG_ORIGIN -eq 0 && fmt="%n-%v" || fmt="%o"
-		$fifo.sink $'pkg:query:select "${fmt}\034%Fs\034%Fp" ${pkgs} | /usr/bin/awk -F"\034" -f ${bsda_dir}/pcv2filter.awk'
+		$fifo.sink $'pkg:query:select "${fmt}\034%Fs\034%Fp" ${pkgs}'
 	else
 		# Total number of packages/jobs
 		log pkgs.count num
@@ -290,7 +290,7 @@ pkg:validate:Session.run() {
 			# Perform parallel job dispatch and terminal output
 			: $((count+=1))
 			$term.line 0 "$(printf "$fmt" $count "$pkg")" | \
-			$fifo.sink $'pkg:query:select "${pkg}\034%Fs\034%Fp" ${pkg} | /usr/bin/awk -F"\034" -f ${bsda_dir}/pcv2filter.awk'
+			$fifo.sink $'pkg:query:select "${pkg}\034%Fs\034%Fp" ${pkg}'
 		done
 	fi
 	if ! kill -0 $jobpids 2>&-; then
@@ -399,7 +399,7 @@ pkg:validate:Session:validate() {
 # @param flags
 #	A bsda:opts:Flags instance
 #
-pkg:validate:Session:batch() {
+pkg:validate:Session:batchV1() {
 	local IFS files hash
 	IFS=$'\n\034'
 	# batch hash all files
@@ -407,9 +407,39 @@ pkg:validate:Session:batch() {
 	# compare hashes
 	for file in ${files}; do # redirect symlinks
 		test -L "${file}" && echo "/dev/null" || echo "${file}"
-	done | /usr/bin/xargs /sbin/sha256 -q 2>&1 | while read -r hash; do
+	done | /usr/bin/xargs sha256 -q 2>&1 | while read -r hash; do
 		# on sha256 mismatch validate the file
 		if [ -n "${1##*\$"${hash}"$'\034'*}" ]; then
+			$class:validate $1
+		fi
+		shift
+	done
+}
+
+#
+# Check the b2sum of a whole batch of files.
+#
+# Refers mismatching files to pkg:validate:Session:validate() for
+# individual treatment.
+#
+# @param *
+#	A set of tuples: '%s\034%s\034%s' pkg chksum path
+# @param term
+#	A bsda:tty:Async instance
+# @param flags
+#	A bsda:opts:Flags instance
+#
+pkg:validate:Session:batchV2() {
+	local IFS files hash
+	IFS=$'\n\034'
+	# batch hash all files
+	files="$(echo "$*" | /usr/bin/sed $'s/.*\034//')"
+	# compare hashes
+	for file in ${files}; do # redirect symlinks
+		test -L "${file}" && echo "/dev/null" || echo "${file}"
+	done | /usr/bin/xargs b2sum 2>&1 | while read -r hash; do
+		# on b2sum mismatch validate the file
+		if [ -n "${1##*\$"${hash%% *}"$'\034'*}" ]; then
 			$class:validate $1
 		fi
 		shift
@@ -457,8 +487,15 @@ pkg:validate:Session.job() (
 	$this.Fifo fifo
 	$this.getBatch batch
 	IFS=$'\n'
-	while lines="$($fifo.source $class:read ${batch})"; do
-		$class:batch $lines
+	while :; do
+		lines="$($fifo.source $class:read ${batch})"
+		status="$?"
+		linesV2="$(echo "$lines" | /usr/bin/awk -F$'\034' -f "${bsda_dir}/pcv2filter.awk")"
+		linesV1="$(echo "$lines" | /usr/bin/awk -F$'\034' '$2 !~ /^2\$/')"
+		test -n "${linesV1}" && $class:batchV1 $linesV1
+		test -n "${linesV2}" && $class:batchV2 $linesV2
+		if [ "$((status))" -eq 1 ]; then
+			return 0
+		fi
 	done
-	$class:batch $lines
 )
