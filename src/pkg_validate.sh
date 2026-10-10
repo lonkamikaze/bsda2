@@ -8,6 +8,8 @@ readonly _pkg_validate_=1
 . ${bsda_dir:-.}/pkg_info.sh
 . ${bsda_dir:-.}/pkg_query.sh
 
+bsda:err:createECs E_PKG_VALIDATE_WHICH
+
 #
 # Create an asynchronous Terminal class.
 #
@@ -20,17 +22,20 @@ bsda:obj:createClass pkg:validate:Session \
 	a:private:Flags=bsda:opts:Flags \
 	a:private:Term=bsda:tty:Async \
 	a:private:Fifo=bsda:fifo:Fifo \
-	r:private:packages "The list of packages to process" \
-	r:private:jobs     "The number of parallel jobs" \
-	r:private:batch    "The number of files to check in one batch" \
-	r:private:jobpids  "The active job pids" \
-	i:private:init     "The constructor" \
-	c:private:clean    "The destructor" \
-	x:private:params   "Parse command line arguments" \
-	x:private:help     "Print usage message" \
-	x:private:packages "Determine requested packages" \
-	x:private:run      "Fork file checks" \
-	x:private:job      "Perform file checks"
+	r:private:packages   "The list of packages to process" \
+	r:private:jobs       "The number of parallel jobs" \
+	r:private:batch      "The number of files to check in one batch" \
+	r:private:jobpids    "The active job pids" \
+	r:private:sha256cmd  "The sha256 command" \
+	r:private:blake2bcmd "The b2sum command for blake2b hashes" \
+	r:private:blake2scmd "The b2sum command for blake2s hashes" \
+	i:private:init       "The constructor" \
+	c:private:clean      "The destructor" \
+	x:private:params     "Parse command line arguments" \
+	x:private:help       "Print usage message" \
+	x:private:packages   "Determine requested packages" \
+	x:private:run        "Fork file checks" \
+	x:private:job        "Perform file checks"
 
 #
 # Constructor for a pkg_validate session.
@@ -44,7 +49,7 @@ pkg:validate:Session.init() {
 
 	# Set defaults
 	setvar ${this}jobs $(/sbin/sysctl -n hw.ncpu 2>&- || echo 1)
-	setvar ${this}batch 1024
+	setvar ${this}batch 512
 
 	# Read command line arguments
 	$this.params "$@"
@@ -107,7 +112,6 @@ pkg:validate:Session.params() {
 	JOBS      -j* --jobs      'Number of parallel jobs' \
 	NO_FILTER -m  --no-filter 'Do not filter probable false positives' \
 	VERBOSE   -v  --verbose   'Verbose output'
-
 
 	# Parse arguments
 	while [ $# -gt 0 ]; do
@@ -190,6 +194,16 @@ pkg:validate:Session.params() {
 		# Print package name/origin only, skip duplicates
 		$($this.Term).filter 1 "/usr/bin/awk -F: '!a[\$0=\$1]++'"
 	fi
+
+	# Check for hash algorithm binaries
+	for bin in sha256 b2sum; do
+		if ! /usr/bin/which -s "${bin}"; then
+			bsda:err:raise E_PKG_VALIDATE_WHICH "ERROR: cannot locate ${bin} executable"
+		fi
+	done
+	setvar ${this}sha256cmd "$(/usr/bin/which sha256)"
+	setvar ${this}blake2bcmd "$(/usr/bin/which b2sum) -a blake2b"
+	setvar ${this}blake2scmd "$(/usr/bin/which b2sum) -a blake2s"
 
 	# Use the remaining arguments to query for packages
 	$this.packages "$@"
@@ -280,7 +294,7 @@ pkg:validate:Session.run() {
 
 	if $flags.check CLEAN; then
 		$flags.check PKG_ORIGIN -eq 0 && fmt="%n-%v" || fmt="%o"
-		$fifo.sink $'pkg:query:select "${fmt}\034%Fs\034%Fp" ${pkgs}'
+		$fifo.sink $'pkg:query:select -e "%?F!=0" "${fmt}\034%Fs\034%Fp" ${pkgs}'
 	else
 		# Total number of packages/jobs
 		log pkgs.count num
@@ -290,7 +304,7 @@ pkg:validate:Session.run() {
 			# Perform parallel job dispatch and terminal output
 			: $((count+=1))
 			$term.line 0 "$(printf "$fmt" $count "$pkg")" | \
-			$fifo.sink $'pkg:query:select "${pkg}\034%Fs\034%Fp" ${pkg}'
+			$fifo.sink $'pkg:query:select -e "%?F!=0" "${pkg}\034%Fs\034%Fp" ${pkg}'
 		done
 	fi
 	if ! kill -0 $jobpids 2>&-; then
@@ -317,24 +331,28 @@ pkg:validate:Session.run() {
 #	A bsda:opts:Flags instance
 #
 pkg:validate:Session:validate() {
-	local sum hash hashargs msg verbose
+	local IFS sum cmd bin msg dev
+	IFS=$'\n '
 	sum=
-	hash=
-	hashargs=
+	cmd=
 	msg=
 	case "$2" in
 	1\$*)
-		hash=sha256
-		hashargs=-q
+		$this.getSha256cmd cmd
+		cmd="${cmd} -q"
 	;;
-	2\$*)
-		hash=b2sum
+	2\$????????????????????????????????????????????????????????????????)
+		$this.getBlake2scmd cmd
+	;;
+	2\$????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????)
+		$this.getBlake2bcmd cmd
 	;;
 	esac
-	verbose=
-	$flags.check VERBOSE && verbose=1
-	if ! /usr/bin/which -s "${hash}"; then
-		msg="unsupported ${hash} checksum for $3: $2"
+	bin="${cmd%% *}"
+	bin="${bin##*/}"
+	$flags.check DEVELOPER && dev=1 || dev=
+	if [ -z "${cmd}" ]; then
+		msg="unsupported ${bin:+${bin} }checksum for $3: $2"
 	elif [ -L "$3" ]; then
 		local link fmt
 		# symlink
@@ -347,12 +365,12 @@ pkg:validate:Session:validate() {
 		if [ -z "${link##/*}" ]; then
 			fmt="%s\\0"
 		fi
-		sum="$(printf "$fmt" "${link#/}" | ${hash} ${hashargs} 2>&1)"
+		sum="$(printf "$fmt" "${link#/}" | ${cmd} 2>&1)"
 		sum="${sum%% *}"
 		if [ "$sum" != "${2#*\$}" ]; then
-			msg="${hash} checksum mismatch for $3"${verbose:+$'\n'"expect: ${2#*\$}"$'\n'"found:  ${sum}"}
+			msg="${bin} checksum mismatch for $3"${dev:+$'\n'"expect: ${2#*\$}"$'\n'"found:  ${sum}"}
 		elif [ ! -e "$3" ]; then
-			if $flags.check DEVELOPER; then
+			if [ -n "${dev}" ]; then
 				msg="cannot follow symlink $3 to ${link}"
 			fi
 		fi
@@ -375,10 +393,10 @@ pkg:validate:Session:validate() {
 		fi
 	else
 		# regular file hash
-		sum="$(${hash} ${hashargs} "$3" 2>&1)"
+		sum="$(${cmd} "$3" 2>&1)"
 		sum="${sum%% *}"
 		if [ "$sum" != "${2#*\$}" ]; then
-			msg="${hash} checksum mismatch for $3"${verbose:+$'\n'"expect: ${2#*\$}"$'\n'"found:  ${sum}"}
+			msg="${bin} checksum mismatch for $3"${dev:+$'\n'"expect: ${2#*\$}"$'\n'"found:  ${sum}"}
 		fi
 	fi
 	if [ -n "${msg}" ]; then
@@ -400,24 +418,29 @@ pkg:validate:Session:validate() {
 #	A bsda:opts:Flags instance
 #
 pkg:validate:Session:batchV1() {
-	local IFS files hash
-	IFS=$'\n\034'
-	# batch hash all files
-	files="$(echo "$*" | /usr/bin/sed $'s/.*\034//')"
+	local IFS cmd hashes miss tuple
+	IFS=$'\n '
 	# compare hashes
-	for file in ${files}; do # redirect symlinks
-		test -L "${file}" && echo "/dev/null" || echo "${file}"
-	done | /usr/bin/xargs sha256 -q 2>&1 | while read -r hash; do
-		# on sha256 mismatch validate the file
-		if [ -n "${1##*\$"${hash}"$'\034'*}" ]; then
-			$class:validate $1
-		fi
-		shift
+	$this.getSha256cmd cmd
+	hashes="$(
+		echo "$*"                    \
+		| /usr/bin/cut -d$'\034' -f3 \
+		| /usr/bin/xargs ${cmd} 2>&1 \
+		| /usr/bin/awk -vOFS=$'\034' '{sub(/^\(/, "", $2); sub(/\)$/, "", $2); print("", "1$" $4, $2)}'
+	)"
+	IFS=$'\n'
+	miss="$(echo "$*" | /usr/bin/grep -vF "${hashes}")"
+	for tuple in ${miss}; do
+		IFS=$'\n\034'
+		$class:validate ${tuple}
 	done
 }
 
 #
-# Check the b2sum of a whole batch of files.
+# Check the blake2b checksum of a whole batch of files.
+#
+# Blake2b checksums are generated by pkg tools compiled for 32 bit
+# architectures.
 #
 # Refers mismatching files to pkg:validate:Session:validate() for
 # individual treatment.
@@ -429,20 +452,57 @@ pkg:validate:Session:batchV1() {
 # @param flags
 #	A bsda:opts:Flags instance
 #
-pkg:validate:Session:batchV2() {
-	local IFS files hash
-	IFS=$'\n\034'
-	# batch hash all files
-	files="$(echo "$*" | /usr/bin/sed $'s/.*\034//')"
+pkg:validate:Session:batchV2b() {
+	local IFS cmd hashes miss tuple
+	IFS=$'\n '
 	# compare hashes
-	for file in ${files}; do # redirect symlinks
-		test -L "${file}" && echo "/dev/null" || echo "${file}"
-	done | /usr/bin/xargs b2sum 2>&1 | while read -r hash; do
-		# on b2sum mismatch validate the file
-		if [ -n "${1##*\$"${hash%% *}"$'\034'*}" ]; then
-			$class:validate $1
-		fi
-		shift
+	$this.getBlake2bcmd cmd
+	hashes="$(
+		echo "$*"                    \
+		| /usr/bin/cut -d$'\034' -f3 \
+		| /usr/bin/xargs ${cmd} 2>&1 \
+		| /usr/bin/awk -vOFS=$'\034' '{print("", "2$" $1, $2)}'
+	)"
+	IFS=$'\n'
+	miss="$(echo "$*" | grep -vF "${hashes}")"
+	for tuple in ${miss}; do
+		IFS=$'\n\034'
+		$class:validate ${tuple}
+	done
+}
+
+#
+# Check the blake2s checksum of a whole batch of files.
+#
+# Blake2s checksums are generated by pkg tools compiled for 32 bit
+# architectures.
+#
+# Refers mismatching files to pkg:validate:Session:validate() for
+# individual treatment.
+#
+# @param *
+#	A set of tuples: '%s\034%s\034%s' pkg chksum path
+# @param term
+#	A bsda:tty:Async instance
+# @param flags
+#	A bsda:opts:Flags instance
+#
+pkg:validate:Session:batchV2s() {
+	local IFS cmd hashes miss tuple
+	IFS=$'\n '
+	# compare hashes
+	$this.getBlake2scmd cmd
+	hashes="$(
+		echo "$*"                    \
+		| /usr/bin/cut -d$'\034' -f3 \
+		| /usr/bin/xargs ${cmd} 2>&1 \
+		| /usr/bin/awk -vOFS=$'\034' '{print("", "2$" $1, $2)}'
+	)"
+	IFS=$'\n'
+	miss="$(echo "$*" | grep -vF "${hashes}")"
+	for tuple in ${miss}; do
+		IFS=$'\n\034'
+		$class:validate ${tuple}
 	done
 }
 
@@ -490,10 +550,13 @@ pkg:validate:Session.job() (
 	while :; do
 		lines="$($fifo.source $class:read ${batch})"
 		status="$?"
-		linesV2="$(echo "$lines" | /usr/bin/awk -F$'\034' -f "${bsda_dir}/pcv2filter.awk")"
-		linesV1="$(echo "$lines" | /usr/bin/awk -F$'\034' '$2 !~ /^2\$/')"
-		test -n "${linesV1}" && $class:batchV1 $linesV1
-		test -n "${linesV2}" && $class:batchV2 $linesV2
+		linesV2="$(echo "${lines}" | /usr/bin/awk -F$'\034' -f "${bsda_dir}/pcv2_filter.awk")"
+		linesV1="$(echo "${lines}" | /usr/bin/awk -F$'\034' '$2 !~ /^2\$/')"
+		linesV2s="$(echo "${linesV2}" | /usr/bin/grep -E $'\034''2\$[0-9a-f]{64}'$'\034')"
+		linesV2b="$(echo "${linesV2}" | /usr/bin/grep -vFx "${linesV2s}")"
+		test -n "${linesV1}"  && $class:batchV1  ${linesV1}
+		test -n "${linesV2b}" && $class:batchV2b ${linesV2b}
+		test -n "${linesV2s}" && $class:batchV2s ${linesV2s}
 		if [ "$((status))" -eq 1 ]; then
 			return 0
 		fi

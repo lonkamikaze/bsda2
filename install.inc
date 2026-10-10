@@ -41,6 +41,7 @@ src/makeplist,0755,%%PREFIX%%/sbin/makeplist
 man/makeplist.8,0644,%%MAN%%/man8/makeplist.8.gz
 src/makeplist.sh,0644,%%DATADIR%%/makeplist.sh
 src/options.mk,0644,%%DATADIR%%/options.mk
+src/pcv2_filter.awk,0755,%%DATADIR%%/pcv2_filter.awk
 src/pkg_info.sh,0644,%%DATADIR%%/pkg_info.sh
 src/pkg_libchk,0755,%%PREFIX%%/sbin/pkg_libchk
 man/pkg_libchk.8,0644,%%MAN%%/man8/pkg_libchk.8.gz
