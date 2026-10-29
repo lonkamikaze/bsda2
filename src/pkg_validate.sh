@@ -8,7 +8,21 @@ readonly _pkg_validate_=1
 . ${bsda_dir:-.}/pkg_info.sh
 . ${bsda_dir:-.}/pkg_query.sh
 
-bsda:err:createECs E_PKG_VALIDATE_WHICH
+#
+# | Error Code                  | Severity | Meaning                             |
+# |-----------------------------|----------|-------------------------------------|
+# | E_PKG_VALIDATE_OPT_UNKNOWN  | error    | Unknown command line paramter       |
+# | E_PKG_VALIDATE_OPT_CONFLICT | error    | Conflicting command line parameters |
+# | E_PKG_VALIDATE_OPT_JOBS     | error    | Invalid number of jobs              |
+# | E_PKG_VALIDATE_OPT_BATCH    | error    | Invalid batch size                  |
+# | E_PKG_VALIDATE_WHICH        | error    | Missing hash implementation         |
+#
+bsda:err:createECs \
+	E_PKG_VALIDATE_OPT_UNKNOWN=2 \
+	E_PKG_VALIDATE_OPT_CONFLICT=3 \
+	E_PKG_VALIDATE_OPT_JOBS=4 \
+	E_PKG_VALIDATE_OPT_BATCH=5 \
+	E_PKG_VALIDATE_WHICH=6
 
 #
 # Create an asynchronous Terminal class.
@@ -90,17 +104,6 @@ pkg:validate:Session.params() {
 	bsda:opts:Flags ${this}Flags DEVELOPER
 	$this.Flags flags
 
-	while bsda:err:get e msg; do
-		case "$e" in
-		E_BSDA_OPTS_ENV)
-			$($this.Term).stderr "$msg"
-		;;
-		*)
-			bsda:err:forward "$e" "$msg"
-		;;
-		esac
-	done
-
 	bsda:opts:Options options
 	$caller.delete $options
 	pkg:options:append $options
@@ -132,13 +135,11 @@ pkg:validate:Session.params() {
 				shift
 			fi
 			if ! type:match uint "${batch}"; then
-				$($this.Term).stderr \
+				bsda:err:raise E_PKG_VALIDATE_OPT_BATCH \
 					"The -b option must be followed by a positive integer."
-				exit 5
 			elif ! [ ${batch} -gt 0 -a ${batch} -le 65536 ]; then
-				$($this.Term).stderr \
+				bsda:err:raise E_PKG_VALIDATE_OPT_BATCH \
 					"The -b option must be in the range [1; 65536]."
-				exit 5
 			else
 				setvar ${this}batch "${batch}"
 			fi
@@ -152,20 +153,17 @@ pkg:validate:Session.params() {
 				shift
 			fi
 			if ! [ "$jobs" -eq "$jobs" ] 2>&-; then
-				$($this.Term).stderr \
+				bsda:err:raise E_PKG_VALIDATE_OPT_JOBS \
 					"The -j option must be followed by a number."
-				exit 4
 			elif [ "$jobs" -lt 1 ]; then
-				$($this.Term).stderr \
+				bsda:err:raise E_PKG_VALIDATE_OPT_JOBS \
 					"The -j option must specify at least 1 job."
-				exit 4
 			else
 				setvar ${this}jobs $jobs
 			fi
 		;;
 		OPT_UNKNOWN)
-			$($this.Term).stderr "Unknown parameter \"$1\"."
-			exit 2
+			bsda:err:raise E_PKG_VALIDATE_OPT_UNKNOWN "Unknown parameter \"$1\"."
 		;;
 		OPT_SPLIT)
 			eval "$bsda_opts_split"
@@ -185,9 +183,8 @@ pkg:validate:Session.params() {
 	fi
 
 	if $flags.check VERBOSE && $flags.check PKG_QUIET; then
-		$($this.Term).stderr \
+		bsda:err:raise E_PKG_VALIDATE_OPT_CONFLICT \
 			"The parameters -v and -q may not be used at the same time."
-		exit 3
 	fi
 
 	if $flags.check PKG_QUIET; then
@@ -198,7 +195,7 @@ pkg:validate:Session.params() {
 	# Check for hash algorithm binaries
 	for bin in sha256 b2sum; do
 		if ! /usr/bin/which -s "${bin}"; then
-			bsda:err:raise E_PKG_VALIDATE_WHICH "ERROR: cannot locate ${bin} executable"
+			bsda:err:raise E_PKG_VALIDATE_WHICH "Cannot locate ${bin} executable"
 		fi
 	done
 	setvar ${this}sha256cmd "$(/usr/bin/which sha256)"
@@ -207,6 +204,8 @@ pkg:validate:Session.params() {
 
 	# Use the remaining arguments to query for packages
 	$this.packages "$@"
+
+	bsda:err:finalise
 }
 
 #
@@ -240,8 +239,7 @@ pkg:validate:Session.packages() {
 		local errmsg errnum
 		$pkginfo.getErrmsg errmsg
 		$pkginfo.getErrnum errnum
-		$($this.Term).stderr "$errmsg"
-		exit $errnum
+		bsda:err:raise "${errnum}" "${errmsg}"
 	fi
 
 	$pkginfo.getWarn warn

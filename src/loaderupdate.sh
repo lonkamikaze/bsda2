@@ -229,7 +229,7 @@ loaderupdate:Device.init() {
 	      bootPart efiPart
 	setvar ${this}name "${1}"
 	if ! gpart="$(/sbin/gpart backup "${1}" 2>&-)"; then
-		bsda:err:raise E_LOADERUPDATE_NODEVICE "${0##*/}: ERROR: Cannot access device: $1"
+		bsda:err:raise E_LOADERUPDATE_NODEVICE "Cannot access device: $1"
 		return 1
 	fi
 	bootPart=${this}
@@ -259,14 +259,14 @@ loaderupdate:Device.init() {
 
 	if [ -z "${scheme}" ]; then
 		bsda:err:raise E_LOADERUPDATE_SCHEME \
-		               "${0##*/}: ERROR: Unsupported partitioning scheme on device: ${1}"
+		               "Unsupported partitioning scheme on device: ${1}"
 		return 1
 	fi
 	setvar ${this}scheme "${scheme}"
 
 	if [ -z "${bootPart#${this}}${efiPart#${this}}" ]; then
 		bsda:err:raise E_LOADERUPDATE_NOPARTS \
-		               "${0##*/}: ERROR: No freebsd-boot or efi partitions on device: ${1}"
+		               "No freebsd-boot or efi partitions on device: ${1}"
 		return 1
 	fi
 }
@@ -365,7 +365,7 @@ loaderupdate:Mount.init() {
 
 	if ! /bin/mkdir -p "${mountpoint}"; then
 		bsda:err:raise E_LOADERUPDATE_MOUNT \
-		               "${0##*/}: ERROR: Failed to create mountpoint: ${mountpoint}"
+		               "Failed to create mountpoint: ${mountpoint}"
 		return 1
 	fi
 	setvar ${this}mountpoint "${mountpoint}"
@@ -382,7 +382,7 @@ loaderupdate:Mount.init() {
 	done
 	if ! /sbin/mount "$@" "${device}" "${mountpoint}"; then
 		bsda:err:raise E_LOADERUPDATE_MOUNT \
-		               "${0##*/}: ERROR: Failed to mount device: ${device}"
+		               "Failed to mount device: ${device}"
 		return 1
 	fi
 	setvar ${this}device "${device}"
@@ -402,13 +402,13 @@ loaderupdate:Mount.clean() {
 	   ! /sbin/umount "${mountpoint}" 2>&- && \
 	   ! /sbin/umount -f "${mountpoint}"; then
 		bsda:err:raise E_LOADERUPDATE_UMOUNT \
-		               "${0##*/}: WARNING: Failed to unmount: ${mountpoint}"
+		               "Failed to unmount: ${mountpoint}"
 		return 0
 	fi
 	if [ -n "${mountpoint}" ] && \
 	   ! /bin/rmdir "${mountpoint}"; then
 		bsda:err:raise E_LOADERUPDATE_UMOUNT \
-		               "${0##*/}: WARNING: Failed to remove: ${mountpoint}"
+		               "Failed to remove: ${mountpoint}"
 		return 0
 	fi
 	# gracefully delete empty parent folders
@@ -460,7 +460,7 @@ loaderupdate:Session.init() {
 # Convert errors to notes.
 #
 loaderupdate:Session.all() {
-	local devices devs e msg
+	local devices devs e msg module level
 	$this.Devices devices
 	bsda:err:collect
 	# take all devices gpart suggests and intersect them with the
@@ -470,8 +470,8 @@ loaderupdate:Session.all() {
 	        | /usr/bin/awk 'NR>2 && $0=$10' \
 	        | /usr/bin/grep -Fx "${devs}")"
 	$devices.add ${devs}
-	while bsda:err:get e msg; do
-		bsda:err:forward E_WARN "${0##*/}: WARNING: ${msg#*ERROR: }"
+	while bsda:err:get e msg module level; do
+		bsda:err:forward E_WARN "$msg"
 	done
 }
 
@@ -510,7 +510,7 @@ loaderupdate:Session.matchimg() {
 		;;
 	*)
 		bsda:err:raise E_FAIL \
-		               "${0##*/}: ERROR: Match test not implemented for: ${type}"
+		               "Match test not implemented for: ${type}"
 		;;
 	esac
 
@@ -539,8 +539,8 @@ loaderupdate:Session.matchimg() {
 #
 loaderupdate:Session.params() {
 	local flags options devices option destdir devs kernelpath kernel \
-	      msg e ostype version machine pmbr bootload efiload efilabel \
-	      efifile efiarch
+	      e msg mod lvl ostype version machine pmbr bootload \
+	      efiload efilabel efifile efiarch
 	bsda:opts:Flags ${this}Flags
 	$this.Flags flags
 
@@ -646,7 +646,7 @@ loaderupdate:Session.params() {
 			exit 0
 		;;
 		OPT_UNKNOWN)
-			bsda:err:raise E_LOADERUPDATE_PARAM "${0##*/}: ERROR: Unknown parameter: \"${1}\""
+			bsda:err:raise E_LOADERUPDATE_PARAM "Unknown parameter: \"${1}\""
 			return 1
 		;;
 		OPT_SPLIT)
@@ -665,30 +665,30 @@ loaderupdate:Session.params() {
 	$devices.devices devs
 	if ($flags.check DUMP -eq 0 || $flags.check DRYRUN) && [ -z "${devs}" ]; then
 		$this.help "$options"
-		bsda:err:raise E_LOADERUPDATE_NODEVICE "${0##*/}: ERROR: No device selected"
+		bsda:err:raise E_LOADERUPDATE_NODEVICE "No device selected"
 		return 1
 	fi
 
 	destdir="${destdir%/}"
 	if [ -n "${destdir}" ] && ! [ -d "${destdir}" ]; then
-		bsda:err:raise E_LOADERUPDATE_DESTDIR "${0##*/}: ERROR: DESTDIR is not a directory: ${destdir}"
+		bsda:err:raise E_LOADERUPDATE_DESTDIR "DESTDIR is not a directory: ${destdir}"
 		return 1
 	fi
 	setvar ${this}destdir "${destdir}"
 
 	kernelpath="${destdir}/boot/kernel/kernel"
 	if ! [ -r "${kernelpath}" ]; then
-		bsda:err:raise E_LOADERUPDATE_NOKERNEL "${0##*/}: ERROR: Cannot access kernel: ${kernelpath}"
+		bsda:err:raise E_LOADERUPDATE_NOKERNEL "Cannot access kernel: ${kernelpath}"
 		return 1
 	fi
 	bsda:err:collect
 	bsda:elf:File kernel "${kernelpath}"
 	$caller.delete $kernel
-	while bsda:err:get e msg; do
+	while bsda:err:get e msg mod lvl; do
 		case "${e}" in
 		E_BSDA_ELF_NOENT)
 			bsda:err:forward E_LOADERUPDATE_NOKERNEL \
-			                 "${0##*/}: ERROR: Failed to load kernel: ${kernelpath}";;
+			                 "Failed to load kernel: ${kernelpath}";;
 		*)
 			bsda:err:forward "${e}" "${msg}";;
 		esac
@@ -697,19 +697,19 @@ loaderupdate:Session.params() {
 	$kernel.fetch version version
 	if [ -z "${version}" ]; then
 		bsda:err:raise E_LOADERUPDATE_NOKERNEL \
-		               "${0##*/}: ERROR: Failed to read kernel version: ${kernelpath}"
+		               "Failed to read kernel version: ${kernelpath}"
 		return 1
 	fi
 	$kernel.fetch machine machine
 	if [ -z "${machine}" ]; then
 		bsda:err:raise E_LOADERUPDATE_NOKERNEL \
-		               "${0##*/}: ERROR: Failed to read kernel machine architecture: ${kernelpath}"
+		               "Failed to read kernel machine architecture: ${kernelpath}"
 		return 1
 	fi
 	$kernel.fetch ostype ostype
 	if [ -z "${ostype}" ]; then
 		bsda:err:raise E_LOADERUPDATE_NOKERNEL \
-		               "${0##*/}: ERROR: Failed to read kernel ostype: ${kernelpath}"
+		               "Failed to read kernel ostype: ${kernelpath}"
 		return 1
 	fi
 	if [ -n "${version##${ostype}*}" ]; then
@@ -736,7 +736,7 @@ loaderupdate:Session.params() {
 		ufs | zfs) ;;
 		*)
 			bsda:err:raise E_LOADERUPDATE_PARAM \
-			               "${0##*/}: ERROR: Option -B unsupported filesystem type: ${bootfs}"
+			               "Option -B unsupported filesystem type: ${bootfs}"
 		;;
 		esac
 	else
@@ -751,9 +751,9 @@ loaderupdate:Session.params() {
 	ufs) bootload="${bootload:-/boot/gptboot}";;
 	zfs) bootload="${bootload:-/boot/gptzfsboot}";;
 	'')  bsda:err:raise E_LOADERUPDATE_BOOTFS \
-	                    "${0##*/}: WARNING: Failed to detect boot filesystem type";;
+	                    "Failed to detect boot filesystem type";;
 	*)   bsda:err:raise E_LOADERUPDATE_BOOTFS \
-	                    "${0##*/}: WARNING: Unsupported boot filesystem type: ${bootfs}";;
+	                    "Unsupported boot filesystem type: ${bootfs}";;
 	esac
 	setvar ${this}bootload "${bootload}"
 
@@ -767,24 +767,24 @@ loaderupdate:Session.params() {
 	bsda:err:collect
 	bsda:fmt:printf "${efilabel}" > /dev/null \
 	                dev= pdev= index=0 version= arch= efiarch= ostype=
-	while bsda:err:get e msg; do
+	while bsda:err:get e msg mod lvl; do
 		bsda:err:forward E_LOADERUPDATE_EFILABEL \
 		                 "${msg}" \
-		                 '       Note, EFI label may use:' \
-		                 '           {dev}, {pdev}, {index}, {version}, {arch}, {efiarch}, {ostype}'
+		                 'Note, EFI label may use:' \
+		                 '    {dev}, {pdev}, {index}, {version}, {arch}, {efiarch}, {ostype}'
 		return 1
 	done
 	setvar ${this}efilabel "${efilabel}"
 
 	if $flags.check EFIFILE && $flags.check COMPAT; then
 		bsda:err:raise E_LOADERUPDATE_EFIFILE \
-		               "${0##*/}: ERROR: The -o and -c options are mutually exclusive"
+		               "The -o and -c options are mutually exclusive"
 		return 1
 	fi
 
 	if [ "${machine}" = "${efiarch}" ] && $flags.check COMPAT -eq 1; then
 		bsda:err:raise E_LOADERUPDATE_EFIFILE \
-		               "${0##*/}: ERROR: The -c option is not supported for the architecture: ${machine}" \
+		               "The -c option is not supported for the architecture: ${machine}" \
 		               '       Ignore this error by supplying -c twice: -cc'
 		return 1
 	fi
@@ -793,7 +793,7 @@ loaderupdate:Session.params() {
 	bsda:err:collect
 	bsda:fmt efifile "${efifile}" \
 	         arch="${machine}" ostype="${ostype}" efiarch="${efiarch}"
-	while bsda:err:get e msg; do
+	while bsda:err:get e msg mod lvl; do
 		bsda:err:forward E_LOADERUPDATE_EFIFILE \
 		                 "${msg}" \
 		                 '       Note, EFI file may use:' \
@@ -803,7 +803,7 @@ loaderupdate:Session.params() {
 
 	if [ -n "${efifile##/*}" ]; then
 		bsda:err:raise E_LOADERUPDATE_EFIFILE \
-		               "${0##*/}: ERROR: The EFI file location must begin with a '/': ${efifile}"
+		               "The EFI file location must begin with a '/': ${efifile}"
 		return 1
 	fi
 	setvar ${this}efifile "${efifile}"
@@ -885,7 +885,7 @@ loaderupdate:Session.runcmd() {
 		e=$?
 		if [ ${e} -ne 0 ]; then
 			bsda:err:raise E_LOADERUPDATE_CMD \
-			               "${0##*/}: ERROR: Command failed with error ${e}: ${*}"
+			               "Command failed with error ${e}: ${*}"
 		fi
 		return ${e}
 	fi
@@ -976,19 +976,19 @@ loaderupdate:Session.run() {
 		if rec efiparts.is_not_empty; then
 			if [ -z "${efivars}" ] && $flags.check NOEFI -eq 0; then
 				bsda:err:raise E_LOADERUPDATE_EFIBOOTMGR \
-				               "${0##*/}: ERROR: Failed to query efibootmgr, are you a super user?"
+				               "Failed to query efibootmgr, are you a super user?"
 				return 1
 			fi
 			if ! [ -f "${efiload}" -a -r "${efiload}" ]; then
 				bsda:err:raise E_LOADERUPDATE_LOADER \
-				               "${0##*/}: ERROR: Cannot read EFI loader: ${efiload}"
+				               "Cannot read EFI loader: ${efiload}"
 				return 1
 			fi
 		fi
 		if rec bootparts.is_not_empty; then
 			if ! [ -f "${pmbr}" -a -r "${pmbr}" ]; then
 				bsda:err:raise E_LOADERUPDATE_LOADER \
-				               "${0##*/}: ERROR: Cannot read protective MBR: ${pmbr}"
+				               "Cannot read protective MBR: ${pmbr}"
 				return 1
 			fi
 			if $this.matchimg pmbr "${pmbr}" "/dev/${devname}"; then
@@ -998,12 +998,12 @@ loaderupdate:Session.run() {
 			fi
 			if [ -z "${bootload}" ]; then
 				bsda:err:raise E_LOADERUPDATE_LOADER \
-				               "${0##*/}: ERROR: No freebsd-boot loader selected, select via -B or -b"
+				               "No freebsd-boot loader selected, select via -B or -b"
 				return 1
 			fi
 			if ! [ -f "${bootload}" -a -r "${bootload}" ]; then
 				bsda:err:raise E_LOADERUPDATE_LOADER \
-				               "${0##*/}: ERROR: Cannot read freebsd-boot loader: ${bootload}"
+				               "Cannot read freebsd-boot loader: ${bootload}"
 				return 1
 			fi
 		fi

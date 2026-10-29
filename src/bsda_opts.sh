@@ -368,7 +368,7 @@ bsda:opts:Flags.init() {
 			# Default assign
 			if ! type:cast[int] value empty,bool,uint "${flag#*\?=}"; then
 				bsda:err:raise E_BSDA_OPTS_DEFAULT \
-				               "ERROR: Not a uint/bool assignment: ${flag}"
+				               "Not a uint/bool assignment: ${flag}"
 				continue
 			fi
 			var="${flag%%\?=*}"
@@ -378,7 +378,7 @@ bsda:opts:Flags.init() {
 			# Assign
 			if ! type:cast[int] value empty,bool,uint "${flag#*=}"; then
 				bsda:err:raise E_BSDA_OPTS_ASSIGN \
-				               "ERROR: Not a uint/bool assignment: ${flag}"
+				               "Not a uint/bool assignment: ${flag}"
 				continue
 			fi
 			var="${flag%%=*}"
@@ -396,7 +396,7 @@ bsda:opts:Flags.init() {
 		if value="$(/usr/bin/printenv "$var")"; then
 			if ! type:cast[int] value empty,bool,uint "$value"; then
 				bsda:err:raise E_BSDA_OPTS_ENV \
-				               "WARNING: Not a uint/bool assignment: env ${var}=${value}"
+				               "Not a uint/bool assignment: env ${var}=${value}"
 				continue
 			fi
 			$flags.[ "$var" ]= "$value"

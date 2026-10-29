@@ -182,7 +182,7 @@ bsda:fmt:run() {
 	for _arg in ${_args}; do
 		if ! bsda:fmt:in "${_arg}" "$@"; then
 			bsda:err:raise E_BSDA_FMT_SUB \
-			               "ERROR: Substitution not in argument list: ${_arg}"
+			               "Substitution not in argument list: ${_arg}"
 			return 1
 		fi
 	done
@@ -190,13 +190,13 @@ bsda:fmt:run() {
 	for _arg in ${_vars}; do
 		if ! bsda:fmt:in "${_arg}" "$@"; then
 			bsda:err:raise E_BSDA_FMT_SUB \
-			               "ERROR: Variable is not in argument list: ${_arg}"
+			               "Variable is not in argument list: ${_arg}"
 			return 1
 		fi
 		eval "_val=\"\${${_arg}}\""
 		if ! type:match:int "${_val}"; then
 			bsda:err:raise E_BSDA_FMT_TYPE \
-			               "ERROR: Variable used in arithmetic expression is not an integer: ${_arg}='${_val}'"
+			               "Variable used in arithmetic expression is not an integer: ${_arg}='${_val}'"
 			return 1
 		fi
 	done
@@ -255,24 +255,24 @@ bsda:fmt:isarg() {
 	case "${1}" in
 	IFS=*)
 		bsda:err:raise E_BSDA_FMT_ARG \
-		               "ERROR: Forbidden argument name: ${1%%=*}"
+		               "Forbidden argument name: ${1%%=*}"
 		return 1
 	;;
 	[a-zA-Z]*=*)
 		if ! bsda:fmt:isarg:tail "${1%%=*}"; then
 			bsda:err:raise E_BSDA_FMT_ARG \
-			               "ERROR: Forbidden character in argument name: ${1%%=*}"
+			               "Forbidden character in argument name: ${1%%=*}"
 			return 1
 		fi
 	;;
 	*=*)
 		bsda:err:raise E_BSDA_FMT_ARG \
-		               "ERROR: Forbidden first character in argument name: ${1%%=*}"
+		               "Forbidden first character in argument name: ${1%%=*}"
 		return 1
 	;;
 	*)
 		bsda:err:raise E_BSDA_FMT_ARG \
-		               "ERROR: Not an argument assignment: ${1}"
+		               "Not an argument assignment: ${1}"
 		return 1
 	;;
 	esac
@@ -384,7 +384,7 @@ bsda:fmt:sub() {
 	[a-zA-Z]*)
 	     a="${a}${1%%"${1#?}"}"; bsda:fmt:sub:id "${1#?}";;
 	*)   bsda:err:raise E_BSDA_FMT_SUB_ID \
-	                    "ERROR: Forbidden first character in substitution identifier: ${1}"
+	                    "Forbidden first character in substitution identifier: ${1}"
 	     return 1;;
 	esac
 }
@@ -414,7 +414,7 @@ bsda:fmt:sub:id() {
 	:*)  a="${a}"$'\n'; f="${f}%";   bsda:fmt:sub:format "${1#?}";;
 	\}*) a="${a}"$'\n'; f="${f}%s";  bsda:fmt:root "${1#?}";;
 	*)   bsda:err:raise E_BSDA_FMT_SUB_ID \
-	                    "ERROR: Forbidden character in substitution identifier: ${1}"
+	                    "Forbidden character in substitution identifier: ${1}"
 	     return 1;;
 	esac
 }
@@ -449,7 +449,7 @@ bsda:fmt:sub:format() {
 	\}*) f="${f}s";              bsda:fmt:root "${1#?}";;
 	\(*) f="${f}\$((";           bsda:fmt:expr "${1#?}";;
 	*)   bsda:err:raise E_BSDA_FMT_SUB_FORMAT \
-	                    "ERROR: Forbidden character in format specification: ${1}"
+	                    "Forbidden character in format specification: ${1}"
 	     return 1;;
 	esac
 }
@@ -485,7 +485,7 @@ bsda:fmt:expr() {
 	case "${1}" in
 	--*|++*|=*)
 	     bsda:err:raise E_BSDA_FMT_EXPR_ASSIGN \
-	                    "ERROR: Forbidden assignment in arithmetic expression: ${1}"
+	                    "Forbidden assignment in arithmetic expression: ${1}"
 	     return 1;;
 	[-!~+\ ]*)
 	     # only unary operators at the beginning of an expression
@@ -501,8 +501,8 @@ bsda:fmt:expr() {
 	     f="${f}${1%%"${1#?}"}";   bsda:fmt:expr:literal:dec "${1#?}" ${2};;
 	\(*) f="${f}(";                bsda:fmt:expr "${1#?}" $((${2}+1));;
 	*)   bsda:err:raise E_BSDA_FMT_EXPR \
-	                    "ERROR: Forbidden character in arithmetic expression: ${1}" \
-                            "       Expecting: '!', '~', '+', '-' or '('"
+	                    "Forbidden character in arithmetic expression: ${1}" \
+                            "Expecting: '!', '~', '+', '-' or '('"
 	     return 1;;
 	esac
 }
@@ -618,7 +618,7 @@ bsda:fmt:expr:operator() {
 	     f="${f}${1%%"${1#??}"}"; bsda:fmt:expr "${1#??}" ${2};;
 	--*|++*|=*)
 	     bsda:err:raise E_BSDA_FMT_EXPR_ASSIGN \
-	                    "ERROR: Forbidden assignment in arithmetic expression: ${1}"
+	                    "Forbidden assignment in arithmetic expression: ${1}"
 	     return 1;;
 	[-+*/\<\>\&\|\^?:]*)
 	     f="${f}${1%%"${1#?}"}";  bsda:fmt:expr "${1#?}" ${2};;
@@ -634,8 +634,8 @@ bsda:fmt:expr:operator() {
 		fi
 	;;
 	*)   bsda:err:raise E_BSDA_FMT_EXPR \
-	                    "ERROR: Forbidden character in arithmetic expression: ${1}" \
-                            "       Expecting: binary operator or ')'"
+	                    "Forbidden character in arithmetic expression: ${1}" \
+	                    "Expecting: binary operator or ')'"
 	     return 1;;
 	esac
 }

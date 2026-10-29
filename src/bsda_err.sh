@@ -2,6 +2,7 @@ test -n "$_bsda_err_" && return 0
 readonly _bsda_err_=1
 
 . ${bsda_dir:-.}/bsda_obj.sh
+. ${bsda_dir:-.}/type.sh
 
 #
 # Error handling facilities.
@@ -19,6 +20,34 @@ bsda_err_ecMax=-1
 # A comma separated list of the defined error/exit codes and aliases.
 #
 bsda_err_ecs=
+
+#
+# The number of colours supported by the terminal.
+#
+bsda_err_colours="$(/usr/bin/tput Co)"
+
+#
+# Define colour escape sequences.
+#
+if [ "${bsda_err_colours}" -ge 256 ]; then
+	readonly bsda_err_co_module=$'\033[38;5;117m'    \
+	         bsda_err_co_error=$'\033[1;38;5;124m'   \
+	         bsda_err_co_warning=$'\033[1;38;5;215m' \
+	         bsda_err_co_hint=$'\033[1;38;5;112m'    \
+	         bsda_err_co_reset=$'\033[m'
+elif [ "${bsda_err_colours}" -ge 16 ]; then
+	readonly bsda_err_co_module=$'\033[38;5;4m'    \
+	         bsda_err_co_error=$'\033[1;38;5;1m'   \
+	         bsda_err_co_warning=$'\033[1;38;5;3m' \
+	         bsda_err_co_hint=$'\033[1;38;5;2m'    \
+	         bsda_err_co_reset=$'\033[m'
+else
+	readonly bsda_err_co_module=  \
+	         bsda_err_co_error=   \
+	         bsda_err_co_warning= \
+	         bsda_err_co_hint=    \
+	         bsda_err_co_reset=
+fi
 
 #
 # Define error/exit codes.
@@ -52,15 +81,15 @@ bsda:err:createECs() {
 		*=*)
 			# Create an alias
 			if ! setvar ${arg%%=*} $((${arg#*=})); then
-				echo "bsda:err:createECs: ERROR: Cannot assign alias $arg!" >&2
-				exit 2
+				module=bsda:err:createECs bsda:err:panic E_FAIL \
+					"Cannot assign alias $arg!"
 			fi
 		;;
 		*)
 			# Create a new exit number
 			if ! setvar $arg $((bsda_err_ecMax += 1)); then
-				echo "bsda:err:createECs: ERROR: Cannot assign $arg!" >&2
-				exit 2
+				module=bsda:err:createECs bsda:err:panic E_FAIL \
+					"Cannot assign $arg!"
 			fi
 		;;
 		esac
@@ -72,7 +101,7 @@ bsda:err:createECs() {
 #
 # Setup a basic set of error/exit codes.
 #
-bsda:err:createECs E_OK E_WARN=E_OK E_SIGNAL E_FAIL
+bsda:err:createECs E_HINT=-1 E_OK E_WARN=E_OK E_SIGNAL E_FAIL
 
 #
 # Provide the newline separated list of error/exit codes.
@@ -112,26 +141,99 @@ bsda:err:_ecs() {
 bsda_err_context=
 
 #
+# Print error or warning.
+#
+# @param 1
+#	Print warning (yellow) for 0, hint (green) for negative integers
+#	and an error (red) for positive integers
+# @param *
+#	Messages to print, each one on its own line
+# @param module
+#	Prefixed before the message, defaults to "${0##*/}"
+# @param level
+#	Prefixed before the message, defaults to "ERROR", "WARNING" or "HINT"
+#	based parameter 1
+#
+bsda:err:print() (
+	: ${module:="${0##*/}"}
+	if [ $(($1)) -le $((E_HINT)) ]; then
+		prefix="${module}: ${level:=HINT}:"
+		cprefix="${bsda_err_co_module}${module}: ${bsda_err_co_hint}${level}:${bsda_err_co_reset}"
+	elif [ $(($1)) -eq $((E_WARN)) ]; then
+		prefix="${module}: ${level:=WARNING}:"
+		cprefix="${bsda_err_co_module}${module}: ${bsda_err_co_warning}${level}:${bsda_err_co_reset}"
+	else
+		prefix="${module}: ${level:=ERROR}:"
+		cprefix="${bsda_err_co_module}${module}: ${bsda_err_co_error}${level}:${bsda_err_co_reset}"
+	fi
+	if [ -n "$2" ]; then
+		if [ -t 1 ]; then
+			printf "${cprefix} %s\n" "$2"
+		else
+			printf "${prefix} %s\n" "$2"
+		fi
+		shift 2
+		if [ -n "$1" ]; then
+			indent="$(printf "%${#prefix}s" "")"
+			printf "${indent} %s\n" "$@"
+		fi
+	fi
+) >&2
+
+#
+# Check the given argument whether it is a valid error/exit code.
+#
+# @param 1
+#	The value to check, either a variable name containing an
+#	error/exit code, or an integral value
+# @retval 0
+#	The given error/exit code is valid
+# @retval $E_FAIL
+#	The given error/exit code is invalid
+#
+bsda:err:verify_errno() {
+	if ! ( : $(($1)) ) 2>&-; then
+		module=bsda:err bsda:err:print E_FAIL \
+			"Not a valid exit code: <$1>"
+		bsda_err_context=
+		return ${E_FAIL}
+	elif type:match:varname "$1" && eval "[ -z \"\${$1+1}\" ]"; then
+		module=bsda:err bsda:err:print E_FAIL \
+			"Undefined exit code: <$1>"
+		return ${E_FAIL}
+	fi
+	return 0
+}
+
+#
 # Prints a message on stderr and exits if the given code is non-zero.
 #
 # @param 1
 #	An error/exit code
 # @param @
 #	An optional message printed on stderr, regardless of the error/exit code
+# @param module
+#	Prefixed before the message, defaults to "${0##*/}"
+# @param level
+#	Prefixed before the message, defaults to "ERROR", "WARNING" or "HINT"
+#	based parameter 1
 # @warning
 #	Terminates the program if the error/exit code is non-zero
 #
 bsda:err:panic() {
-	if [ -n "$2" ]; then
-		(shift; IFS=$'\n'; echo "$*") >&2
+	if ! bsda:err:verify_errno "$1"; then
+		shift
+		set -- E_FAIL "$@"
 	fi
-	if ! ( : $(($1)) ) 2>&-; then
-		echo "bsda:err:panic: Not a valid exit code: $1" >&2
-		bsda_err_context=
-		exit $((E_FAIL))
-	fi
-	if [ $(($1)) -ne 0 ]; then
-		bsda_err_context=
+	bsda:err:print "$1" "$2" #"$@"
+	if [ $(($1)) -gt 0 ]; then
+		# flush pending errors
+		if [ -n "${bsda_err_context}" ]; then
+			local e msg module level
+			while bsda:err:get e msg module level; do
+				bsda:err:print "${e}" "${msg}"
+			done
+		fi
 		exit $(($1))
 	fi
 }
@@ -158,15 +260,27 @@ bsda:err:collect() {
 #	An error/exit code
 # @param @
 #	An error/warning message
+# @param module
+#	Prefixed before the message, defaults to "${0##*/}"
+# @param level
+#	Prefixed before the message, defaults to "ERROR", "WARNING" or "HINT"
+#	based parameter 1
+# @return
+#	Returns the given error/exit code if it is a positive integer
 # @warning
 #	May terminate the program if the error/exit code is non-zero
 #
 bsda:err:raise() {
-	if [ -z "$bsda_err_context" ]; then
+	if ! bsda:err:verify_errno "$1"; then
+		shift
+		set -- E_FAIL "$@"
+		bsda:err:panic "$@"
+	elif [ -z "$bsda_err_context" ]; then
 		bsda:err:panic "$@"
 	else
 		$bsda_err_context.raise "$@"
 	fi
+	return $(($1 > 0 ? $1 : 0))
 }
 
 #
@@ -176,6 +290,10 @@ bsda:err:raise() {
 #	The destination variable for the error/exit code
 # @param &2
 #	The destination variable for the message
+# @param &3
+#	The destination variable for the module name
+# @param &4
+#	The destination variable for the escalation level
 # @retval 0
 #	An issue was successfully retrieved
 # @retval 1
@@ -185,7 +303,7 @@ bsda:err:raise() {
 #
 bsda:err:get() {
 	if [ -z "$bsda_err_context" ]; then
-		bsda:err:panic E_FAIL "bsda:err: ERROR: Cannot bsda:err:get without bsda:err:collect!"
+		module=bsda:err bsda:err:panic E_FAIL "Cannot bsda:err:get without bsda:err:collect!"
 	fi
 	$bsda_err_context.get "$@"
 }
@@ -203,14 +321,20 @@ bsda:err:get() {
 #	An error/exit code
 # @param @
 #	An error/warning message
+# @param module
+#	Prefixed before the message, defaults to "${0##*/}"
+# @param level
+#	Prefixed before the message, defaults to "ERROR", "WARNING" or "HINT"
+#	based parameter 1
 # @warning
-#	May terminate the program if the error/exit code is non-zero
+#	May terminate the program if the error/exit code is equal to
+#	or less than 0
 # @warning
 #	Panics with E_FAIL if no context exists
 #
 bsda:err:forward() {
 	if [ -z "$bsda_err_context" ]; then
-		bsda:err:panic E_FAIL "bsda:err: ERROR: Cannot bsda:err:forward without bsda:err:get!"
+		module=bsda:err bsda:err:panic E_FAIL "Cannot bsda:err:forward without bsda:err:collect!"
 	fi
 	local context
 	$bsda_err_context.getPrevious context
@@ -222,14 +346,32 @@ bsda:err:forward() {
 }
 
 #
+# Just forward all issues to the parental error context.
+#
+# This is useful to collect multiple errors in a context, before deferring
+# to caller handling.
+#
+# If no parent context exists this panics on the first error, but all of
+# them will be printed.
+#
+bsda:err:finalise() {
+	local e msg module level
+	while bsda:err:get e msg module level; do
+		bsda:err:forward "$e" "$msg"
+	done
+}
+
+#
 # Instances represent an issue consisting of an error/exit code,
 # message pair.
 #
 bsda:obj:createClass bsda:err:Issue \
-	r:private:e    "The error/exit code" \
-	r:private:msg  "The error/warning message" \
-	i:private:init "Initialise the issue" \
-	x:public:get   "Retrieve the error/exit code and message"
+	r:private:module "The module that raised the issue" \
+	r:private:level  "The escalation level of the message" \
+	r:private:e      "The error/exit code" \
+	r:private:msg    "The error/warning message" \
+	i:private:init   "Initialise the issue" \
+	x:public:get     "Retrieve the error/exit code and message"
 
 #
 # Initialise the issue.
@@ -238,12 +380,19 @@ bsda:obj:createClass bsda:err:Issue \
 #	An error/exit code
 # @param @
 #	An error/warning message
+# @param module
+#	Prefixed before the message, defaults to "${0##*/}"
+# @param level
+#	Prefixed before the message, defaults to "ERROR", "WARNING" or "HINT"
+#	based parameter 1
 #
 bsda:err:Issue.init() {
 	local IFS=$'\n'
-	setvar ${this}e  "$1"
+	setvar ${this}module "${module}"
+	setvar ${this}level  "${level}"
+	setvar ${this}e      "$1"
 	shift
-	setvar ${this}msg "$*"
+	setvar ${this}msg    "$*"
 }
 
 #
@@ -253,13 +402,21 @@ bsda:err:Issue.init() {
 #	The destination variable for the error/exit code
 # @param &2
 #	The destination variable for the message
+# @param &3
+#	The destination variable for the module name
+# @param &4
+#	The destination variable for the escalation level
 #
 bsda:err:Issue.get() {
-	local e msg
-	$this.getE   e
-	$this.getMsg msg
+	local e msg mod lvl
+	$this.getE      e
+	$this.getMsg    msg
+	$this.getModule mod
+	$this.getLevel  lvl
 	$caller.setvar "$1" "$e"
 	$caller.setvar "$2" "$msg"
+	$caller.setvar "$3" "$mod"
+	$caller.setvar "$4" "$lvl"
 }
 
 #
@@ -303,26 +460,28 @@ bsda:err:Context.init() {
 bsda:err:Context.clean() {
 	local previous
 	if [ "$bsda_err_context" = $this ]; then
-		echo "bsda:err: HINT: Use bsda:err:get to handle issues"
-		echo "bsda:err: HINT: Use bsda:err:panic to terminate on an issue"
-		echo "bsda:err: HINT: Use bsda:err:forward to defer handling an issue"
+		module=bsda:err bsda:err:print E_HINT                     \
+			"Use bsda:err:get to handle issues"               \
+			"Use bsda:err:panic to terminate on an issue"     \
+			"Use bsda:err:forward to defer handling an issue"
 		$this.getPrevious bsda_err_context
-	fi >&2
+	fi
 	if rec ${this}issues.is_not_empty; then
 		$this.getPrevious previous
 		if [ -n "$previous" ]; then
 			rec ${previous}issues.append ${this}issues
-			echo "bsda:err: WARNING: Unhandled issue(s) deferred to parent context!"
+			module=bsda:err bsda:err:print E_WARN \
+				"Unhandled issue(s) deferred to parent context!"
 			return 0
 		fi
-		local issue e msg
-		while rec ${this}issues.pop_front issue; do
-			$issue.get e msg
-			$issue.delete
-			echo "$msg" >&2
+		local e msg module level
+		module=bsda:err bsda:err:print E_WARN \
+			"Reached end of error context with unhandled issue(s)!" \
+			"Dropping unhandled issue(s)!"
+		while $this.get e msg module level; do
+			bsda:err:print "${e}" "${msg}"
 		done
-		echo "bsda:err: WARNING: Unhandled issue(s) dropped!"
-	fi >&2
+	fi
 	return 0
 }
 
@@ -333,6 +492,11 @@ bsda:err:Context.clean() {
 #	An error/exit code
 # @param @
 #	An error/warning message
+# @param module
+#	Prefixed before the message, defaults to "${0##*/}"
+# @param level
+#	Prefixed before the message, defaults to "ERROR", "WARNING" or "HINT"
+#	based parameter 1
 #
 bsda:err:Context.raise() {
 	local issue
@@ -347,6 +511,10 @@ bsda:err:Context.raise() {
 #	The destination variable for the error/exit code
 # @param &2
 #	The destination variable for the message
+# @param &3
+#	The destination variable for the module name
+# @param &4
+#	The destination variable for the escalation level
 # @param bsda_err_context
 #	Restored to the previous context if no issue is available
 # @retval 0
@@ -355,11 +523,13 @@ bsda:err:Context.raise() {
 #	No issues are available from the context
 #
 bsda:err:Context.get() {
-	local issue e msg
+	local issue e msg mod lvl
 	if rec ${this}issues.pop_front issue; then
-		$issue.get e msg
+		$issue.get e msg mod lvl
 		$caller.setvar "$1" "$e"
 		$caller.setvar "$2" "$msg"
+		$caller.setvar "$3" "$mod"
+		$caller.setvar "$4" "$lvl"
 		$issue.delete 1
 		return 0
 	fi

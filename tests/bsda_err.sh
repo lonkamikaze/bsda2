@@ -17,6 +17,7 @@ unwind() {
 	caller_unwind=
 }
 
+test -z "${E_HINT+1}"
 test -z "${E_OK+1}"
 test -z "${E_WARN+1}"
 test -z "${E_SIGNAL+1}"
@@ -24,18 +25,20 @@ test -z "${E_FAIL+1}"
 
 . ../src/bsda_err.sh
 
+test -n "${E_HINT+1}"
 test -n "${E_OK+1}"
 test -n "${E_WARN+1}"
 test -n "${E_SIGNAL+1}"
 test -n "${E_FAIL+1}"
 
-test "$E_OK"     -eq 0
-test "$E_WARN"   -eq 0
-test "$E_SIGNAL" -eq 1
-test "$E_FAIL"   -eq 2
+test "$E_HINT"   -eq -1
+test "$E_OK"     -eq  0
+test "$E_WARN"   -eq  0
+test "$E_SIGNAL" -eq  1
+test "$E_FAIL"   -eq  2
 
 bsda:err:ecs ecs
-test "$ecs" = $'E_OK=0\nE_WARN=0\nE_SIGNAL=1\nE_FAIL=2'
+test "$ecs" = $'E_HINT=-1\nE_OK=0\nE_WARN=0\nE_SIGNAL=1\nE_FAIL=2'
 
 test -z "${E_ALIAS_REF+1}"
 test -z "${E_ALIAS_VAL+1}"
@@ -55,7 +58,7 @@ test "$E_CODE_SEQ1" -eq 3
 test "$E_CODE_SEQ2" -eq 4
 
 bsda:err:ecs ecs
-test "$ecs" = $'E_OK=0\nE_WARN=0\nE_SIGNAL=1\nE_FAIL=2\nE_ALIAS_REF=0\nE_ALIAS_VAL=23\nE_CODE_SEQ1=3\nE_CODE_SEQ2=4'
+test "$ecs" = $'E_HINT=-1\nE_OK=0\nE_WARN=0\nE_SIGNAL=1\nE_FAIL=2\nE_ALIAS_REF=0\nE_ALIAS_VAL=23\nE_CODE_SEQ1=3\nE_CODE_SEQ2=4'
 
 #
 # Test behaviour without a context.
@@ -64,67 +67,109 @@ test "$ecs" = $'E_OK=0\nE_WARN=0\nE_SIGNAL=1\nE_FAIL=2\nE_ALIAS_REF=0\nE_ALIAS_V
 # bsda:err:panic() non-fatal
 
 # Must not fail
+(bsda:err:panic E_HINT hint 2>&-)
+(bsda:err:panic -7     hint 2>&-)
 (bsda:err:panic 0      raw  2>&-)
 (bsda:err:panic E_OK   ok   2>&-)
 (bsda:err:panic E_WARN warn 2>&-)
+(module=bsda:test            bsda:err:panic  0 raw0 2>&-)
+(                 level=TEST bsda:err:panic  0 raw1 2>&-)
+(module=bsda:test level=TEST bsda:err:panic -1 raw2 2>&-)
 
 # Must output message on stderr
-test "$(bsda:err:panic 0      raw  2>&1)" = raw
-test "$(bsda:err:panic E_OK   ok   2>&1)" = ok
-test "$(bsda:err:panic E_WARN warn 2>&1)" = warn
+test "$(bsda:err:panic E_HINT hint 2>&1)" = "${0##*/}: HINT: hint"
+test "$(bsda:err:panic -7     hint 2>&1)" = "${0##*/}: HINT: hint"
+test "$(bsda:err:panic 0      raw  2>&1)" = "${0##*/}: WARNING: raw"
+test "$(bsda:err:panic E_OK   ok   2>&1)" = "${0##*/}: WARNING: ok"
+test "$(bsda:err:panic E_WARN warn 2>&1)" = "${0##*/}: WARNING: warn"
+test "$(module=bsda:test            bsda:err:panic  0 raw0 2>&1)" = "bsda:test: WARNING: raw0"
+test "$(                 level=TEST bsda:err:panic  0 raw1 2>&1)" = "${0##*/}: TEST: raw1"
+test "$(module=bsda:test level=TEST bsda:err:panic -1 raw2 2>&1)" = "bsda:test: TEST: raw2"
 
 # Must not exit
+(bsda:err:panic E_HINT hint 2>&-; exit 42); test $? -eq 42
+(bsda:err:panic -7     hint 2>&-; exit 42); test $? -eq 42
 (bsda:err:panic 0      raw  2>&-; exit 42); test $? -eq 42
 (bsda:err:panic E_OK   ok   2>&-; exit 42); test $? -eq 42
 (bsda:err:panic E_WARN warn 2>&-; exit 42); test $? -eq 42
+(module=bsda:test            bsda:err:panic  0 raw0 2>&-; exit 42); test $? -eq 42
+(                 level=TEST bsda:err:panic  0 raw1 2>&-; exit 42); test $? -eq 42
+(module=bsda:test level=TEST bsda:err:panic -1 raw2 2>&-; exit 42); test $? -eq 42
 
 # bsda:err:panic() fatal
 
 # Must output message on stderr
-test "$(bsda:err:panic 42          raw   2>&1)" = raw
-test "$(bsda:err:panic E_CODE_SEQ1 seq   2>&1)" = seq
-test "$(bsda:err:panic E_ALIAS_VAL alias 2>&1)" = alias
+test "$(bsda:err:panic 42          raw   2>&1)" = "${0##*/}: ERROR: raw"
+test "$(bsda:err:panic E_CODE_SEQ1 seq   2>&1)" = "${0##*/}: ERROR: seq"
+test "$(bsda:err:panic E_ALIAS_VAL alias 2>&1)" = "${0##*/}: ERROR: alias"
+test "$(module=bsda:test             bsda:err:panic E_ALIAS_VAL alias0 2>&1)" = "bsda:test: ERROR: alias0"
+test "$(                 level=PANIC bsda:err:panic E_ALIAS_VAL alias1 2>&1)" = "${0##*/}: PANIC: alias1"
+test "$(module=bsda:test level=PANIC bsda:err:panic E_ALIAS_VAL alias2 2>&1)" = "bsda:test: PANIC: alias2"
 
 # Must exit
 (bsda:err:panic 42          raw   2>&-; exit 0); test $? -eq 42
 (bsda:err:panic E_CODE_SEQ1 seq   2>&-; exit 0); test $? -eq $E_CODE_SEQ1
 (bsda:err:panic E_ALIAS_VAL alias 2>&-; exit 0); test $? -eq $E_ALIAS_VAL
+(module=bsda:test             bsda:err:panic E_ALIAS_VAL alias 2>&-; exit 0); test $? -eq $E_ALIAS_VAL
+(                 level=PANIC bsda:err:panic E_ALIAS_VAL alias 2>&-; exit 0); test $? -eq $E_ALIAS_VAL
+(module=bsda:test level=PANIC bsda:err:panic E_ALIAS_VAL alias 2>&-; exit 0); test $? -eq $E_ALIAS_VAL
 
 # bsda:err:raise(), non-fatal
 
 # Must not fail
+(bsda:err:raise E_HINT hint 2>&-)
+(bsda:err:raise -7     hint 2>&-)
 (bsda:err:raise 0      raw  2>&-)
 (bsda:err:raise E_OK   ok   2>&-)
 (bsda:err:raise E_WARN warn 2>&-)
+(module=bsda:err             bsda:err:raise E_WARN warn 2>&-)
+(                level=RAISE bsda:err:raise E_WARN warn 2>&-)
+(module=bsda:err level=RAISE bsda:err:raise E_WARN warn 2>&-)
 
 # Must output message on stderr
-test "$(bsda:err:raise 0      raw  2>&1)" = raw
-test "$(bsda:err:raise E_OK   ok   2>&1)" = ok
-test "$(bsda:err:raise E_WARN warn 2>&1)" = warn
+test "$(bsda:err:raise E_HINT hint 2>&1)" = "${0##*/}: HINT: hint"
+test "$(bsda:err:raise -7     hint 2>&1)" = "${0##*/}: HINT: hint"
+test "$(bsda:err:raise 0      raw  2>&1)" = "${0##*/}: WARNING: raw"
+test "$(bsda:err:raise E_OK   ok   2>&1)" = "${0##*/}: WARNING: ok"
+test "$(bsda:err:raise E_WARN warn 2>&1)" = "${0##*/}: WARNING: warn"
+test "$(module=bsda:test            bsda:err:raise  0 raw0 2>&1)" = "bsda:test: WARNING: raw0"
+test "$(                 level=TEST bsda:err:raise  0 raw1 2>&1)" = "${0##*/}: TEST: raw1"
+test "$(module=bsda:test level=TEST bsda:err:raise -1 raw2 2>&1)" = "bsda:test: TEST: raw2"
 
 # Must not exit
+(bsda:err:raise E_HINT hint 2>&-; exit 42); test $? -eq 42
+(bsda:err:raise -7     hint 2>&-; exit 42); test $? -eq 42
 (bsda:err:raise 0      raw  2>&-; exit 42); test $? -eq 42
 (bsda:err:raise E_OK   ok   2>&-; exit 42); test $? -eq 42
 (bsda:err:raise E_WARN warn 2>&-; exit 42); test $? -eq 42
+(module=bsda:test            bsda:err:raise  0 raw0 2>&-; exit 42); test $? -eq 42
+(                 level=TEST bsda:err:raise  0 raw1 2>&-; exit 42); test $? -eq 42
+(module=bsda:test level=TEST bsda:err:raise -1 raw2 2>&-; exit 42); test $? -eq 42
 
 # bsda:err:raise(), fatal
 
 # Must output message on stderr
-test "$(bsda:err:raise 42          raw   2>&1)" = raw
-test "$(bsda:err:raise E_CODE_SEQ1 seq   2>&1)" = seq
-test "$(bsda:err:raise E_ALIAS_VAL alias 2>&1)" = alias
+test "$(bsda:err:raise 42          raw   2>&1)" = "${0##*/}: ERROR: raw"
+test "$(bsda:err:raise E_CODE_SEQ1 seq   2>&1)" = "${0##*/}: ERROR: seq"
+test "$(bsda:err:raise E_ALIAS_VAL alias 2>&1)" = "${0##*/}: ERROR: alias"
+test "$(module=bsda:test             bsda:err:raise E_ALIAS_VAL alias0 2>&1)" = "bsda:test: ERROR: alias0"
+test "$(                 level=RAISE bsda:err:raise E_ALIAS_VAL alias1 2>&1)" = "${0##*/}: RAISE: alias1"
+test "$(module=bsda:test level=RAISE bsda:err:raise E_ALIAS_VAL alias2 2>&1)" = "bsda:test: RAISE: alias2"
 
 # Must exit
 (bsda:err:raise 42          raw   2>&-; exit 0); test $? -eq 42
 (bsda:err:raise E_CODE_SEQ1 seq   2>&-; exit 0); test $? -eq $E_CODE_SEQ1
 (bsda:err:raise E_ALIAS_VAL alias 2>&-; exit 0); test $? -eq $E_ALIAS_VAL
+(module=bsda:test             bsda:err:raise E_ALIAS_VAL alias 2>&-; exit 0); test $? -eq $E_ALIAS_VAL
+(                 level=RAISE bsda:err:raise E_ALIAS_VAL alias 2>&-; exit 0); test $? -eq $E_ALIAS_VAL
+(module=bsda:test level=RAISE bsda:err:raise E_ALIAS_VAL alias 2>&-; exit 0); test $? -eq $E_ALIAS_VAL
 
 # bsda:err:get()
 
-! (bsda:err:get e msg 2>&-)
-test -z "$(bsda:err:get e msg 2>&-)"
-test -n "$(bsda:err:get e msg 2>&1)"
-(bsda:err:get e msg 2>&-; exit 0); test $? -eq $((E_FAIL))
+! (bsda:err:get e msg mod lvl 2>&-)
+test -z "$(bsda:err:get e msg mod lvl 2>&-)"
+test -n "$(bsda:err:get e msg mod lvl 2>&1)"
+(bsda:err:get e msg mod lvl 2>&-; exit 0); test $? -eq $((E_FAIL))
 
 # bsda:err:forward()
 
@@ -132,6 +177,9 @@ test -n "$(bsda:err:get e msg 2>&1)"
 ! (bsda:err:forward 0      raw  2>&-)
 ! (bsda:err:forward E_OK   ok   2>&-)
 ! (bsda:err:forward E_WARN warn 2>&-)
+! (module=bsda:test               bsda:err:forward E_WARN warn 2>&-)
+! (                 level=FORWARD bsda:err:forward E_WARN warn 2>&-)
+! (module=bsda:test level=FORWARD bsda:err:forward E_WARN warn 2>&-)
 
 # Must output a different message on stderr
 test "$(bsda:err:forward 0           raw   2>&1)" != raw
@@ -160,28 +208,46 @@ bsda:err:collect
 (bsda:err:panic 0      raw  2>&-)
 (bsda:err:panic E_OK   ok   2>&-)
 (bsda:err:panic E_WARN warn 2>&-)
+(bsda:err:panic E_HINT hint 2>&-)
+(bsda:err:panic -7     hint 2>&-)
 
 # Must output message on stderr
-test "$(bsda:err:panic 0      raw  2>&1)" = raw
-test "$(bsda:err:panic E_OK   ok   2>&1)" = ok
-test "$(bsda:err:panic E_WARN warn 2>&1)" = warn
+test "$(bsda:err:panic 0      raw  2>&1)" = "${0##*/}: WARNING: raw"
+test "$(bsda:err:panic E_OK   ok   2>&1)" = "${0##*/}: WARNING: ok"
+test "$(bsda:err:panic E_WARN warn 2>&1)" = "${0##*/}: WARNING: warn"
+test "$(bsda:err:panic E_HINT hint 2>&1)" = "${0##*/}: HINT: hint"
+test "$(bsda:err:panic -7     hint 2>&1)" = "${0##*/}: HINT: hint"
+test "$(module=bsda:test          bsda:err:panic E_OK   ok0  2>&1)" = "bsda:test: WARNING: ok0"
+test "$(                 level=OK bsda:err:panic E_OK   ok1  2>&1)" = "${0##*/}: OK: ok1"
+test "$(module=bsda:test level=OK bsda:err:panic E_OK   ok2  2>&1)" = "bsda:test: OK: ok2"
 
 # Must not exit
 (bsda:err:panic 0      raw  2>&-; exit 42); test $? -eq 42
 (bsda:err:panic E_OK   ok   2>&-; exit 42); test $? -eq 42
 (bsda:err:panic E_WARN warn 2>&-; exit 42); test $? -eq 42
+(bsda:err:panic E_HINT hint 2>&-; exit 42); test $? -eq 42
+(bsda:err:panic -7     hint 2>&-; exit 42); test $? -eq 42
+(module=bsda:test          bsda:err:panic E_OK   ok0  2>&-; exit 42); test $? -eq 42
+(                 level=OK bsda:err:panic E_OK   ok1  2>&-; exit 42); test $? -eq 42
+(module=bsda:test level=OK bsda:err:panic E_OK   ok2  2>&-; exit 42); test $? -eq 42
 
 # bsda:err:panic() fatal
 
 # Must output message on stderr
-test "$(bsda:err:panic 42          raw   2>&1)" = raw
-test "$(bsda:err:panic E_CODE_SEQ1 seq   2>&1)" = seq
-test "$(bsda:err:panic E_ALIAS_VAL alias 2>&1)" = alias
+test "$(bsda:err:panic 42          raw   2>&1)" = "${0##*/}: ERROR: raw"
+test "$(bsda:err:panic E_CODE_SEQ1 seq   2>&1)" = "${0##*/}: ERROR: seq"
+test "$(bsda:err:panic E_ALIAS_VAL alias 2>&1)" = "${0##*/}: ERROR: alias"
+test "$(module=bsda:test             bsda:err:panic E_ALIAS_VAL alias0 2>&1)" = "bsda:test: ERROR: alias0"
+test "$(                 level=PANIC bsda:err:panic E_ALIAS_VAL alias1 2>&1)" = "${0##*/}: PANIC: alias1"
+test "$(module=bsda:test level=PANIC bsda:err:panic E_ALIAS_VAL alias2 2>&1)" = "bsda:test: PANIC: alias2"
 
 # Must exit
 (bsda:err:panic 42          raw   2>&-; exit 0); test $? -eq 42
 (bsda:err:panic E_CODE_SEQ1 seq   2>&-; exit 0); test $? -eq $E_CODE_SEQ1
 (bsda:err:panic E_ALIAS_VAL alias 2>&-; exit 0); test $? -eq $E_ALIAS_VAL
+(module=bsda:test             bsda:err:panic E_ALIAS_VAL alias 2>&-; exit 0); test $? -eq $E_ALIAS_VAL
+(                 level=PANIC bsda:err:panic E_ALIAS_VAL alias 2>&-; exit 0); test $? -eq $E_ALIAS_VAL
+(module=bsda:test level=PANIC bsda:err:panic E_ALIAS_VAL alias 2>&-; exit 0); test $? -eq $E_ALIAS_VAL
 
 ! bsda:err:get
 unwind
@@ -190,69 +256,128 @@ unwind
 bsda:err:collect
 
 # Must not exit
+(bsda:err:raise E_HINT      hint 2>&-; exit 42); test $? -eq 42
+(bsda:err:raise -7          hint 2>&-; exit 42); test $? -eq 42
 (bsda:err:raise 0           raw;   exit 42); test $? -eq 42
 (bsda:err:raise E_OK        ok;    exit 42); test $? -eq 42
 (bsda:err:raise E_WARN      warn;  exit 42); test $? -eq 42
 (bsda:err:raise 23          raw;   exit 42); test $? -eq 42
 (bsda:err:raise E_CODE_SEQ1 seq;   exit 42); test $? -eq 42
 (bsda:err:raise E_ALIAS_VAL alias; exit 42); test $? -eq 42
+(module=bsda:test            bsda:err:raise E_CODE_SEQ1 seq0 2>&-; exit 42); test $? -eq 42
+(                 level=TEST bsda:err:raise E_CODE_SEQ1 seq1 2>&-; exit 42); test $? -eq 42
+(module=bsda:test level=TEST bsda:err:raise E_CODE_SEQ1 seq2 2>&-; exit 42); test $? -eq 42
 
 # Check issue sequence
+bsda:err:raise E_HINT      hint
+bsda:err:raise -7          hint
 bsda:err:raise 0           raw
 bsda:err:raise E_OK        ok
 bsda:err:raise E_WARN      warn
-bsda:err:raise 23          raw
-bsda:err:raise E_CODE_SEQ1 seq
-bsda:err:raise E_ALIAS_VAL alias
+bsda:err:raise 23          raw; test $? -eq 23
+bsda:err:raise E_CODE_SEQ1 seq; test $? -eq $((E_CODE_SEQ1))
+bsda:err:raise E_ALIAS_VAL alias; test $? -eq $((E_ALIAS_VAL))
+module=bsda:test            bsda:err:raise E_CODE_SEQ1 seq0; test $? -eq $((E_CODE_SEQ1))
+                 level=TEST bsda:err:raise E_CODE_SEQ1 seq1; test $? -eq $((E_CODE_SEQ1))
+module=bsda:test level=TEST bsda:err:raise E_CODE_SEQ1 seq2; test $? -eq $((E_CODE_SEQ1))
 
-bsda:err:get e msg
+bsda:err:get e msg mod lvl
+test "$e"   = E_HINT
+test "$msg" = hint
+test "$mod" = ''
+test "$lvl" = ''
+bsda:err:get e msg mod lvl
+test "$e"   = -7
+test "$msg" = hint
+test "$mod" = ''
+test "$lvl" = ''
+bsda:err:get e msg mod lvl
 test "$e"   = 0
 test "$msg" = raw
-bsda:err:get e msg
+test "$mod" = ''
+test "$lvl" = ''
+bsda:err:get e msg mod lvl
 test "$e"   = E_OK
 test "$msg" = ok
-bsda:err:get e msg
+test "$mod" = ''
+test "$lvl" = ''
+bsda:err:get e msg mod lvl
 test "$e"   = E_WARN
 test "$msg" = warn
-bsda:err:get e msg
+test "$mod" = ''
+test "$lvl" = ''
+bsda:err:get e msg mod lvl
 test "$e"   = 23
 test "$msg" = raw
-bsda:err:get e msg
+test "$mod" = ''
+test "$lvl" = ''
+bsda:err:get e msg mod lvl
 test "$e"   = E_CODE_SEQ1
 test "$msg" = seq
-bsda:err:get e msg
+test "$mod" = ''
+test "$lvl" = ''
+bsda:err:get e msg mod lvl
 test "$e"   = E_ALIAS_VAL
 test "$msg" = alias
-! bsda:err:get e msg
+test "$mod" = ''
+test "$lvl" = ''
+bsda:err:get e msg mod lvl
+test "$e"   = E_CODE_SEQ1
+test "$msg" = seq0
+test "$mod" = bsda:test
+test "$lvl" = ''
+bsda:err:get e msg mod lvl
+test "$e"   = E_CODE_SEQ1
+test "$msg" = seq1
+test "$mod" = ''
+test "$lvl" = TEST
+bsda:err:get e msg mod lvl
+test "$e"   = E_CODE_SEQ1
+test "$msg" = seq2
+test "$mod" = bsda:test
+test "$lvl" = TEST
+! bsda:err:get e msg mod lvl
 unwind
 
 # bsda:err:forward() without parent context
 bsda:err:collect
 
 # Must not fail
+(bsda:err:forward E_HINT hint 2>&-)
+(bsda:err:forward -7     hint 2>&-)
 (bsda:err:forward 0      raw  2>&-)
 (bsda:err:forward E_OK   ok   2>&-)
 (bsda:err:forward E_WARN warn 2>&-)
 
 # Must output message on stderr
-test "$(bsda:err:forward 0           raw   2>&1)" = raw
-test "$(bsda:err:forward E_OK        ok    2>&1)" = ok
-test "$(bsda:err:forward E_WARN      warn  2>&1)" = warn
-test "$(bsda:err:forward 42          raw   2>&1)" = raw
-test "$(bsda:err:forward E_CODE_SEQ1 seq   2>&1)" = seq
-test "$(bsda:err:forward E_ALIAS_VAL alias 2>&1)" = alias
+test "$(bsda:err:forward E_HINT hint 2>&1)" = "${0##*/}: HINT: hint"
+test "$(bsda:err:forward -7     hint 2>&1)" = "${0##*/}: HINT: hint"
+test "$(bsda:err:forward 0      raw  2>&1)" = "${0##*/}: WARNING: raw"
+test "$(bsda:err:forward E_OK   ok   2>&1)" = "${0##*/}: WARNING: ok"
+test "$(bsda:err:forward E_WARN warn 2>&1)" = "${0##*/}: WARNING: warn"
+test "$(module=bsda:test            bsda:err:forward  0 raw0 2>&1)" = "bsda:test: WARNING: raw0"
+test "$(                 level=TEST bsda:err:forward  0 raw1 2>&1)" = "${0##*/}: TEST: raw1"
+test "$(module=bsda:test level=TEST bsda:err:forward -1 raw2 2>&1)" = "bsda:test: TEST: raw2"
 
 # Must not exit
+(bsda:err:forward E_HINT hint 2>&-; exit 42); test $? -eq 42
+(bsda:err:forward -7     hint 2>&-; exit 42); test $? -eq 42
 (bsda:err:forward 0           raw   2>&-; exit 42); test $? -eq 42
 (bsda:err:forward E_OK        ok    2>&-; exit 42); test $? -eq 42
 (bsda:err:forward E_WARN      warn  2>&-; exit 42); test $? -eq 42
+(module=bsda:test            bsda:err:forward  0 raw0 2>&-; exit 42); test $? -eq 42
+(                 level=TEST bsda:err:forward  0 raw1 2>&-; exit 42); test $? -eq 42
+(module=bsda:test level=TEST bsda:err:forward -1 raw2 2>&-; exit 42); test $? -eq 42
 
 # Must exit
 (bsda:err:forward 42          raw   2>&-; exit 0); test $? -eq 42
 (bsda:err:forward E_CODE_SEQ1 seq   2>&-; exit 0); test $? -eq $((E_CODE_SEQ1))
 (bsda:err:forward E_ALIAS_VAL alias 2>&-; exit 0); test $? -eq $((E_ALIAS_VAL))
+(module=bsda:test             bsda:err:forward E_ALIAS_VAL alias 2>&-; exit 0); test $? -eq $E_ALIAS_VAL
+(                 level=PANIC bsda:err:forward E_ALIAS_VAL alias 2>&-; exit 0); test $? -eq $E_ALIAS_VAL
+(module=bsda:test level=PANIC bsda:err:forward E_ALIAS_VAL alias 2>&-; exit 0); test $? -eq $E_ALIAS_VAL
 
-! bsda:err:get e msg
+! bsda:err:get e msg mod lvl
 unwind
 
 # bsda:err:forward() with parent context
@@ -260,54 +385,111 @@ bsda:err:collect
 bsda:err:collect
 
 # Must not fail
+(bsda:err:forward E_HINT hint 2>&-)
+(bsda:err:forward -7     hint 2>&-)
 (bsda:err:forward 0      raw  2>&-)
 (bsda:err:forward E_OK   ok   2>&-)
 (bsda:err:forward E_WARN warn 2>&-)
+(module=bsda:test            bsda:err:forward  0 raw0 2>&-)
+(                 level=TEST bsda:err:forward  0 raw1 2>&-)
+(module=bsda:test level=TEST bsda:err:forward -1 raw2 2>&-)
 
 # Must not produce output
+test -z "$(bsda:err:forward E_HINT      hint  2>&1)"
+test -z "$(bsda:err:forward -7          hint  2>&1)"
 test -z "$(bsda:err:forward 0           raw   2>&1)"
 test -z "$(bsda:err:forward E_OK        ok    2>&1)"
 test -z "$(bsda:err:forward E_WARN      warn  2>&1)"
 test -z "$(bsda:err:forward 42          raw   2>&1)"
 test -z "$(bsda:err:forward E_CODE_SEQ1 seq   2>&1)"
 test -z "$(bsda:err:forward E_ALIAS_VAL alias 2>&1)"
+test -z "$(module=bsda:test            bsda:err:forward  0 raw0 2>&1)"
+test -z "$(                 level=TEST bsda:err:forward  0 raw1 2>&1)"
+test -z "$(module=bsda:test level=TEST bsda:err:forward -1 raw2 2>&1)"
 
 # Must not exit
+(bsda:err:forward E_HINT      hint ; exit 42); test $? -eq 42
+(bsda:err:forward -7          hint ; exit 42); test $? -eq 42
 (bsda:err:forward 0           raw  ; exit 42); test $? -eq 42
 (bsda:err:forward E_OK        ok   ; exit 42); test $? -eq 42
 (bsda:err:forward E_WARN      warn ; exit 42); test $? -eq 42
 (bsda:err:forward 42          raw  ; exit 13); test $? -eq 13
 (bsda:err:forward E_CODE_SEQ1 seq  ; exit 13); test $? -eq 13
 (bsda:err:forward E_ALIAS_VAL alias; exit 13); test $? -eq 13
+(module=bsda:test            bsda:err:forward  0 raw0 2>&-; exit 42); test $? -eq 42
+(                 level=TEST bsda:err:forward  0 raw1 2>&-; exit 42); test $? -eq 42
+(module=bsda:test level=TEST bsda:err:forward -1 raw2 2>&-; exit 42); test $? -eq 42
 
 # Check issue sequence
+bsda:err:forward E_HINT      hint
+bsda:err:forward -7          hint
 bsda:err:forward 0           raw
 bsda:err:forward E_OK        ok
 bsda:err:forward E_WARN      warn
 bsda:err:forward 42          raw
 bsda:err:forward E_CODE_SEQ1 seq
 bsda:err:forward E_ALIAS_VAL alias
+module=bsda:test            bsda:err:forward  0 raw0
+                 level=TEST bsda:err:forward  0 raw1
+module=bsda:test level=TEST bsda:err:forward -1 raw2
 
-! bsda:err:get e msg
-bsda:err:get e msg
+! bsda:err:get e msg mod lvl
+bsda:err:get e msg mod lvl
+test "$e"   = E_HINT
+test "$msg" = hint
+test "$mod" = ''
+test "$lvl" = ''
+bsda:err:get e msg mod lvl
+test "$e"   = -7
+test "$msg" = hint
+test "$mod" = ''
+test "$lvl" = ''
+bsda:err:get e msg mod lvl
 test "$e"   = 0
 test "$msg" = raw
-bsda:err:get e msg
+test "$mod" = ''
+test "$lvl" = ''
+bsda:err:get e msg mod lvl
 test "$e"   = E_OK
 test "$msg" = ok
-bsda:err:get e msg
+test "$mod" = ''
+test "$lvl" = ''
+bsda:err:get e msg mod lvl
 test "$e"   = E_WARN
 test "$msg" = warn
-bsda:err:get e msg
+test "$mod" = ''
+test "$lvl" = ''
+bsda:err:get e msg mod lvl
 test "$e"   = 42
 test "$msg" = raw
-bsda:err:get e msg
+test "$mod" = ''
+test "$lvl" = ''
+bsda:err:get e msg mod lvl
 test "$e"   = E_CODE_SEQ1
 test "$msg" = seq
-bsda:err:get e msg
+test "$mod" = ''
+test "$lvl" = ''
+bsda:err:get e msg mod lvl
 test "$e"   = E_ALIAS_VAL
 test "$msg" = alias
-! bsda:err:get e msg
+test "$mod" = ''
+test "$lvl" = ''
+bsda:err:get e msg mod lvl
+test "$e"   = 0
+test "$msg" = raw0
+test "$mod" = bsda:test
+test "$lvl" = ''
+bsda:err:get e msg mod lvl
+test "$e"   = 0
+test "$msg" = raw1
+test "$mod" = ''
+test "$lvl" = TEST
+bsda:err:get e msg mod lvl
+test "$e"   = -1
+test "$msg" = raw2
+test "$mod" = bsda:test
+test "$lvl" = TEST
+! bsda:err:get e msg mod lvl
 unwind
 
 # bsda:err:collect
@@ -351,7 +533,7 @@ run="$(exec 2>&1
 	bsda:err:collect
 	unwind
 )"
-bsda:test:xmatch "$run" all:any 'bsda:err: HINT: *'
+bsda:test:xmatch "$run" any:any 'bsda:err: HINT: *'
 run="$(exec 2>&1
 	bsda:obj:fork
 	bsda:err:collect
@@ -360,21 +542,54 @@ run="$(exec 2>&1
 	unwind
 )"
 bsda:test:xmatch "$run" all:all \
-                 'bsda:err: HINT: *' \
-                 'bsda:err: WARNING: *drop*' \
-                 'warn' \
-                 'fail'
+                 'bsda:err: HINT: Use bsda:err*' \
+                 '* Use bsda:err*' \
+                 'bsda:err: WARNING: Reached end of error context with unhandled issue(s)!' \
+                 '* Dropping unhandled issue(s)!' \
+                 "${0##*/}: WARNING: warn" \
+                 "${0##*/}: WARNING: fail"
 run="$(exec 2>&1
 	bsda:obj:fork
 	bsda:err:collect
 	bsda:err:collect
 	bsda:err:raise E_WARN warn
-	bsda:err:raise E_FAIL fail
+	! bsda:err:raise E_FAIL fail
 	unwind
 )"
 bsda:test:xmatch "$run" all:all \
-                 'bsda:err: HINT: *' \
-                 'bsda:err: WARNING: *defer*' \
-                 'bsda:err: WARNING: *drop*' \
-                 'warn' \
-                 'fail'
+                 'bsda:err: HINT: Use bsda:err*' \
+                 '* Use bsda:err*' \
+                 'bsda:err: WARNING: Unhandled issue(s) deferred to parent context!' \
+                 'bsda:err: WARNING: Reached end of error context with unhandled issue(s)!' \
+                 '* Dropping unhandled issue(s)!' \
+                 "${0##*/}: WARNING: warn" \
+                 "${0##*/}: ERROR: fail"
+run="$(exec 2>&1
+	bsda:obj:fork
+	bsda:err:collect
+	bsda:err:collect
+	bsda:err:raise E_WARN warn
+	! bsda:err:raise E_FAIL fail
+	bsda:err:finalise
+	unwind
+)"
+bsda:test:xmatch "$run" all:all \
+                 'bsda:err: HINT: Use bsda:err*' \
+                 '* Use bsda:err*' \
+                 'bsda:err: WARNING: Reached end of error context with unhandled issue(s)!' \
+                 '* Dropping unhandled issue(s)!' \
+                 "${0##*/}: WARNING: warn" \
+                 "${0##*/}: ERROR: fail"
+run="$(exec 2>&1
+	bsda:obj:fork
+	bsda:err:collect
+	bsda:err:collect
+	bsda:err:raise E_WARN warn
+	! bsda:err:raise E_FAIL fail
+	bsda:err:finalise
+	bsda:err:finalise
+	unwind
+)"; test $? -eq $((E_FAIL))
+bsda:test:xmatch "$run" all:all \
+                 "${0##*/}: WARNING: warn" \
+                 "${0##*/}: ERROR: fail"

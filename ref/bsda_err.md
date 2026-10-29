@@ -9,14 +9,14 @@ exceptions workflow known from other languages. However, some fundamental
 differences exist, thus all facilities have been named differently
 in order to curb expectations of conforming to the familiar model.
 
-The following table lists the  well known language mechanisms and 
+The following table lists the well known language mechanisms and
 their library counterparts:
 
-| Mechanism | Substitution                          |
-|-----------|---------------------------------------|
-| `try`     | `bsda:err:collect`                    |
-| `throw`   | `bsda:err:raise` / `bsda:err:forward` |
-| `catch`   | `bsda:err:get`                        |
+| Mechanism | Substitution                                                |
+|-----------|-------------------------------------------------------------|
+| `try`     | `bsda:err:collect`                                          |
+| `throw`   | `bsda:err:raise` / `bsda:err:forward` / `bsda:err:finalise` |
+| `catch`   | `bsda:err:get`                                              |
 
 Issues
 ------
@@ -28,6 +28,7 @@ a predefined symbol. The following error/exit codes are predefined:
 
 | Symbol   | Value | Meaning                                |
 |----------|-------|----------------------------------------|
+| E_HINT   | -1    | A non-error hint                       |
 | E_OK     | 0     | No error                               |
 | E_WARN   | 0     | Warning, non-fatal even when unhandled |
 | E_SIGNAL | 1     | Interrupted by signal                  |
@@ -59,10 +60,10 @@ Handling issues is done by calling bsda:err:get() until all issues
 have been handled:
 
 ```sh
-local e msg
+local e msg module level
 bsda:err:collect
 … code potentially raising issues …
-while bsda:err:get e msg; do
+while bsda:err:get e msg module level; do
 	… handle errors/warnings …
 done
 ```
@@ -70,7 +71,7 @@ done
 Errors usually should be matched using the error/exit code:
 
 ```sh
-while bsda:err:get e msg; do
+while bsda:err:get e msg module level; do
 	case "$e" in
 	E_APP_ERROR)
 		… handle …
@@ -90,3 +91,5 @@ done
 The bsda:err:forward() function acts like bsda:err:raise(), except
 that it raises the issue in the parent context, passing on the
 responsibility of handling the issue.
+The bsda:err:finalise() function replaces the entire `while bsda:err:get`
+loop by implementing a simple loop that forwards all issues.

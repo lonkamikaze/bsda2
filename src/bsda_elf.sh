@@ -38,15 +38,16 @@ bsda:obj:createClass bsda:elf:File \
 #	The file name to read symbols from
 # @retval 0
 #	Reading the file succeeded
-# @retval 1
-#	An error occurred
+# @return
+#	Returns 0 if reading the file succeeded, otherwise the error
+#	code value is returned
 # @throws E_BSDA_ELF_NOENT
 #	Cannot read the given file
 #
 bsda:elf:File.init() {
 	if ! [ -r "$1" ]; then
-		bsda:err:raise E_BSDA_ELF_NOENT "ERROR: Cannot read file: ${1}"
-		return 1
+		bsda:err:raise E_BSDA_ELF_NOENT "Cannot read file: ${1}"
+		return
 	fi
 	setvar ${this}filename "$1"
 	setvar ${this}virtual "$(
