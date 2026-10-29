@@ -2,6 +2,24 @@ test -n "$_bsda_async_" && return 0
 readonly _bsda_async_=1
 
 . ${bsda_dir:-.}/bsda_fifo.sh
+. ${bsda_dir:-.}/bsda_err.sh
+
+#
+# Module error codes.
+#
+# | Error Code                 | Severity | Meaning                                      |
+# |----------------------------|----------|----------------------------------------------|
+# | E_BSDA_ASYNC_DESTNAME      | error    | The name of the destination class is missing |
+# | E_BSDA_ASYNC_SOURCENAME    | error    | The name of the source class is missing      |
+# | E_BSDA_ASYNC_SOURCEINVALID | error    | Error accessing the source class traits      |
+# | E_BSDA_ASYNC_CLASSINST     | panic    | Failed to initialise wrapped class instance  |
+# | E_BSDA_ASYNC_PIPEFAIL      | panic    | Failed to read from pipe                     |
+#
+bsda:err:createECs E_BSDA_ASYNC_DESTNAME      \
+                   E_BSDA_ASYNC_SOURCENAME    \
+                   E_BSDA_ASYNC_SOURCEINVALID \
+                   E_BSDA_ASYNC_CLASSINST     \
+                   E_BSDA_ASYNC_PIPEFAIL
 
 #
 # Creates an asynchronous dispatch variant of an existing class.
@@ -16,14 +34,9 @@ readonly _bsda_async_=1
 #	The name of the asynchronous class to create
 # @param 2
 #	The name of the class to manage in the asynchronous context
-# @retval 0
-#	The new class was created successfully
-# @retval 1
-#	The name of the destination class is missing
-# @retval 2
-#	The name of the source class is missing
-# @retval 3
-#	Error accessing the source class traits
+# @return
+#	Returns 0 on success or an error code value if an error is
+#	raised
 #
 bsda:async:createClass() {
 	local IFS dstClass srcClass methods
@@ -32,16 +45,19 @@ bsda:async:createClass() {
 	srcClass="$2"
 	readonly dstClass srcClass
 	if [ -z "$dstClass" ]; then
-		echo "bsda:async: ERROR: No destination class name supplied!" >&2
-		return 1
+		module=bsda:async:createClass bsda:err:raise E_BSDA_ASYNC_DESTNAME \
+			"No destination class name supplied!"
+		return
 	fi
 	if [ -z "$srcClass" ]; then
-		echo "bsda:async: ERROR: No source class name supplied!" >&2
-		return 2
+		module=bsda:async:createClass bsda:err:raise E_BSDA_ASYNC_SOURCENAME \
+			"No source class name supplied!"
+		return
 	fi
 	if ! $srcClass.getMethods methods 2>&-; then
-		echo "bsda:async: ERROR: Invalid source class ${srcClass}!" >&2
-		return 3
+		module=bsda:async:createClass bsda:err:raise E_BSDA_ASYNC_SOURCEINVALID \
+			"Invalid source class ${srcClass}!"
+		return
 	fi
 	local method forward
 	# Generate forwarding functions
@@ -148,8 +164,8 @@ bsda:async:daemon() {
 	$objClass obj "$@"
 	retval=$?
 	if [ $retval -ne 0 ]; then
-		echo "bsda:async:daemon: ERROR: $class returned: $retval" >&2
-		exit $retval
+		module=bsda:async:daemon bsda:err:panic E_BSDA_ASYNC_CLASSINST \
+			"Failed to instantiate async $class instance, constructor returned: $retval"
 	fi
 
 	# Send the object ID to the host process, there is a race
@@ -166,8 +182,8 @@ bsda:async:daemon() {
 			# Retry read if interrupted by a signal
 			continue
 		elif [ $retval -ne 0 ]; then
-			echo "bsda:async:daemon: ERROR: Read from pipe returned: $retval" >&2
-			exit $retval
+			module=bsda:async:daemon bsda:err:panic E_BSDA_ASYNC_PIPEFAIL \
+				"Read from pipe returned: $retval"
 		fi
 		eval "$cmd"
 	done
