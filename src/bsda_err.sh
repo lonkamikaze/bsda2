@@ -101,7 +101,7 @@ bsda:err:createECs() {
 #
 # Setup a basic set of error/exit codes.
 #
-bsda:err:createECs E_HINT=-1 E_OK E_WARN=E_OK E_SIGNAL E_FAIL
+bsda:err:createECs E_HINT=-1 E_WARN E_SIGNAL E_FAIL
 
 #
 # Provide the newline separated list of error/exit codes.

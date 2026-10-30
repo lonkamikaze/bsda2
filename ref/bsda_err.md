@@ -29,7 +29,6 @@ a predefined symbol. The following error/exit codes are predefined:
 | Symbol   | Value | Meaning                                |
 |----------|-------|----------------------------------------|
 | E_HINT   | -1    | A non-error hint                       |
-| E_OK     | 0     | No error                               |
 | E_WARN   | 0     | Warning, non-fatal even when unhandled |
 | E_SIGNAL | 1     | Interrupted by signal                  |
 | E_FAIL   | 2     | Application logic failure              |
