@@ -57,6 +57,7 @@ src/pkg_validate.sh,0644,%%DATADIR%%/pkg_validate.sh
 src/pkg_version,0755,%%PREFIX%%/sbin/pkg_version
 man/pkg_version.8,0644,%%MAN%%/man8/pkg_version.8.gz
 src/pkg_version.sh,0644,%%DATADIR%%/pkg_version.sh
+src/terminfo.sh,0755,%%DATADIR%%/terminfo.sh
 ref/type.md,0644,%%DOCSDIR%%/ref/type.md
 src/type.sh,0644,%%DATADIR%%/type.sh
 LICENSE.md,0644,%%DOCSDIR%%/LICENSE.md

@@ -3,6 +3,7 @@ readonly _bsda_err_=1
 
 . ${bsda_dir:-.}/bsda_obj.sh
 . ${bsda_dir:-.}/type.sh
+. ${bsda_dir:-.}/terminfo.sh
 
 #
 # Error handling facilities.
@@ -20,34 +21,6 @@ bsda_err_ecMax=-1
 # A comma separated list of the defined error/exit codes and aliases.
 #
 bsda_err_ecs=
-
-#
-# The number of colours supported by the terminal.
-#
-bsda_err_colours="$(/usr/bin/tput Co)"
-
-#
-# Define colour escape sequences.
-#
-if [ "${bsda_err_colours}" -ge 256 ]; then
-	readonly bsda_err_co_module=$'\033[38;5;117m'    \
-	         bsda_err_co_error=$'\033[1;38;5;124m'   \
-	         bsda_err_co_warning=$'\033[1;38;5;215m' \
-	         bsda_err_co_hint=$'\033[1;38;5;112m'    \
-	         bsda_err_co_reset=$'\033[m'
-elif [ "${bsda_err_colours}" -ge 16 ]; then
-	readonly bsda_err_co_module=$'\033[38;5;4m'    \
-	         bsda_err_co_error=$'\033[1;38;5;1m'   \
-	         bsda_err_co_warning=$'\033[1;38;5;3m' \
-	         bsda_err_co_hint=$'\033[1;38;5;2m'    \
-	         bsda_err_co_reset=$'\033[m'
-else
-	readonly bsda_err_co_module=  \
-	         bsda_err_co_error=   \
-	         bsda_err_co_warning= \
-	         bsda_err_co_hint=    \
-	         bsda_err_co_reset=
-fi
 
 #
 # Define error/exit codes.
@@ -157,23 +130,22 @@ bsda_err_context=
 bsda:err:print() (
 	: ${module:="${0##*/}"}
 	if [ $(($1)) -le $((E_HINT)) ]; then
-		prefix="${module}: ${level:=HINT}:"
-		cprefix="${bsda_err_co_module}${module}: ${bsda_err_co_hint}${level}:${bsda_err_co_reset}"
+		: ${level:=HINT}
+		prefix="$(ti:fmt:module "${module}:") $(ti:fmt:hint "${level}:")"
 	elif [ $(($1)) -eq $((E_WARN)) ]; then
-		prefix="${module}: ${level:=WARNING}:"
-		cprefix="${bsda_err_co_module}${module}: ${bsda_err_co_warning}${level}:${bsda_err_co_reset}"
+		: ${level:=WARNING}
+		prefix="$(ti:fmt:module "${module}:") $(ti:fmt:warning "${level}:")"
 	else
-		prefix="${module}: ${level:=ERROR}:"
-		cprefix="${bsda_err_co_module}${module}: ${bsda_err_co_error}${level}:${bsda_err_co_reset}"
+		: ${level:=ERROR}
+		prefix="$(ti:fmt:module "${module}:") $(ti:fmt:error "${level}:")"
 	fi
 	if [ -n "$2" ]; then
-		if [ -t 1 ]; then
-			printf "${cprefix} %s\n" "$2"
-		else
-			printf "${prefix} %s\n" "$2"
-		fi
+		printf "${prefix} %s\n" "$2"
 		shift 2
 		if [ -n "$1" ]; then
+			# strip colour/formatting information, at this
+			# point only the length of the prefix is required
+			prefix="${module}: ${level}:"
 			indent="$(printf "%${#prefix}s" "")"
 			printf "${indent} %s\n" "$@"
 		fi
@@ -225,7 +197,7 @@ bsda:err:panic() {
 		shift
 		set -- E_FAIL "$@"
 	fi
-	bsda:err:print "$1" "$2" #"$@"
+	bsda:err:print "$@"
 	if [ $(($1)) -gt 0 ]; then
 		# flush pending errors
 		if [ -n "${bsda_err_context}" ]; then
