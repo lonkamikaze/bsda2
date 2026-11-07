@@ -2,6 +2,7 @@ test -n "$_bsda_tty_" && return 0
 readonly _bsda_tty_=1
 
 . ${bsda_dir:-.}/bsda_obj.sh
+. ${bsda_dir:-.}/terminfo.sh
 
 #
 # A package for controlling the terminal and mixing status output on
@@ -212,7 +213,7 @@ bsda:tty:Terminal.line() {
 		# tput       vi.......
 		printf '%b' '\033[?25l\r' $($class:repeat $lineno '\n')
 		# tput  RA......  ce....  SA......
-		printf '\033[?7l%s\033[K\r\033[?7h' "$*"
+		printf '\033[?7l%s\033[K\r\033[?7h' "${ti_fmt_status}${*}${ti_fmt_reset}"
 		# tput                               up...    ve...............
 		printf '%b' $($class:repeat $lineno '\033M') '\033[34h\033[?25h'
 	) > /dev/tty
@@ -323,9 +324,9 @@ bsda:tty:Terminal.refresh() (
 	printf '%b' '\033[?25l\r' $($class:repeat $i '\n') '\033[?7l'
 	while [ $i -gt 0 ]; do
 		# tput          ce....  up...
-		eval "printf '%s\033[K\r\033M' \"\$${this}line$i\""
+		eval "printf '%s\033[K\r\033M' \"${ti_fmt_status}\$${this}line$i${ti_fmt_reset}\""
 		i=$((i - 1))
 	done
 	# tput          ce....  SA......ve...............
-	eval "printf '%s\033[K\r\033[?7h\033[34h\033[?25h' \"\$${this}line0\""
+	eval "printf '%s\033[K\r\033[?7h\033[34h\033[?25h' \"${ti_fmt_status}\$${this}line0${ti_fmt_reset}\""
 )
