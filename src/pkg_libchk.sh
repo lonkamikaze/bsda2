@@ -7,6 +7,21 @@ readonly _pkg_libchk_=1
 . ${bsda_dir:-.}/bsda_util.sh
 . ${bsda_dir:-.}/pkg_options.sh
 . ${bsda_dir:-.}/pkg_info.sh
+. ${bsda_dir:-.}/bsda_err.sh
+
+#
+# Define a set of fatal errors.
+#
+# | Exit Code             | Severity | Meaning                                            |
+# |-----------------------|----------|----------------------------------------------------|
+# | E_PKG_LIBCHK_PARAM    | error    | Unknown CLI parameter supplied                     |
+# | E_PKG_LIBCHK_CONFLICT | error    | The conflicting parameters -v and -q were supplied |
+# | E_PKG_LIBCHK_JOBS     | error    | Invalid number of jobs, must be a positive integer |
+#
+bsda:err:createECs \
+	E_PKG_LIBCHK_PARAM=2    \
+	E_PKG_LIBCHK_CONFLICT=3 \
+	E_PKG_LIBCHK_JOBS=4
 
 #
 # Create an asynchronous Terminal class.
@@ -145,20 +160,21 @@ pkg:libchk:Session.params() {
 				shift
 			fi
 			if ! [ "$jobs" -eq "$jobs" ] 2>&-; then
-				$($this.Term).stderr \
+				bsda:err:raise E_PKG_LIBCHK_JOBS \
 					"The -j option must be followed by a number."
-				exit 4
+				return
 			elif [ "$jobs" -lt 1 ]; then
-				$($this.Term).stderr \
+				bsda:err:raise E_PKG_LIBCHK_JOBS \
 					"The -j option must specify at least 1 job."
-				exit 4
+				return
 			else
 				setvar ${this}jobs $jobs
 			fi
 		;;
 		OPT_UNKNOWN)
-			$($this.Term).stderr "Unknown parameter \"$1\"."
-			exit 2
+			bsda:err:raise E_PKG_LIBCHK_PARAM \
+				"Unknown parameter \"$1\"."
+			return
 		;;
 		OPT_SPLIT)
 			eval "$bsda_opts_split"
@@ -178,9 +194,9 @@ pkg:libchk:Session.params() {
 	fi
 
 	if $flags.check VERBOSE && $flags.check PKG_QUIET; then
-		$($this.Term).stderr \
+		bsda:err:raise E_PKG_LIBCHK_CONFLICT \
 			"The parameters -v and -q may not be used at the same time."
-		exit 3
+		return
 	fi
 
 	# Use the remaining arguments to query for packages
@@ -208,23 +224,24 @@ $(echo -n "$usage" | /usr/bin/sort -f)"
 #	A list of package queries
 #
 pkg:libchk:Session.packages() {
-	local pkginfo flags pkgs warn
+	local IFS pkginfo flags pkgs warn
 	$this.Flags flags
 	pkg:info:Env pkginfo $flags
 	$caller.delete $pkginfo
+	IFS=$'\n'
 
 	# Call pkg-info to acquire a list of packages
 	if ! $pkginfo.match pkgs "$@"; then
 		local errmsg errnum
 		$pkginfo.getErrmsg errmsg
 		$pkginfo.getErrnum errnum
-		$($this.Term).stderr "$errmsg"
-		exit $errnum
+		module=pkg-info bsda:err:raise errnum ${errmsg}
+		return
 	fi
 
 	$pkginfo.getWarn warn
 	if [ -n "$warn" ]; then
-		$($this.Term).stderr "$warn"
+		module=pkg-info bsda:err:raise E_WARN ${warn}
 	fi
 
 	# Extra verbose output
@@ -232,10 +249,10 @@ pkg:libchk:Session.packages() {
 		if $flags.check PKG_ALL; then
 			$($this.Term).stderr "Checking all packages ..."
 		else
-			IFS=$'\n' $($this.Term).stderr "Checking packages:" \
-			                               "------------------" \
-			                               "$pkgs" \
-			                               "------------------"
+			$($this.Term).stderr "Checking packages:" \
+			                     "------------------" \
+			                     "$pkgs" \
+			                     "------------------"
 		fi
 	fi
 

@@ -1,4 +1,4 @@
-.Dd 29 July, 2024
+.Dd 3 November, 2026
 .Dt PKG_LIBCHK 8
 .Os
 .Sh NAME
@@ -123,23 +123,30 @@ packages:
 .Bd -literal -offset indent
 pkg_libchk -r icu
 .Ed
-.Sh EXIT CODES
+.Sh EXIT STATUS
+The following is a list of all anticipated exit codes:
 .Bl -tag -width indent
-.It 1
+.It Er ESIGNAL=1
 The script has terminated because it received SIGHUP, SIGINT or SIGTERM.
-.It 2
+.It Er EPARAM=2
 An unknown parameter has been supplied.
-.It 3
+.It Er ECONFLICT=3
 The incompatible parameters
 .Fl v
 and
 .Fl q
 have been supplied.
-.It 4
+.It Er EJOBS=4
 The parameter
 .Fl j
 has been supplied without an acceptable number.
 .El
+.Pp
+Package arguments are identified via
+.Xr pkg-info 8 ,
+in case of an error the
+.Xr pkg 8
+command exit code is returned.
 .Sh SEE ALSO
 .Xr pkg-info 8 ,
 .Xr ldd 1 ,
