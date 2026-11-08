@@ -60,7 +60,7 @@ bsda:dialog:Dialog.init() {
 		dialog=
 	done
 	if [ -z "${dialog}" ]; then
-		bsda:err:raise E_BSDA_DIALOG_WHICH "ERROR: Cannot locate dialog(1)/bsddialog(1) binary"
+		bsda:err:raise E_BSDA_DIALOG_WHICH "Cannot locate dialog(1)/bsddialog(1) binary"
 	fi
 }
 

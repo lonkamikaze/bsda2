@@ -1,4 +1,4 @@
-.Dd 21 August, 2026
+.Dd 3 November, 2026
 .Dt PKG_TRIM 8
 .Os
 .Sh NAME
@@ -28,7 +28,21 @@ Assume yes when calling
 or
 .Xr pkg-delete 8 .
 .El
-.Sh DIAGNOSTICS
+.Sh EXIT STATUS
+The following is a list of all anticipated exit codes:
+.Bl -tag -with indent
+.It Er EOK=0
+Command completed successfully.
+.It Er ESIGNAL=1
+Interrupted by signal.
+.It Er EWHICH=5
+The
+.Xr dialog 1
+or
+.Xr bsddialog 1
+binary cannot be located.
+.El
+.Pp
 During package selection the script may exit with the exit status
 returned by
 .Xr dialog 1
