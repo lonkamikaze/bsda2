@@ -1,4 +1,4 @@
-.Dd 18 November, 2023
+.Dd 6 November, 2026
 .Dt DISTVIPER 8
 .Os
 .Sh NAME
@@ -99,14 +99,42 @@ Only keep files for installed ports, and ask for confirmation:
 distviper -i installed
 .Ed
 .Pp
-.Sh EXIT CODES
+.Sh EXIT STATUS
+The following is a list of all anticipated exit codes:
 .Bl -tag -width indent
-.It 1
+.It Er EPARAM=1
 An unknown parameter has been supplied.
-.It 2
-An unknown mode command has been supplied.
-.It 3
+.It Er EMODE=2
+An unknown mode command
+.Pq Ar keep
+has been supplied.
+.It Er EARGC=3
 More than one mode commands have been supplied.
+.It Er ECONFLICT=4
+The conflictiong options
+.Fl v
+and
+.Fl q
+are set.
+.It Er EPORTSDIR=5
+Failed scanning
+.Va PORTSDIR
+for
+.Pa distinfo
+files.
+.It Er EMAKEVAR=6
+Failed to read
+.Va DISTDIR
+or
+.Va PORTSDIR
+via
+.Xr make 1 .
+.It Er EDIR=7
+One of
+.Va DISTDIR
+or
+.Va PORTSDIR
+does not refer to a directory.
 .El
 .Sh SEE ALSO
 .Xr ports 7

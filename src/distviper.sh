@@ -6,6 +6,29 @@ readonly _distviper_=1
 . ${bsda_dir:-.}/pkg_info.sh
 . ${bsda_dir:-.}/bsda_bsdmake.sh
 . ${bsda_dir:-.}/bsda_fmt.sh
+. ${bsda_dir:-.}/bsda_err.sh
+
+#
+# Define a set of fatal errors.
+#
+# | Exit Code            | Severity | Meaning                                     |
+# |----------------------|----------|---------------------------------------------|
+# | E_DISTVIPER_PARAM    | error    | Unknown CLI parameter                       |
+# | E_DISTVIPER_MODE     | error    | Unknown CLI argument                        |
+# | E_DISTVIPER_ARGC     | error    | Too many CLI arguments                      |
+# | E_DISTVIPER_CONFLICT | error    | Conflicting CLI parameters                  |
+# | E_DISTVIPER_PORTSDIR | panic    | Failed to scan PORTSDIR for distinfo        |
+# | E_DISTVIPER_MAKEVAR  | error    | Failed to read DISTDIR or PORTSDIR via make |
+# | E_DISTVIPER_DIR      | error    | DISTDIR or PORTSDIR is not a directory      |
+#
+bsda:err:createECs \
+	E_DISTVIPER_PARAM=1    \
+	E_DISTVIPER_MODE=2     \
+	E_DISTVIPER_ARGC=3     \
+	E_DISTVIPER_CONFLICT=4 \
+	E_DISTVIPER_PORTSDIR=5 \
+	E_DISTVIPER_MAKEVAR=6  \
+	E_DISTVIPER_DIR=7
 
 #
 # The session class for distviper.
@@ -19,7 +42,6 @@ bsda:obj:createClass distviper:Session \
 	i:private:init       "The constructor" \
 	x:private:params     "Process command line arguments" \
 	x:private:help       "Print usage message" \
-	x:private:error      "Print error message" \
 	x:private:status     "Print status" \
 	x:private:getMakeVar "Retrieve variables from make" \
 	x:private:run        "Select files and delete them"
@@ -73,8 +95,9 @@ distviper:Session.params() {
 			$this.help "$options"
 		;;
 		OPT_UNKNOWN)
-			$this.error "Unknown parameter \"$1\"."
-			return 1
+			bsda:err:raise E_DISTVIPER_PARAM \
+				"Unknown parameter \"$1\"."
+			return
 		;;
 		OPT_SPLIT)
 			eval "$bsda_opts_split"
@@ -85,8 +108,9 @@ distviper:Session.params() {
 			$flags.add KEEP
 			setvar ${this}keep "$1"
 			if $flags.check KEEP -gt 1; then
-				$this.error "Too many arguments: ... $@"
-				return 3
+				bsda:err:raise E_DISTVIPER_ARGC \
+					"Too many arguments:" "$@"
+				return
 			fi
 		;;
 		*)
@@ -98,8 +122,9 @@ distviper:Session.params() {
 	done
 
 	if $flags.check VERBOSE && $flags.check QUIET; then
-		$this.error "Conflicting options -v and -q supplied."
-		return 1
+		bsda:err:raise E_DISTVIPER_CONFLICT \
+			"Conflicting options -v and -q supplied."
+		return
 	fi
 
 	if $flags.check QUIET -eq 0; then
@@ -123,8 +148,9 @@ distviper:Session.params() {
 		setvar ${this}keep all
 	;;
 	*)
-		$this.error "Unknown category of files to keep: $keep"
-		return 2
+		bsda:err:raise E_DISTVIPER_MODE \
+			"Unknown category of files to keep: $keep"
+		return
 	;;
 	esac
 }
@@ -141,16 +167,6 @@ distviper:Session.help() {
 	$($this.Term).stdout "usage: distviper [-dhinqv] [keep]
 $(echo -n "$usage" | /usr/bin/sort -f)"
 	exit 0
-}
-
-#
-# Print error message.
-#
-# @param *
-#	The message to print
-#
-distviper:Session.error() {
-	$($this.Term).stderr "${0##*/}: $*"
 }
 
 #
@@ -187,17 +203,18 @@ distviper:Session.status() {
 #	The variable is not a directory
 #
 distviper:Session.getMakeVar() {
-	local term value
-	$this.Term term
+	local IFS value
+	IFS=$'\n'
 	if ! value="$(bsda:bsdmake -f/usr/share/mk/bsd.port.mk \
 	                           -V"$2" 2>&1)"; then
-		$this.error "$bsda_bsdmake -V$2 failed:"
-		$term.stderr "$value"
-		return 1
+		bsda:err:raise E_DISTVIPER_MAKEVAR \
+			"$bsda_bsdmake -V$2 failed:" $value
+		return
 	fi
 	if [ ! -d "$value" ]; then
-		$this.error "The $2 '$value' is not a directory."
-		return 1
+		bsda:err:raise E_DISTVIPER_DIR \
+			"The $2 '$value' is not a directory."
+		return
 	fi
 	$caller.setvar $1 "$value"
 }
@@ -269,9 +286,10 @@ distviper:Session.run() {
 	keepFiles="$(echo "$keepSums" | /usr/bin/sed 's/|.*//')"
 
 	if echo "$keepSums" | /usr/bin/grep -qv '|[0-9a-f]*$'; then
-		$this.error "Access to $portsdir failed"
-		$term.stderr "$(echo "$keepSums" | /usr/bin/grep -v '|[0-9a-f]*$')"
-		exit 1
+		$term.deactivate
+		bsda:err:panic E_DISTVIPER_PORTSDIR \
+			"Access to $portsdir failed" \
+			$(echo "$keepSums" | /usr/bin/grep -v '|[0-9a-f]*$')
 	fi
 
 	$this.status "Creating a list of distfiles to delete"
