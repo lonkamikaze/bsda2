@@ -24,20 +24,20 @@ readonly _loaderupdate_=1
 # | E_LOADERUPDATE_BOOTFS     | warning  | Filesystem type not supported     |
 #
 bsda:err:createECs \
-	E_LOADERUPDATE_PARAM \
-	E_LOADERUPDATE_NODEVICE \
-	E_LOADERUPDATE_DESTDIR \
-	E_LOADERUPDATE_NOKERNEL \
-	E_LOADERUPDATE_EFILABEL \
-	E_LOADERUPDATE_SCHEME \
-	E_LOADERUPDATE_NOPARTS \
-	E_LOADERUPDATE_EFIBOOTMGR \
-	E_LOADERUPDATE_LOADER \
-	E_LOADERUPDATE_MOUNT \
+	E_LOADERUPDATE_PARAM         \
+	E_LOADERUPDATE_NODEVICE      \
+	E_LOADERUPDATE_DESTDIR       \
+	E_LOADERUPDATE_NOKERNEL      \
+	E_LOADERUPDATE_EFILABEL      \
+	E_LOADERUPDATE_SCHEME        \
+	E_LOADERUPDATE_NOPARTS       \
+	E_LOADERUPDATE_EFIBOOTMGR    \
+	E_LOADERUPDATE_LOADER        \
+	E_LOADERUPDATE_MOUNT         \
 	E_LOADERUPDATE_UMOUNT=E_WARN \
-	E_LOADERUPDATE_CMD \
-	E_LOADERUPDATE_EFIFILE \
-	E_LOADERUPDATE_BOOTFS=E_WARN \
+	E_LOADERUPDATE_CMD           \
+	E_LOADERUPDATE_EFIFILE       \
+	E_LOADERUPDATE_BOOTFS=E_WARN
 
 . ${bsda_dir:-.}/bsda_opts.sh
 . ${bsda_dir:-.}/bsda_elf.sh
@@ -836,17 +836,15 @@ loaderupdate:Session.printcmd() {
 	tail=
 	IFS=' '
 	cmd="${2##*/}"
-	test "${1}" = "skip" && cmd="#[skip] ${cmd}"
+	test "${1}" = "skip" && cmd="#[skip] ${cmd}" 2>&1
 	shift 2
 	$this.Flags flags
 	if $flags.check QUIET -eq 0; then
-		if $flags.check DRYRUN; then
-			echo -n "${cmd}"
-		elif [ -t 1 ]; then
-			printf "\033[38;5;112m%s\033[m> %s" "${0##*/}" "${cmd}"
-		else
-			echo -n "${0##*/}> ${cmd}"
+		if ! $flags.check DRYRUN; then
+			printf "$(ti:fmt:module %s)> " "${0##*/}" 2>&1
 		fi
+		test -z "${cmd##\#*}" && ti:fmt:grey 2>&1
+		echo -n "${cmd}"
 		for arg in "$@"; do
 			case "${arg}" in
 			--*)    echo -n " ${arg}";;
@@ -855,6 +853,7 @@ loaderupdate:Session.printcmd() {
 			*)      echo -n " ${arg}";;
 			esac
 		done
+		test -z "${cmd##\#*}" && ti:fmt:reset 2>&1
 		echo
 	fi
 }
