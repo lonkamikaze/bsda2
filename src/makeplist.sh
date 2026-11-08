@@ -6,6 +6,34 @@ readonly _makeplist_=1
 . ${bsda_dir:-.}/bsda_opts.sh
 . ${bsda_dir:-.}/bsda_util.sh
 . ${bsda_dir:-.}/bsda_bsdmake.sh
+. ${bsda_dir:-.}/bsda_err.sh
+
+
+#
+# Define a set of fatal errors.
+#
+# | Code                | Severity | Meaning                                      |
+# |---------------------|----------|----------------------------------------------|
+# | E_MAKEPLIST_ORIGIN  | error    | Cannot determine port origin                 |
+# | E_MAKEPLIST_WRKDIR  | error    | Cannot create or write to WRKDIR             |
+# | E_MAKEPLIST_PLIST   | error    | Cannot write plist file                      |
+# | E_MAKEPLIST_OUTFILE | error    | Multiple output files provided               |
+# | E_MAKEPLIST_IGNORE  | error    | Invalid entry in list of variables to ignore |
+# | E_MAKEPLIST_PARAM   | error    | Unknown CLI parameter                        |
+# | E_MAKEPLIST_ARGC    | error    | Too man CLI arguments                        |
+# | E_MAKEPLIST_PKG     | error    | Cannot determine port from the given name    |
+# | E_MAKEPLIST_PORTDIR | error    | Cannot change into port directory            |
+#
+bsda:err:createECs \
+	E_MAKEPLIST_ORIGIN  \
+	E_MAKEPLIST_WRKDIR  \
+	E_MAKEPLIST_PLIST   \
+	E_MAKEPLIST_OUTFILE \
+	E_MAKEPLIST_IGNORE  \
+	E_MAKEPLIST_PARAM   \
+	E_MAKEPLIST_ARGC    \
+	E_MAKEPLIST_PKG     \
+	E_MAKEPLIST_PORTDIR
 
 #
 # Each instance represents an option in a linked list.
@@ -710,17 +738,20 @@ makeplist:Make.init() {
 	setvar ${this}plistNewFile "$2"
 	origin="$(bsda:bsdmake -VPKGORIGIN)" || return $?
 	if [ -z "$origin" ]; then
-		$1.error "Port origin could not be detected"
-		return 1
+		bsda:err:raise E_MAKEPLIST_ORIGIN \
+			"Port origin could not be detected!"
+		return
 	fi
 	wrkdir="$(bsda:bsdmake -VWRKDIR)" || return $?
 	if ! /bin/mkdir -p "$wrkdir" 2>&-; then
-		$1.error "The WRKDIR could not be created: $wrkdir"
-		return 1
+		bsda:err:raise E_MAKEPLIST_WRKDIR \
+			"The WRKDIR could not be created: $wrkdir"
+		return
 	fi
 	if ! [ -w "$wrkdir" ]; then
-		$1.error "The WRKDIR is not writable: $wrkdir"
-		return 1
+		bsda:err:raise E_MAKEPLIST_WRKDIR \
+			"The WRKDIR is not writable: $wrkdir"
+		return
 	fi
 	$1.msg "Initialising make for $origin"
 	origin="$(echo "$origin" | /usr/bin/tr / .)"
@@ -729,8 +760,9 @@ makeplist:Make.init() {
 	test -z "$2" && setvar ${this}plistNewFile "$file.${0##*/}"
 	$this.getPlistNewFile file
 	if ! /usr/bin/touch "$file" 2>&-; then
-		$1.error "The target plist-file is not writable: $file"
-		return 1
+		bsda:err:raise E_MAKEPLIST_PLIST \
+			"The target plist-file is not writable: $file"
+		return
 	fi
 	makeplist:TmpDir ${this}Logdir ${this}logdir "${0##*/}.$origin" \
 	|| return $?
@@ -911,11 +943,7 @@ makeplist:Session.help() {
 #	The message to print
 #
 makeplist:Session.msg() {
-	if [ -t 1 ]; then
-		printf '\033[38;5;3mmakeplist:\033[m %s\n' "$*"
-	else
-		printf 'makeplist: %s\n' "$*"
-	fi
+	printf "$(ti:fmt:module makeplist:) %s\n" "$*" 2>&1
 }
 
 #
@@ -925,11 +953,7 @@ makeplist:Session.msg() {
 #	The message to print
 #
 makeplist:Session.error() {
-	if [ -t 1 ]; then
-		printf '\033[38;5;3mmakeplist: \033[1;38;5;1mERROR:\033[m %s\n' "$*"
-	else
-		printf 'makeplist: ERROR: %s\n' "$*"
-	fi 1>&2
+	IFS=$'\n' bsda:err:print E_FAIL "$@"
 }
 
 #
@@ -980,10 +1004,6 @@ makeplist:Session.params() {
 		;;
 		OUTFILE)
 			local outfile
-			if eval "[ -n \"\$${this}outfile\" ]"; then
-				$this.error "More than one output file given: $2"
-				return 1
-			fi
 			case "$1" in
 			-o?*)
 				outfile="${1#-o}"
@@ -993,6 +1013,11 @@ makeplist:Session.params() {
 				shift
 			;;
 			esac
+			if eval "[ -n \"\$${this}outfile\" ]"; then
+				bsda:err:raise E_MAKEPLIST_OUTFILE \
+					"More than one output file given: ${outfile}"
+				return
+			fi
 			case "$outfile" in
 			/*)
 				setvar ${this}outfile "$outfile"
@@ -1005,10 +1030,10 @@ makeplist:Session.params() {
 		IGNORE_VARS)
 			case "$1" in
 			-I?*)
-				ignore="$ignore${1#-I},"
+				ignore="${1#-I}"
 			;;
 			*)
-				ignore="$ignore$2,"
+				ignore="$2"
 				shift
 			;;
 			esac
@@ -1019,15 +1044,17 @@ makeplist:Session.params() {
 				# This is the list of allowed variables.
 			;;
 			*)
-				$this.error "Ignoring make variable $var is not supported: $1"
-				return 1
+				bsda:err:raise E_MAKEPLIST_IGNORE \
+					"Ignoring make variable $var is not supported: $1"
+				return
 			;;
 			esac; done
 			$vars.ignore $ignore
 		;;
 		OPT_UNKNOWN)
-			$this.error "Unknown parameter: \"$1\""
-			return 1
+			bsda:err:raise E_MAKEPLIST_PARAM \
+				"Unknown parameter: \"$1\""
+			return
 		;;
 		OPT_SPLIT)
 			eval "$bsda_opts_split"
@@ -1035,8 +1062,9 @@ makeplist:Session.params() {
 		;;
 		OPT_NOOPT)
 			if [ -n "$port" ]; then
-				$this.error "Too many arguments: ... $@"
-				return 1
+				IFS=$'\n' bsda:err:raise E_MAKEPLIST_ARGC \
+					"Too many arguments:" "$@"
+				return
 			fi
 			port="$1"
 		;;
@@ -1048,8 +1076,9 @@ makeplist:Session.params() {
 	done
 
 	if $flags.check LICENSES && $flags.check QUIET; then
-		$this.error "The --licenses and --quiet flags are mutually exclusive."
-		return 1
+		bsda:err:raise E_MAKEPLIST_PARAM \
+			"The --licenses and --quiet flags are mutually exclusive."
+		return
 	fi
 
 	case "$port" in
@@ -1065,16 +1094,18 @@ makeplist:Session.params() {
 		portsdir="$(bsda:bsdmake -f/usr/share/mk/bsd.port.mk -VPORTSDIR)"
 		origin="$(pkg:info:origins "$port")"
 		if [ -z "$origin" ]; then
-			$this.error "Cannot find port via \`pkg info\`: $port"
-			return 1
+			bsda:err:raise E_MAKEPLIST_PKG \
+				"Cannot find port via \`pkg info\`: $port"
+			return
 		fi
 		port="$portsdir/$origin"
 	;;
 	esac
 
 	if [ -n "$port" ] && ! cd "$port" 2>&-; then
-		$this.error "Cannot change into port directory: $port"
-		return 1
+		bsda:err:raise E_MAKEPLIST_PORTDIR \
+			"Cannot change into port directory: $port"
+		return
 	fi
 }
 

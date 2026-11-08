@@ -1,4 +1,4 @@
-.Dd 23 February, 2021
+.Dd 1 November, 2026
 .Dt MAKEPLIST 8
 .Os
 .Sh NAME
@@ -223,6 +223,40 @@ from the old plist to the new one. The script makes an effort to
 place them in the same context. The prefix
 .Dq Li @sample\ 
 is stripped from all files that appear in the old plist without it.
+.Sh EXIT STATUS
+The following is a list of all anticipated exit codes:
+.Bl -tag -with indent
+.It Er EOK=0
+Command completed successfully.
+.It Er ESIGNAL=1
+Interrupted by signal.
+.It Er EFAIL=2
+Generic application logic error.
+.It Er EORIGIN=5
+Cannot determine port origin.
+.It Er EWRKDIR=6
+Cannot create or write to
+.Va WRKDIR .
+.It Er EPLIST=7
+Cannot write plist file provided via
+.Fl o Ar plist-file .
+.It Er EOUTFILE=8
+Multiple output files were provided via
+.Fl o Ar plist-file .
+.It Er EIGNORE=9
+Invalid entry in the list of variables to ignore provided via
+.Fl I Ar make-vars .
+.It Er EPARAM=10
+An unknown CLI parameter was provided.
+.It Er EARGC=11
+Too many arguments provided.
+.It Er EPKG=12
+Cannot determine port name and origin from the given package name.
+.It Er EPORTDIR=13
+Cannot change into the
+.Va PORTDIR
+directory.
+.El
 .Sh EXAMPLES
 The current directory is a port to create a pkg-plist for:
 .Pp
