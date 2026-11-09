@@ -21,6 +21,10 @@ if [ $# -eq 0 ]; then
 	set -- *
 fi
 
+print() {
+	printf '%-31s %32s\n' "${test} $@"
+}
+
 fails=0
 for test in $@; do
 	# Remove folder component
@@ -28,21 +32,21 @@ for test in $@; do
 
 	# Skip hidden files, `.` and `..`
 	if [ -z "${test##.*}" ]; then
-		echo "${test} failed: skipping"
+		print failed: skipping
 		fails=$((fails + 1))
 		continue
 	fi
 
 	# Need to exist
 	if [ ! -e "$test" ]; then
-		echo "${test} failed: missing"
+		print failed: missing
 		fails=$((fails + 1))
 		continue
 	fi
 
 	# Need read access
 	if [ ! -r "$test" ]; then
-		echo "${test} failed: cannot access"
+		print failed: "cannot access"
 		fails=$((fails + 1))
 		continue
 	fi
@@ -56,14 +60,14 @@ for test in $@; do
 		awk -f../src/testify.awk "$test")" || return 1
 	for shell in sh bash; do
 		which $shell >&- || continue
-		echo "${test} running: ${shell} ${test}"
+		print running: "${shell} ${test}"
 		if $shell -c "$code"; then
 			if [ -t 1 ]; then
 				tput up
 			fi
-			echo "${test} passed:  ${shell} ${test}"
+			print passed: "${shell} ${test}"
 		else
-			echo "${test} failed:  ${shell} ${test}"
+			print failed: "${shell} ${test}"
 			fails=$((fails + 1))
 		fi
 	done
