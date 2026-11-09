@@ -226,14 +226,20 @@ distviper:Session.getMakeVar() {
 #	The folders to search for distinfo files
 #
 distviper:Session.run_find() {
-	/usr/bin/find "$@" -type f -name distinfo -not -exec /usr/bin/awk '
-		/^SHA/ {
+	/usr/bin/find "$@" -type f -name distinfo -not -exec /usr/bin/awk -vOFS=$'\034' '
+		$2 ~ /^\(.*\)$/ {
 			sub(/^\(/, "", $2)
 			sub(/\)$/, "", $2)
-			pair = $2 "|" $4
-			if (!(pair in pairs)) {
-				pairs[pair]
-				print pair
+		}
+		/^SHA/ {
+			sums[$2] = $4
+		}
+		/^SIZE/ {
+			sizes[$2] = $4
+		}
+		END {
+			for (file in sums) {
+				print file, sums[file], sizes[file]
 			}
 		}' '{}' + 2>&1 | /usr/bin/sort
 }
@@ -273,8 +279,9 @@ distviper:Session.run_find_present() {
 # Select and delete obsolete distfiles.
 #
 distviper:Session.run() {
-	local IFS term flags keep portsdir distdir keepSums keepFiles
+	local IFS RS term flags keep portsdir distdir keepSums keepFiles
 	IFS=$'\n'
+	RS=$'\034'
 	$this.Term term
 	$this.Flags flags
 	$this.getKeep keep
@@ -283,13 +290,13 @@ distviper:Session.run() {
 
 	$this.status "Creating a list of $keep distfiles"
 	keepSums="$($class.run_find_$keep)"
-	keepFiles="$(echo "$keepSums" | /usr/bin/sed 's/|.*//')"
+	keepFiles="$(echo "$keepSums" | /usr/bin/cut -d"${RS}" -f1)"
 
-	if echo "$keepSums" | /usr/bin/grep -qv '|[0-9a-f]*$'; then
+	if echo "$keepSums" | /usr/bin/grep -qv "${RS}[0-9a-f]*${RS}[0-9]*\$"; then
 		$term.deactivate
 		bsda:err:panic E_DISTVIPER_PORTSDIR \
 			"Access to $portsdir failed" \
-			$(echo "$keepSums" | /usr/bin/grep -v '|[0-9a-f]*$')
+			$(echo "$keepSums" | /usr/bin/grep -v "${RS}[0-9a-f]*${RS}[0-9]*\$")
 	fi
 
 	$this.status "Creating a list of distfiles to delete"
@@ -316,10 +323,15 @@ distviper:Session.run() {
 		fi
 		test -z "$verify" && continue
 
-		chksum="$(/sbin/sha256 < "$distdir/$file")"
-		if ! echo "$keepSums" | /usr/bin/grep -qFx "$file|$chksum"; then
+		fsize=$(/usr/bin/stat -f %z "$distdir/$file")
+		if ! echo "$keepSums" | /usr/bin/grep -qFx "${file}${RS}.*${RS}${fsize}"; then
 			log mismatchFiles.push_back "$file"
-			fsize=$(/usr/bin/stat -f %z "$distdir/$file")
+			msize=$((msize + fsize))
+			continue
+		fi
+		chksum="$(/sbin/sha256 < "$distdir/$file")"
+		if ! echo "$keepSums" | /usr/bin/grep -qFx "${file}${RS}${chksum}${RS}${fsize}"; then
+			log mismatchFiles.push_back "$file"
 			msize=$((msize + fsize))
 			continue
 		fi
