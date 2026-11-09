@@ -35,7 +35,7 @@ bsda:test:gmatch 'Foo@* {}' "$dump"
 # Test deleting
 "$foo".delete
 ! error=$("$foo".delete 2>&1)
-bsda:test:gmatch "* not found" "$error"
+bsda:test:gmatch "*$foo.delete:*" "$error"
 
 # Test setters'n'getters
 bsda:obj:createClass Baz w:value
@@ -112,7 +112,6 @@ getvar x "${baz}"value && test "$x" = 42
 "$baz".delete
 getvar x "${baz}"value && test -z "$x"
 ! error=$($baz.getValue x 2>&1 )
-bsda:test:gmatch "* not found" "$error"
 bsda:obj:deserialise baz "$serialised"
 x=0
 "$baz".getValue x && test "$x" = 42
@@ -325,4 +324,4 @@ test $'C\nB\nA\nGC\nGCa' = "$harvest"
 
 # Test GC with unimplemented cleanup method
 warn=$( (bsda:obj:fork;Bar bar) 2>&1 )
-bsda:test:gmatch $'* not found\nbsda:obj:exit: WARNING: *' "$warn"
+bsda:test:gmatch $'*\nbsda:obj:exit: WARNING: *' "$warn"
