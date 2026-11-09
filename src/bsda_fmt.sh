@@ -242,6 +242,9 @@ bsda:fmt:in() {
 #
 # Verify the given argument has the format /[a-z][a-z0-9_]*=.*/i.
 #
+# Note, what is included in [a-z] is locale dependent using FreeBSD
+# sh, but locale independent using bash.
+#
 # @param 1
 #	The substitution argument to verify
 # @retval 0
@@ -757,7 +760,7 @@ bsda:fmt:scale() {
 			test ${#int} -eq $intlen && break
 		done
 
-		printf "%.${digits}f${IFS%"${IFS#?}"}%s" "$int.$frac" "$unit"
+		LANG=C printf "%.${digits}f${IFS%"${IFS#?}"}%s" "$int.$frac" "$unit"
 	)
 	setvar "$1" "$3"
 	setvar "$2" "$4"
@@ -819,6 +822,6 @@ bsda:fmt:unit() {
 		int=$((val / pval))
 		frac=$((val % pval))
 		frac="$(printf "%0${precision}d" "$frac")"
-		printf "%.${precision}f" "$int.$frac"
+		LANG=C printf "%.${precision}f" "$int.$frac"
 	)"
 }
