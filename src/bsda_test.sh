@@ -226,7 +226,7 @@ bsda:test:xmatch_count() {
 #
 bsda:test:type() {
 	setvar "$1" "$(
-		case "$(LANG=C type "$2" 2>&1 )" in
+		case "$(LC_ALL=C type "$2" 2>&1 )" in
 		"$2 is an alias "*|"$2 is aliased "*)
 			echo alias
 		;;

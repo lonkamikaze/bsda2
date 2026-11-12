@@ -760,7 +760,7 @@ bsda:fmt:scale() {
 			test ${#int} -eq $intlen && break
 		done
 
-		LANG=C printf "%.${digits}f${IFS%"${IFS#?}"}%s" "$int.$frac" "$unit"
+		LC_ALL=C printf "%.${digits}f${IFS%"${IFS#?}"}%s" "$int.$frac" "$unit"
 	)
 	setvar "$1" "$3"
 	setvar "$2" "$4"
@@ -822,6 +822,6 @@ bsda:fmt:unit() {
 		int=$((val / pval))
 		frac=$((val % pval))
 		frac="$(printf "%0${precision}d" "$frac")"
-		LANG=C printf "%.${precision}f" "$int.$frac"
+		LC_ALL=C printf "%.${precision}f" "$int.$frac"
 	)"
 }

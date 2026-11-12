@@ -38,9 +38,9 @@ bsda:fmt:isarg a=
 test "${errno}" = ""
 bsda:fmt:isarg A=
 test "${errno}" = ""
-! LANG=C bsda:fmt:isarg ö=
+! LC_ALL=C bsda:fmt:isarg ö=
 test "${errno}" = E_BSDA_FMT_ARG && errno=
-! LANG=C bsda:fmt:isarg ẞ=
+! LC_ALL=C bsda:fmt:isarg ẞ=
 test "${errno}" = E_BSDA_FMT_ARG && errno=
 ! bsda:fmt:isarg 1=
 test "${errno}" = E_BSDA_FMT_ARG && errno=
@@ -51,9 +51,9 @@ bsda:fmt:isarg a=x
 test "${errno}" = ""
 bsda:fmt:isarg A=x
 test "${errno}" = ""
-! LANG=C bsda:fmt:isarg ö=x
+! LC_ALL=C bsda:fmt:isarg ö=x
 test "${errno}" = E_BSDA_FMT_ARG && errno=
-! LANG=C bsda:fmt:isarg ẞ=x
+! LC_ALL=C bsda:fmt:isarg ẞ=x
 test "${errno}" = E_BSDA_FMT_ARG && errno=
 ! bsda:fmt:isarg 1=x
 test "${errno}" = E_BSDA_FMT_ARG && errno=
@@ -76,9 +76,9 @@ bsda:fmt:isarg A3=x
 test "${errno}" = ""
 bsda:fmt:isarg A_=x
 test "${errno}" = ""
-! LANG=C bsda:fmt:isarg öa=x
+! LC_ALL=C bsda:fmt:isarg öa=x
 test "${errno}" = E_BSDA_FMT_ARG && errno=
-! LANG=C bsda:fmt:isarg ẞa=x
+! LC_ALL=C bsda:fmt:isarg ẞa=x
 test "${errno}" = E_BSDA_FMT_ARG && errno=
 ! bsda:fmt:isarg 1a=x
 test "${errno}" = E_BSDA_FMT_ARG && errno=
@@ -400,9 +400,9 @@ bsda:fmt str '' a=
 test "${errno}" = ""
 bsda:fmt str '' A=
 test "${errno}" = ""
-! LANG=C bsda:fmt str '' ö=
+! LC_ALL=C bsda:fmt str '' ö=
 test "${errno}" = E_BSDA_FMT_ARG && errno=
-! LANG=C bsda:fmt str '' ẞ=
+! LC_ALL=C bsda:fmt str '' ẞ=
 test "${errno}" = E_BSDA_FMT_ARG && errno=
 ! bsda:fmt str '' 1=
 test "${errno}" = E_BSDA_FMT_ARG && errno=
@@ -410,7 +410,7 @@ test "${errno}" = E_BSDA_FMT_ARG && errno=
 test "${errno}" = E_BSDA_FMT_ARG && errno=
 bsda:fmt str '' A_=x
 test "${errno}" = ""
-! LANG=C bsda:fmt str '' öa=x
+! LC_ALL=C bsda:fmt str '' öa=x
 test "${errno}" = E_BSDA_FMT_ARG && errno=
 bsda:fmt str '{str:(a)}' a=3 str=
 test "${#str}" = 3
