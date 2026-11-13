@@ -335,3 +335,18 @@ bsda:test:isNone() {
 bsda:test:isSet() {
 	eval "test -n \"\${$1+x}\""
 }
+
+#
+# Evaluate command with set locale.
+#
+# This call can be preceeded to locale sensitive commands to enforce
+# execution with a specific locale.
+#
+# @param 1
+#	The locale to set
+# @param @
+#	The command and arguments to evaluate
+#
+bsda:test:localeEval() {
+	eval "shift; LANG='${1}' LC_ALL='${1}' \"\$@\""
+}
